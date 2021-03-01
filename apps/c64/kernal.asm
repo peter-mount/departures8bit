@@ -3,10 +3,21 @@
 ; **********************************************************************
 
 ; Kernal routines
+SETLFS  = &FFBA     ; Setup a logical file
+SETNAM  = &FFBD     ; Set file name
+OPEN    = &FFC0     ; Open logical file
+CLOSE   = &FFC3     ; Close logical file
+CHKOUT  = &FFC9     ; Open channel for output
+CLRCHN  = &FFCC     ; Clear IO channels
 CHRIN   = &FFCF     ; Input 1 char from keyboard, reads a line until return pressed
-CHROUT  = &FFD2     ; Output 1 char to screen
+CHROUT  = &FFD2     ; Output 1 char to screen (or open channel)
 GETIN   = &FFE4     ; Get 1 char from keyboard
 PLOT    = &FFF0     ; Set/Get cursor position
+
+; Not official calls?
+CLSR    = &E544     ; Clear screen
+
+; **********************************************************************
 
 ; Colours
 COL_BLACK       = 0

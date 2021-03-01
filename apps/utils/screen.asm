@@ -33,7 +33,7 @@ ENDIF
 .clearScreen
 {
 IF c64
-    JMP &E544       ; Kernal clear screen
+    JMP CLSR        ; Kernal clear screen
 ELIF bbc
     LDA #12
     JMP oswrch
@@ -55,17 +55,17 @@ ENDIF
 .setPos
 {
 IF c64
-    PHA
-    TXA
-    PHA
+    PHA                 ; On C64 x is row & y is column but we use it the more
+    TXA                 ; logical X for column & Y for row
+    PHA                 ; So just swap them over
     TYA
     TAX
     PLA
     TAX
     PLA
-    JMP &FFF0
+    JMP PLOT
 ELIF bbc
-    PHA
+    PHA                 ; BBC uses VDU &1F,x,y to set the position
     LDA #&1F
     JSR oswrch
     TXA

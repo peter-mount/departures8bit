@@ -6,7 +6,7 @@
 ; the machine code.
 ;
     CPU     0       ; 6502
-    GUARD   &C000   ; Guard to upper memory limit TODO fix this
+    GUARD   &A000   ; Guard to upper memory limit
 
 start = &0801       ; Base of basic program
     ORG start-2     ; Start 2 bytes earlier so we can inject the load address
@@ -26,4 +26,6 @@ start = &0801       ; Base of basic program
 .entryPoint
     JSR initScreen          ; Initialise the screen
     JSR welcome             ; Show the welcome screen
+    JSR serialInit          ; Initialise RS232
+    JSR connectAPI          ; Connect to API
     RTS

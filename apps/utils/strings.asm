@@ -2,7 +2,7 @@
 ; Miscelaneous string utilities
 ; **********************************************************************
 
-; write Char to screen
+; oswrch - write Char to screen
 ;
 ; on entry:
 ;   A   Character to write
@@ -10,10 +10,13 @@
 ; on exit:
 ;   X   preserved
 ;   Y   preserved
+;
+; This is simply an alias to the appropriate OS call so that we have a common
+; name in code but platform independent. Name is based on the BBC OSWRCH
 IF bbc
     oswrch = &FFEE  ; point to MOS routine
 ELIF c64
-    oswrch = &FFD2  ; point to KERNAL routine
+    oswrch = CHROUT  ; point to KERNAL routine
 ENDIF
 
 ; writeString - writes a null terminated string
