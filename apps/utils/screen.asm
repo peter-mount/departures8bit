@@ -2,6 +2,28 @@
 ; Common screen routines
 ; **********************************************************************
 
+; initScreen    Initialises the screen
+.initScreen
+IF c64
+    LDA #&00        ; Set border to black
+    STA &d020       ; Border colour
+    STA &d021       ; Background colour
+    LDA #COL_GREY1  ; Set text colour
+    JSR setColour
+                    ; fall through to clearScreen
+ELIF bbcmaster
+    LDA #22         ; VDU 22 to select screen mode
+    JSR oswrch
+    LDA #128+7      ; Mode 7 but using shadow ram
+    JMP oswrch
+ELIF bbc
+    ; TODO this is for the bbcmaster
+    LDA #22         ; VDU 22 to select screen mode
+    JSR oswrch
+    LDA #7          ; Mode 7 no shadow ram on BBC B
+    JMP oswrch
+ENDIF
+
 ; clearScreen   Clears the screen
 ;
 ; on exit:
@@ -11,21 +33,7 @@
 .clearScreen
 {
 IF c64
-    lda #&00    ; Set border to black
-    sta &d020
-    sta &d021
-    tax             ; LDX #0
-    lda #' '        ; Set screen to spaces
-.loop
-    STA &0400,X
-    STA &0500,X
-    STA &0600,X
-    STA &0700,X
-    DEX
-    BNE loop
-    LDX #0          ; Home the cursor
-    LDY #0
-    JMP setPos
+    JMP &E544       ; Kernal clear screen
 ELIF bbc
     LDA #12
     JMP oswrch
@@ -71,3 +79,19 @@ ELSE
 ENDIF
 }
 
+; setColour sets the current text colour
+;
+; on entry:
+;   A   Colour code, platform dependent
+;
+; on exit:
+;   A   undefined, preserved on C64
+;   X   undefined, preserved on C64
+;   Y   undefined, preserved on C64
+.setColour
+IF c64
+    STA &0286       ; 0286 holds the current text colour
+    RTS
+ELIF bbc
+    RTS             ; TODO define mode7 parameters here
+ENDIF

@@ -2,12 +2,12 @@
 ; Commodore C64 departure boards
 ; **********************************************************************
 
-    INCLUDE "c64/loader.asm"    ; Must be first
-    INCLUDE "c64/welcome.asm"   ; Must be second as this holds our entry point
-    INCLUDE "utils/zeropage.asm"
-    INCLUDE "c64/kernal.asm"
-    INCLUDE "utils/screen.asm"
-    INCLUDE "utils/strings.asm"
+    INCLUDE "c64/loader.asm"        ; Start of the C64
+    INCLUDE "utils/zeropage.asm"    ; 3rd Zero page allocations
+    INCLUDE "c64/kernal.asm"        ; OS constants - TODO remove?
+    INCLUDE "utils/screen.asm"      ; Screen handling
+    INCLUDE "utils/strings.asm"     ; String handling
+    INCLUDE "utils/welcome.asm"     ; Welcome page
 
 .end
     SAVE "../builds/depart.prg", start-2, end

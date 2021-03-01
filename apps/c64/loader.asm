@@ -11,6 +11,7 @@
 start = &0801       ; Base of basic program
     ORG start-2     ; Start 2 bytes earlier so we can inject the load address
     EQUW start      ; Load address in prg file
+{
     EQUW basicEnd   ; pointer to next line
     EQUW 10         ; line 10
     EQUB &9E, &20   ; SYS BASIC token followed by space
@@ -18,5 +19,11 @@ start = &0801       ; Base of basic program
     EQUB 0          ; End of line
 .basicEnd
     EQUW 0          ; pointer to next line, 0 = end of program
+}
     SKIPTO &0900    ; Skip to the next page
+
+;   The program's entry point
 .entryPoint
+    JSR initScreen          ; Initialise the screen
+    JSR welcome             ; Show the welcome screen
+    RTS

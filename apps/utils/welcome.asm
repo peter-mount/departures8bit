@@ -10,6 +10,13 @@
     RTS
 
 .welcomeText
-    EQUS "DEPARTUREBOARDS.MOBI C64 EDITION", 13, 13
-    EQUS "VERSION 0.01A", 13, 13
+    EQUS "DEPARTUREBOARDS.MOBI"
+IF c64
+    EQUS " C64"
+ELIF bbcmaster
+    EQUS " BBC Master"
+ELIF bbc
+    EQUS " BBC B"
+ENDIF
+    EQUS 13, 13, "VERSION 0.01A", 13, 13
     EQUB 0
