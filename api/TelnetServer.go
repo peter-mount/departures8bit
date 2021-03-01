@@ -1,9 +1,12 @@
 package api
 
 import (
-	"github.com/reiver/go-oi"
+	"fmt"
 	"github.com/reiver/go-telnet"
+	"github.com/reiver/go-telnet/telsh"
+	"io"
 	"log"
+	"strings"
 )
 
 const (
@@ -11,41 +14,55 @@ const (
 )
 
 type TelnetServer struct {
+	shell  *telsh.ShellHandler
+	server *telnet.Server
 }
 
 func (a *TelnetServer) Name() string {
 	return "TelnetServer"
 }
 
-func (a *TelnetServer) Run() error {
-	log.Println("Starting telnet server on ", TelnetBinding)
+func (a *TelnetServer) PostInit() error {
+	a.shell = telsh.NewShellHandler()
+	a.shell.Prompt = ""
+	a.shell.WelcomeMessage = "00 DEPARTUREBOARDS.MOBI API"
+	a.shell.ExitCommandName = "QUIT"
+	a.shell.ExitMessage = "00 BYE"
 
-	server := &telnet.Server{
+	a.server = &telnet.Server{
 		Addr:    TelnetBinding,
-		Handler: a,
+		Handler: a.shell,
 		Logger:  &TelnetLogger{},
 	}
 
-	return server.ListenAndServe()
+	err := a.shell.Register("HELO", &Helo{a: a})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (a *TelnetServer) ServeTELNET(ctx telnet.Context, w telnet.Writer, r telnet.Reader) {
-	// Dummy header to notify we are connected
-	_, _ = w.Write([]byte("00 Area51 App\n"))
+func (a *TelnetServer) Register(name string, producer *telsh.ProducerFunc) error {
+	return a.shell.Register(name, producer)
+}
 
-	// For now simulate an echo handler
-	var buffer [1]byte // Seems like the length of the buffer needs to be small, otherwise will have to wait for buffer to fill up.
-	p := buffer[:]
+func (a *TelnetServer) Run() error {
+	log.Println("Starting telnet server on ", TelnetBinding)
 
-	for {
-		n, err := r.Read(p)
+	return a.server.ListenAndServe()
+}
 
-		if n > 0 {
-			_, _ = oi.LongWrite(w, p[:n])
-		}
+type Helo struct {
+	a *TelnetServer
+}
 
-		if nil != err {
-			break
-		}
-	}
+func (h *Helo) Produce(ctx telnet.Context, name string, args ...string) telsh.Handler {
+	return telsh.PromoteHandlerFunc(h.Handler)
+}
+
+func (h *Helo) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
+	log.Printf("01 Hello %s", strings.Join(args, " "))
+	_, err := stdout.Write([]byte(fmt.Sprintf("01 Hello %s", strings.Join(args, " "))))
+	return err
 }

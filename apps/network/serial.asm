@@ -5,6 +5,8 @@
 ; This provides routines to setup and send/receive packets over the
 ; serial port.
 ;
+    INCLUDE "network/connect.asm"   ; Connect API
+    INCLUDE "network/dialer.asm"    ; WiFi Modem dialer
 
 ; serialInit    Initialise the serial port
 .serialInit
@@ -21,7 +23,7 @@ IF c64
     LDA #2                      ; Logical file number 2 = RS232C
     LDX #2                      ; primary address 2 = RS232C
     LDY #0                      ; secondary address
-    JMP &FFC0                   ; OPEN
+    JMP OPEN                    ; OPEN
                     ; Filename formed of the serial parameters
 .name
                     ; Control register - SWWxBBBB
@@ -71,34 +73,6 @@ ELIF bbc
 ELSE
     RTS                         ; Unknown system
 ENDIF
-
-; SerialSendChar    send char to remote system
-;
-; on entry:
-;   A   char to send
-;
-; on exit:
-;   A   undefined
-;   X   preserved
-;   Y   preserved
-.serialSendChar
-    STA tempChar        ; Store a
-    TXA;PHA             ; PHX
-    TYA;PHA             ; PHY
-
-IF c64
-    LDX #2              ; Select serial device
-    JSR CHKOUT
-    LDA tempChar        ; Send char to device
-    JSR CHROUT
-    JSR CLRCHN          ; Reset I/O channels
-ELIF bbc
-    ERROR "TODO Not implemented"
-ENDIF
-
-    PLA;TAY             ; PLY
-    PLA;TAX             ; PLX
-    RTS
 
 ; serialSendBlock       Send block to serial
 ; on entry:

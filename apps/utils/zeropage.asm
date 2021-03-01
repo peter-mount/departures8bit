@@ -16,3 +16,7 @@
 ; Bytes 0 & 1 are unavailable on the C64 as they are the 6510 processor port
 stringPointer       = &02   ; String utility pointer
 tempChar            = &04   ; 1 byte to store temp char
+tempA               = &05   ; 1 byte to store accumulator
+currentStation      = &06   ; 4 bytes current crs code + CR
+tempAddr            = &0A   ; 2 byte scratch address, 5 bytes for OSWORD on BBC
+next                = &0F   ; next free location
