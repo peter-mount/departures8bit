@@ -18,6 +18,11 @@ MACRO PLAXY
     PLA
 ENDMACRO
 
+MACRO LDXY addr
+    LDX #<addr
+    LDY #>addr
+ENDMACRO
+
 MACRO WRITESTRING text
     LDX #<text
     LDY #>text

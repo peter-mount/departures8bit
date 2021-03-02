@@ -9,11 +9,11 @@
 
     JSR dialServer              ; Dial the remote server
 
-    LDA #0                      ; Helo
-    LDX #<cmdStart              ; APP ID
-    LDY #>cmdStart
-    JSR sendCommand
-
+    JSR outputReset             ; clear output buffer
+    LDXY heloCmd                ; append heloCmd
+    JSR outputAppendString
+    JSR serialSendOutput        ; Send command
+    JSR serialWaitUntilSent     ; Wait for command to be sent
     JSR debug
 
     WRITESTRING connected
@@ -21,7 +21,7 @@
 .connect    EQUS "Connecting...", 13, 0
 
 .connected  EQUS "Connected", 13, 0
-.cmdStart
+.heloCmd    EQUS "helo "
 IF c64
             EQUS "C64", 0
 ELIF bbc

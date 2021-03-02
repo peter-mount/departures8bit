@@ -29,19 +29,24 @@ func (h *Boards) PostInit() error {
 }
 
 func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
+	response := NewResponse()
+
 	if len(args) != 1 {
-		_, err := stdout.Write([]byte("ERR depart crs"))
-		return err
+		return response.Append("ERR depart crs").
+			Write(stdout)
 	}
 	crs := strings.ToUpper(args[0])
 
 	log.Println("DEPART " + crs)
-
 	sr, err := h.server.ldbClient.GetSchedule(crs)
 	if err != nil {
 		return err
 	}
 
+	if sr == nil {
+		return response.Append("ERRUnknown station %s", crs).
+			Write(stdout)
+	}
 	var stationName string
 	if len(sr.Station) == 0 {
 		stationName = sr.Crs
@@ -52,10 +57,7 @@ func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.W
 		stationName = d.Name
 	}
 
-	err = h.server.Record(stdout, "STN%03s%-16.16s%03d\n", crs, stationName, len(sr.Services))
-	if err != nil {
-		return err
-	}
+	response.Append("STN%03s%-16.16s%03d", crs, stationName, len(sr.Services))
 
-	return h.server.End(stdout)
+	return response.Write(stdout)
 }

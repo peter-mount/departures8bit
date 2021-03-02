@@ -80,6 +80,17 @@ ELSE
     RTS                         ; Unknown system
 ENDIF
 
+; serialSendOutput      Send outputBuffer
+;
+; on exit:
+;   A   undefined
+;   X   undefined
+;   Y   undefined
+.serialSendOutput
+    LDA outputLength                ; Length of output buffer
+    LDXY outputBuffer               ; Address of output buffer
+                                    ; fall through into serialSendBlock
+
 ; serialSendBlock       Send block to serial
 ; on entry:
 ;   A   length of block
@@ -159,8 +170,19 @@ ELSE
     RTS                         ; NO-OP
 ENDIF
 
+; serialWaitUntilSent           Waits until all characters have been transmitted
+.serialWaitUntilSent
+{
+IF c64
+    LDA &02A1                   ; If bit 1 is sent then wait until all chars transmitted
+    AND #&01
+    BNE serialWaitUntilSent
+ENDIF
+    RTS
+}
+
 ; receiveBlock  Receive up to 256 bytes, terminated with \n into inputBuffer
-.receiveBlock
+.serialReceiveLine
 {
     JSR serialInStart           ; Begin serial operation
 
@@ -169,7 +191,7 @@ ENDIF
 .loop1
 IF c64
     JSR GETIN                   ; Read from channel
-    BEQ loopEnd
+    ;BEQ loopEnd
     BNE loop2
     DEX
     BNE loop1
@@ -178,8 +200,11 @@ IF c64
 ELSE
     ERROR "TODO Not implemented"
 ENDIF
+    CMP #13
+    BEQ loopEnd
     CMP #' '                    ; Any control char terminates the line
     BMI loopEnd
+    JSR oswrch
     STA inputBuffer,Y           ; Append to line
     INY
     BNE loop1                   ; next character

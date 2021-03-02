@@ -1,14 +1,11 @@
 package api
 
 import (
-	"fmt"
 	refclient "github.com/peter-mount/nre-feeds/darwinref/client"
 	ldbclient "github.com/peter-mount/nre-feeds/ldb/client"
 	"github.com/reiver/go-telnet"
 	"github.com/reiver/go-telnet/telsh"
-	"io"
 	"log"
-	"strings"
 )
 
 const (
@@ -42,11 +39,6 @@ func (a *TelnetServer) PostInit() error {
 	a.refClient = refclient.DarwinRefClient{Url: "https://ref.prod.a51.li"}
 	a.ldbClient = ldbclient.DarwinLDBClient{Url: "https://ldb.prod.a51.li"}
 
-	err := a.shell.Register("HELO", &Helo{a: a})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -62,20 +54,4 @@ func (a *TelnetServer) Run() error {
 	log.Println("Starting telnet server on ", TelnetBinding)
 
 	return a.server.ListenAndServe()
-}
-
-func (a *TelnetServer) Info(stdout io.WriteCloser, f string, args ...interface{}) error {
-	return a.Record(stdout, "INF"+f, args...)
-}
-
-func (a *TelnetServer) Record(stdout io.WriteCloser, f string, args ...interface{}) error {
-	s := fmt.Sprintf(f, args...)
-	log.Println(s)
-	_, err := stdout.Write([]byte(s))
-	return err
-}
-
-func (a *TelnetServer) End(stdout io.WriteCloser) error {
-	_, err := stdout.Write([]byte("END\n"))
-	return err
 }

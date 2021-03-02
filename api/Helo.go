@@ -28,10 +28,7 @@ func (h *Helo) PostInit() error {
 }
 
 func (h *Helo) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
-	err := h.server.Info(stdout, "Hello %s", strings.Join(args, " "))
-	if err != nil {
-		return err
-	}
-
-	return h.server.End(stdout)
+	return NewResponse().
+		Append("INF%s", strings.Join(args, " ")).
+		Write(stdout)
 }

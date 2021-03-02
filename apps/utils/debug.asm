@@ -6,7 +6,7 @@
 {
     ;JSR waitSecond ;; to prevent RS232NET: Error - Error writing: 32.
     PHAXY
-    JSR receiveBlock
+    JSR serialReceiveLine
 
     LDX #<inputBuffer
     LDY #>inputBuffer

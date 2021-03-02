@@ -31,10 +31,12 @@ start = &0801       ; Base of basic program
 
     JSR debug
 
-    LDA #1                  ; depart
-    LDX #<test              ; test MDE argument
-    LDY #>test
-    JSR sendCommand
+
+    JSR outputReset         ; clear output buffer
+    LDXY test               ; append heloCmd
+    JSR outputAppendString
+    JSR outputTerminate
+    JSR serialSendOutput    ; Send command
 
     ;JSR waitSecond ;; to prevent RS232NET: Error - Error writing: 32.
 {
@@ -61,4 +63,4 @@ ENDIF
     RTS
 }
 .test
-    EQUS "MDE",0
+    EQUS "depart mde",0

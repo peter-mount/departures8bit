@@ -9,8 +9,9 @@ import (
 func main() {
 	err := kernel.Launch(
 		&api.TelnetServer{},
-		&api.Boards{},
 		&api.ApiCore{},
+		&api.Boards{},
+		&api.Helo{},
 	)
 	if err != nil {
 		log.Fatal(err)

@@ -20,11 +20,13 @@ tempA               = &05   ; 1 byte to store accumulator
 currentStation      = &06   ; 4 bytes current crs code + CR
 tempAddr            = &0A   ; 2 byte scratch address, 5 bytes for OSWORD on BBC
 readLength          = &0F   ; Number of bytes read from serial
-next                = &10   ; next free location
+outputLength        = &10   ; Size of output buffer
+next                = &11   ; next free location
 
 ; Here until I find somewhere better
 IF c64
 stationBuffer       = &C000 ; 4K workspace for stations as they are read
+outputBuffer        = &9E00 ; 256 bytes to create strings
 inputBuffer         = &9F00 ; 256 bytes before the Basic rom
 ELSE
     ERROR "Not implemented"
