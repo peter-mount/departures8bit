@@ -20,24 +20,15 @@
     LDY #>connected
     JSR writeString
     RTS     ; TODO implement response
-.connect
-IF c64
-    EQUS "CONNECTING...", 13, 0
-ELSE
-    EQUS "Connecting...", 13, 0
-ENDIF
+.connect    EQUS "Connecting...", 13, 0
 
-.connected
+.connected  EQUS "Connected", 13, 0
+.cmdStart   EQUS "HELO "
 IF c64
-    EQUS "CONNECTED", 13, 0
-ELSE
-    EQUS "Connected", 13, 0
-ENDIF
-.cmdStart
-IF c64
-    EQUS "HELO C64", 13, 10
+            EQUS "C64"
 ELIF bbc
-    EQUS "HELO BBC", 13, 10
+            EQUS "BBC"
 ENDIF
+            EQUB 13, 0
 .cmdEnd
 }

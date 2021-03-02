@@ -7,22 +7,26 @@
 ;
     INCLUDE "network/connect.asm"   ; Connect API
     INCLUDE "network/dialer.asm"    ; WiFi Modem dialer
+    INCLUDE "network/api.asm"       ; API calls
 
 ; serialInit    Initialise the serial port
 .serialInit
 IF c64
+SERIAL_LOGICAL_FILE = 5         ; Logical file number
+SERIAL_TRUE_FILE    = 2         ; 2 = RS232
+SERIAL_COMMAND      = 3         ; Command
 {
-    LDA #2
-    TAX
+    LDA #SERIAL_LOGICAL_FILE    ; Logical file number 2 = RS232C
+    LDX #SERIAL_TRUE_FILE       ; primary address 2 = RS232C
     LDY #0
     JSR SETLFS                  ; SETLFS Setup logical file
     LDA #nameEnd-name           ; Length of file name
     LDX #<name
     LDY #>name
     JSR SETNAM                  ; SETNAM Set name
-    LDA #2                      ; Logical file number 2 = RS232C
-    LDX #2                      ; primary address 2 = RS232C
-    LDY #0                      ; secondary address
+    LDA #SERIAL_LOGICAL_FILE    ; Logical file number 2 = RS232C
+    LDX #SERIAL_TRUE_FILE       ; primary address 2 = RS232C
+    LDY #SERIAL_COMMAND         ; secondary address
     JMP OPEN                    ; OPEN
                     ; Filename formed of the serial parameters
 .name
@@ -53,7 +57,7 @@ IF c64
                     ; 1101 7200     [NI]
                     ; 1110 9600     [NI]
                     ; 1111 19200    [NI]
-    EQUB &0A  ; 2400 8N1
+    EQUB &08  ; 1200 8N1
                     ; Command register - PPPDxxxH
                     ;
                     ; PPP Parity
@@ -85,30 +89,70 @@ ENDIF
 ;   Y   undefined
 .serialSendBlock
 {
-    STA tempChar            ; Store parameters
+    STA tempChar                ; Store parameters
     STX stringPointer
     STY stringPointer+1
 
-IF c64
-    LDX #2                  ; Select serial
-    JSR CHKOUT
-ELIF bbc
-    ERROR "TODO Not implemented"
-ENDIF
+    JSR serialStart             ; Begin serial operation
 
-    LDX tempChar            ; Counter of chars to send
-    LDY #0                  ; Index of char in buffer
+    LDX tempChar                ; Counter of chars to send
+    LDY #0                      ; Index of char in buffer
 .loop
     LDA (stringPointer),Y
 
 IF c64
-    JSR CHROUT              ; Send to serial
+    JSR CHROUT                  ; Send to serial
 ELIF bbc
     ERROR "TODO Not implemented"
 ENDIF
 
-    INY                     ; Next char if any
+    INY                         ; Next char if any
     DEX
-    BNE loop
-    JMP CLRCHN              ; Reset I/O channels
+    BNE loop                    ; Loop until complete then run into serialEnd
+}
+
+; serialEnd     End serial operation
+.serialEnd
+IF c64
+    ;LDX #0                     ; Select Screen for output
+    ;JMP CHKOUT
+    JMP CLRCHN                  ; Reset I/O channels
+ELSE
+    RTS
+ENDIF
+
+; serialStart   Begin serial operations
+.serialStart
+IF c64
+    LDX #SERIAL_LOGICAL_FILE    ; Select serial
+    JMP CHKOUT
+ELIF bbc
+    ERROR "TODO Not implemented"
+ELSE
+    RTS                         ; NO-OP
+ENDIF
+
+; receiveBlock  Receive up to 256 bytes, terminated with \n into inputBuffer
+.receiveBlock
+{
+    JSR serialStart             ; Begin serial operation
+
+    LDY #0
+.loop1
+IF c64
+    JSR GETIN                   ; Read from channel
+    ;BEQ loop1                  ; loop on error TODO make this safer
+ELSE
+    ERROR "TODO Not implemented"
+ENDIF
+    JSR oswrch
+    CMP #10                     ; Line terminator?
+    BNE loopEnd
+    STA inputBuffer,Y           ; Append to line
+    INY
+    JMP loop1                   ; next character
+.loopEnd
+    LDA #0                      ; append null
+    STA inputBuffer,Y
+    JMP serialEnd             ; End serial operations
 }

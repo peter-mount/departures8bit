@@ -28,4 +28,51 @@ start = &0801       ; Base of basic program
     JSR welcome             ; Show the welcome screen
     JSR serialInit          ; Initialise RS232
     JSR connectAPI          ; Connect to API
+
+    LDX #<test
+    LDY #>test
+    JSR writeString
+    LDA #13
+    JSR oswrch
+
+    LDA #0
+    LDX #<test
+    LDY #>test
+    JSR sendCommand
+
+    ;JSR waitSecond ;; to prevent RS232NET: Error - Error writing: 32.
+{
+    LDX #10
+.l1
+    TXA
+    PHA
+    JSR receiveBlock
+    LDX #<inputBuffer
+    LDY #>inputBuffer
+    JSR writeString
+    LDA #13
+    JSR oswrch
+    JSR waitSecond
+    PLA
+    TAX
+    DEX
+    BNE l1
+}
+
     RTS
+
+
+.waitSecond                 ; wait loop for 1 second
+{
+IF c64                      ; C64 delay code
+    LDX #75
+.dialWait0
+    LDA #&FF
+.dialWait1
+    CMP &d012               ; Wait for next frame
+    BNE dialWait1
+ENDIF
+    RTS
+}
+.test
+    EQUS "MDE",0

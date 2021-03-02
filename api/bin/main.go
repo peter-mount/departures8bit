@@ -9,6 +9,7 @@ import (
 func main() {
 	err := kernel.Launch(
 		&api.TelnetServer{},
+		&api.Boards{},
 		&api.ApiCore{},
 	)
 	if err != nil {

@@ -8,8 +8,12 @@ IF c64
     LDA #&00        ; Set border to black
     STA &d020       ; Border colour
     STA &d021       ; Background colour
+
     LDA #COL_GREY1  ; Set text colour
     JSR setColour
+
+    LDA #23         ; Select mixed case font
+    STA &D018
                     ; fall through to clearScreen
 ELIF bbcmaster
     LDA #22         ; VDU 22 to select screen mode
@@ -22,6 +26,8 @@ ELIF bbc
     JSR oswrch
     LDA #7          ; Mode 7 no shadow ram on BBC B
     JMP oswrch
+ELSE
+    RTS             ; not C64 or BBC so ignore
 ENDIF
 
 ; clearScreen   Clears the screen
@@ -35,10 +41,10 @@ ENDIF
 IF c64
     JMP CLSR        ; Kernal clear screen
 ELIF bbc
-    LDA #12
+    LDA #12         ; VDU 12
     JMP oswrch
 ELSE
-    rts             ; not C64 or BBC so ignore
+    RTS             ; not C64 or BBC so ignore
 ENDIF
 }
 
@@ -75,7 +81,7 @@ ELIF bbc
     PLA
     RTS
 ELSE
-    rts             ; not C64 or BBC so ignore
+    RTS             ; not C64 or BBC so ignore
 ENDIF
 }
 
@@ -94,4 +100,6 @@ IF c64
     RTS
 ELIF bbc
     RTS             ; TODO define mode7 parameters here
+ELSE
+    RTS             ; not C64 or BBC so ignore
 ENDIF

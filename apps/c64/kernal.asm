@@ -7,6 +7,7 @@ SETLFS  = &FFBA     ; Setup a logical file
 SETNAM  = &FFBD     ; Set file name
 OPEN    = &FFC0     ; Open logical file
 CLOSE   = &FFC3     ; Close logical file
+CHKIN   = &FFC6     ; Open channel for input
 CHKOUT  = &FFC9     ; Open channel for output
 CLRCHN  = &FFCC     ; Clear IO channels
 CHRIN   = &FFCF     ; Input 1 char from keyboard, reads a line until return pressed

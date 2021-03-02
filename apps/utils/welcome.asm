@@ -10,7 +10,7 @@
     RTS
 
 .welcomeText
-    EQUS "DEPARTUREBOARDS.MOBI"
+    EQUS "DepartureBoards.mobi"
 IF c64
     EQUS " C64"
 ELIF bbcmaster
@@ -18,5 +18,5 @@ ELIF bbcmaster
 ELIF bbc
     EQUS " BBC B"
 ENDIF
-    EQUS 13, 13, "VERSION 0.01A", 13, 13
+    EQUS 13, 13, "Version 0.01a", 13, 13
     EQUB 0
