@@ -58,6 +58,7 @@
 
     LDX #<stationBuffer
     LDY #>stationBuffer
+    JSR strlen                  ; Command is 0 terminated so get it's length
     JMP serialSendBlock         ; Send command
 }
     RTS
@@ -65,6 +66,8 @@
 ; Command lookup table
 .commands
 {
+            EQUW cmdHelo
             EQUW cmdDepart
-.cmdDepart  EQUS "DEPART", 0
+.cmdHelo    EQUS "helo", 0
+.cmdDepart  EQUS "depart", 0
 }

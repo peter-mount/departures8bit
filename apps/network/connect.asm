@@ -5,30 +5,26 @@
 ; connectAPI            Connect to the remote server
 .connectAPI
 {
-    LDX #<connect
-    LDY #>connect
-    JSR writeString
+    WRITESTRING connect
 
     JSR dialServer              ; Dial the remote server
 
-    LDA #cmdEnd-cmdStart        ; Command length
-    LDX #<cmdStart
+    LDA #0                      ; Helo
+    LDX #<cmdStart              ; APP ID
     LDY #>cmdStart
-    JSR serialSendBlock         ; SEND HELO
+    JSR sendCommand
 
-    LDX #<connected
-    LDY #>connected
-    JSR writeString
+    JSR debug
+
+    WRITESTRING connected
     RTS     ; TODO implement response
 .connect    EQUS "Connecting...", 13, 0
 
 .connected  EQUS "Connected", 13, 0
-.cmdStart   EQUS "HELO "
+.cmdStart
 IF c64
-            EQUS "C64"
+            EQUS "C64", 0
 ELIF bbc
-            EQUS "BBC"
+            EQUS "BBC", 0
 ENDIF
-            EQUB 13, 0
-.cmdEnd
 }

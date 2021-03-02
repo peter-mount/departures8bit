@@ -4,9 +4,7 @@
 
 .welcome
     JSR clearScreen
-    LDX #<welcomeText
-    LDY #>welcomeText
-    JSR writeString
+    WRITESTRING welcomeText
     RTS
 
 .welcomeText

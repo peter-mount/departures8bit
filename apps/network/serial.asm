@@ -12,18 +12,20 @@
 ; serialInit    Initialise the serial port
 .serialInit
 IF c64
-SERIAL_LOGICAL_FILE = 5         ; Logical file number
+SERIAL_LOGICAL_FILE = 2         ; Logical file number
 SERIAL_TRUE_FILE    = 2         ; 2 = RS232
 SERIAL_COMMAND      = 3         ; Command
 {
     LDA #SERIAL_LOGICAL_FILE    ; Logical file number 2 = RS232C
     LDX #SERIAL_TRUE_FILE       ; primary address 2 = RS232C
-    LDY #0
+    LDY #SERIAL_COMMAND
     JSR SETLFS                  ; SETLFS Setup logical file
+
     LDA #nameEnd-name           ; Length of file name
     LDX #<name
     LDY #>name
     JSR SETNAM                  ; SETNAM Set name
+
     LDA #SERIAL_LOGICAL_FILE    ; Logical file number 2 = RS232C
     LDX #SERIAL_TRUE_FILE       ; primary address 2 = RS232C
     LDY #SERIAL_COMMAND         ; secondary address
@@ -93,7 +95,7 @@ ENDIF
     STX stringPointer
     STY stringPointer+1
 
-    JSR serialStart             ; Begin serial operation
+    JSR serialOutStart             ; Begin serial operation
 
     LDX tempChar                ; Counter of chars to send
     LDY #0                      ; Index of char in buffer
@@ -109,23 +111,48 @@ ENDIF
     INY                         ; Next char if any
     DEX
     BNE loop                    ; Loop until complete then run into serialEnd
+
+    LDA #10                     ; Line feed to end command
+IF c64
+    JSR CHROUT                  ; Send to serial
+ELIF bbc
+    ERROR "TODO Not implemented"
+ENDIF
 }
 
 ; serialEnd     End serial operation
 .serialEnd
+    PHAXY
 IF c64
-    ;LDX #0                     ; Select Screen for output
-    ;JMP CHKOUT
-    JMP CLRCHN                  ; Reset I/O channels
-ELSE
-    RTS
+LDX #3                          ; Select Screen for output
+    JSR CHKOUT
+    LDX #0                      ; Select Screen for output
+    JSR CHKIN
+    ;JMP CLRCHN                 ; Reset I/O channels
 ENDIF
+    PLAXY
+    RTS
 
-; serialStart   Begin serial operations
-.serialStart
+; serialOutStart   Begin serial output operations
+.serialOutStart
+    PHAXY
 IF c64
     LDX #SERIAL_LOGICAL_FILE    ; Select serial
-    JMP CHKOUT
+    JSR CHKOUT
+ELIF bbc
+    ERROR "TODO Not implemented"
+ENDIF
+    PLAXY
+    RTS
+
+; serialInStart   Begin serial input operations
+.serialInStart
+IF c64
+    PHAXY
+    LDX #SERIAL_LOGICAL_FILE    ; Select serial
+    JSR CHKIN
+    PLAXY
+    RTS
 ELIF bbc
     ERROR "TODO Not implemented"
 ELSE
@@ -135,24 +162,29 @@ ENDIF
 ; receiveBlock  Receive up to 256 bytes, terminated with \n into inputBuffer
 .receiveBlock
 {
-    JSR serialStart             ; Begin serial operation
+    JSR serialInStart           ; Begin serial operation
 
+    LDX #0                      ; Counter to detect read timeout
     LDY #0
 .loop1
 IF c64
     JSR GETIN                   ; Read from channel
-    ;BEQ loop1                  ; loop on error TODO make this safer
+    BEQ loopEnd
+    BNE loop2
+    DEX
+    BNE loop1
+    JMP loopEnd
+.loop2
 ELSE
     ERROR "TODO Not implemented"
 ENDIF
-    JSR oswrch
-    CMP #10                     ; Line terminator?
-    BNE loopEnd
+    CMP #' '                    ; Any control char terminates the line
+    BMI loopEnd
     STA inputBuffer,Y           ; Append to line
     INY
-    JMP loop1                   ; next character
+    BNE loop1                   ; next character
 .loopEnd
     LDA #0                      ; append null
     STA inputBuffer,Y
-    JMP serialEnd             ; End serial operations
+    JMP serialEnd               ; End serial operations
 }

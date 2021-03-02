@@ -50,21 +50,57 @@ ENDIF
 ;   X   preserved
 ;   Y   invalid
 .writeString
+{
 	PHA
 	STX stringPointer
 	STY stringPointer+1
 	LDY #0
-.writeStringLoop
+.loop
 	LDA (stringPointer),Y
-	BEQ writeStringEnd
+	BEQ end
 	JSR oswrch
 	INY
-	BNE writeStringLoop
-.writeStringEnd
+	BNE loop
+.end
 	PLA
 	RTS
+}
+
+; strlen - length of a null terminated string
+;
+; on entry:
+;   X,Y Address of string
+;
+; on exit:
+;   A   length of string
+;   X   preserved
+;   Y   preserved
+.strlen
+{
+	STX stringPointer
+	STY stringPointer+1
+	LDY #0
+.loop
+	LDA (stringPointer),Y
+	BEQ end
+	INY
+	BNE loop
+.end
+    TYA
+    LDY stringPointer+1
+	RTS
+}
 
 ; Write a space
 .writeSpace
 	LDA #' '
 	JMP oswrch
+
+;osnewl write a newline to the screen
+IF c64
+.osnewl
+    LDA #13
+    JMP CHROUT
+ELSE
+    ERROR "TODO not implemented"
+ENDIF

@@ -29,32 +29,18 @@ start = &0801       ; Base of basic program
     JSR serialInit          ; Initialise RS232
     JSR connectAPI          ; Connect to API
 
-    LDX #<test
-    LDY #>test
-    JSR writeString
-    LDA #13
-    JSR oswrch
+    JSR debug
 
-    LDA #0
-    LDX #<test
+    LDA #1                  ; depart
+    LDX #<test              ; test MDE argument
     LDY #>test
     JSR sendCommand
 
     ;JSR waitSecond ;; to prevent RS232NET: Error - Error writing: 32.
 {
-    LDX #10
+    LDX #0
 .l1
-    TXA
-    PHA
-    JSR receiveBlock
-    LDX #<inputBuffer
-    LDY #>inputBuffer
-    JSR writeString
-    LDA #13
-    JSR oswrch
-    JSR waitSecond
-    PLA
-    TAX
+    JSR debug
     DEX
     BNE l1
 }

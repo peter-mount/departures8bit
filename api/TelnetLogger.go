@@ -24,9 +24,15 @@ func (TelnetLogger) Errorln(a ...interface{}) {
 	log.Println(a...)
 }
 
-func (TelnetLogger) Trace(...interface{})          {}
-func (TelnetLogger) Tracef(string, ...interface{}) {}
-func (TelnetLogger) Traceln(...interface{})        {}
+func (TelnetLogger) Trace(a ...interface{}) {
+	log.Println(a...)
+}
+func (TelnetLogger) Tracef(f string, a ...interface{}) {
+	log.Printf(f, a...)
+}
+func (TelnetLogger) Traceln(a ...interface{}) {
+	log.Println(a...)
+}
 
 func (TelnetLogger) Warn(a ...interface{}) {
 	log.Println(a...)

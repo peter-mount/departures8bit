@@ -25,12 +25,12 @@ func (h *Boards) Init(k *kernel.Kernel) error {
 }
 
 func (h *Boards) PostInit() error {
-	return h.server.RegisterHandlerFunc("DEPART", h.Handler)
+	return h.server.RegisterHandlerFunc("depart", h.Handler)
 }
 
 func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
 	if len(args) != 1 {
-		_, err := stdout.Write([]byte("ERR DEPART crs"))
+		_, err := stdout.Write([]byte("ERR depart crs"))
 		return err
 	}
 	crs := strings.ToUpper(args[0])

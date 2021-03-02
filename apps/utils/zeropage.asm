@@ -19,7 +19,8 @@ tempChar            = &04   ; 1 byte to store temp char
 tempA               = &05   ; 1 byte to store accumulator
 currentStation      = &06   ; 4 bytes current crs code + CR
 tempAddr            = &0A   ; 2 byte scratch address, 5 bytes for OSWORD on BBC
-next                = &0F   ; next free location
+readLength          = &0F   ; Number of bytes read from serial
+next                = &10   ; next free location
 
 ; Here until I find somewhere better
 IF c64

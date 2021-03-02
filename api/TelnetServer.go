@@ -79,19 +79,3 @@ func (a *TelnetServer) End(stdout io.WriteCloser) error {
 	_, err := stdout.Write([]byte("END\n"))
 	return err
 }
-
-type Helo struct {
-	a *TelnetServer
-}
-
-func (h *Helo) Produce(ctx telnet.Context, name string, args ...string) telsh.Handler {
-	return telsh.PromoteHandlerFunc(h.Handler)
-}
-
-func (h *Helo) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
-	err := h.a.Info(stdout, "Hello %s", strings.Join(args, " "))
-	if err != nil {
-		return err
-	}
-	return h.a.End(stdout)
-}
