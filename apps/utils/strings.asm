@@ -40,20 +40,28 @@ ELIF c64
 }
 ENDIF
 
-; writeString - writes a null terminated string
+; writeString           writes a null terminated string pointed to by XY
 ;
 ; on entry:
-;   X,Y Address of string
+;   X,Y Address of string           ; For writeString only
 ;
 ; on exit:
 ;   A   preserved
 ;   X   preserved
 ;   Y   invalid
 .writeString
+	STX stringPointer               ; store XY in stringPointer
+	STY stringPointer+1             ; run through to writeStringAddress
+
+; writeStringAddress    writes a null terminated string pointed to by stringPointer
+;
+; on exit:
+;   A   preserved
+;   X   preserved
+;   Y   invalid
+.writeStringAddress                 ; entry point when stringPointer already set
 {
 	PHA
-	STX stringPointer
-	STY stringPointer+1
 	LDY #0
 .loop
 	LDA (stringPointer),Y
