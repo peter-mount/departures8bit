@@ -82,7 +82,7 @@ ENDIF
 ; on exit:
 ;   A   length of string
 ;   X   preserved
-;   Y   preserved
+;   Y   undefined
 .strlen
 {
 	STX stringPointer
@@ -95,7 +95,6 @@ ENDIF
 	BNE loop
 .end
     TYA
-    LDY stringPointer+1
 	RTS
 }
 

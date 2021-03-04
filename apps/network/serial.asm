@@ -59,7 +59,7 @@ SERIAL_COMMAND      = 3         ; Command
                     ; 1101 7200     [NI]
                     ; 1110 9600     [NI]
                     ; 1111 19200    [NI]
-    EQUB &08  ; 1200 8N1
+    EQUB &0A  ; 2400 8N1
                     ; Command register - PPPDxxxH
                     ;
                     ; PPP Parity
@@ -71,7 +71,7 @@ SERIAL_COMMAND      = 3         ; Command
                     ;
                     ; D 0=full duplex, 1=half duplex
                     ; H Handshake, 0=3-line, 1=x-line
-    EQUB %00000000  ; Full duplex, no parity, 3 line handshake
+    EQUB &00  ; Full duplex, no parity, 3 line handshake
 .nameEnd
 }
 ELIF bbc
@@ -106,7 +106,7 @@ ENDIF
     STX stringPointer
     STY stringPointer+1
 
-    JSR serialOutStart             ; Begin serial operation
+    ;JSR serialOutStart          ; Begin serial operation
 
     LDX tempChar                ; Counter of chars to send
     LDY #0                      ; Index of char in buffer
@@ -129,40 +129,38 @@ IF c64
 ELIF bbc
     ERROR "TODO Not implemented"
 ENDIF
-}
+}                               ; Run into serialEnd
+    RTS
 
 ; serialEnd     End serial operation
 .serialEnd
     PHAXY
 IF c64
-LDX #3                          ; Select Screen for output
+    LDX #3                      ; Select Screen for output
     JSR CHKOUT
-    LDX #0                      ; Select Screen for output
+    LDX #0                      ; Select Keyboard for input
     JSR CHKIN
     ;JMP CLRCHN                 ; Reset I/O channels
 ENDIF
     PLAXY
     RTS
 
+.serialStart    JSR serialInStart
 ; serialOutStart   Begin serial output operations
 .serialOutStart
-    PHAXY
 IF c64
     LDX #SERIAL_LOGICAL_FILE    ; Select serial
     JSR CHKOUT
 ELIF bbc
     ERROR "TODO Not implemented"
 ENDIF
-    PLAXY
     RTS
 
 ; serialInStart   Begin serial input operations
 .serialInStart
 IF c64
-    PHAXY
     LDX #SERIAL_LOGICAL_FILE    ; Select serial
     JSR CHKIN
-    PLAXY
     RTS
 ELIF bbc
     ERROR "TODO Not implemented"
@@ -184,22 +182,25 @@ ENDIF
 ; receiveBlock  Receive up to 256 bytes, terminated with \n into inputBuffer
 .serialReceiveLine
 {
-    JSR serialInStart           ; Begin serial operation
+    ;JSR serialInStart           ; Begin serial operation
 
-    LDX #0                      ; Counter to detect read timeout
     LDY #0
+    STY tempA                   ; Counter to detect read timeout
 .loop1
 IF c64
     JSR GETIN                   ; Read from channel
+    BCC loop2                   ; Carry clear means we have a char
     ;BEQ loopEnd
-    BNE loop2
+    ;;BNE loop2                   ; we have a char
+    LDX tempA                   ; decrement counter
     DEX
-    BNE loop1
-    JMP loopEnd
-.loop2
+    BEQ loopEnd                 ; timeout
+    STX tempA
+    JMP loop1
 ELSE
     ERROR "TODO Not implemented"
 ENDIF
+.loop2
     CMP #13
     BEQ loopEnd
     CMP #' '                    ; Any control char terminates the line
@@ -211,5 +212,5 @@ ENDIF
 .loopEnd
     LDA #0                      ; append null
     STA inputBuffer,Y
-    JMP serialEnd               ; End serial operations
+    RTS ;JMP serialEnd               ; End serial operations
 }

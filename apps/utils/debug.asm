@@ -8,8 +8,7 @@
     PHAXY
     JSR serialReceiveLine
 
-    LDX #<inputBuffer
-    LDY #>inputBuffer
+    LDXY inputBuffer
     JSR strlen
     CMP #0
     BEQ end

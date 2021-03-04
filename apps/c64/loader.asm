@@ -16,12 +16,13 @@ start = &0801       ; Base of basic program
     EQUW 10         ; line 10
     EQUB &9E, &20   ; SYS BASIC token followed by space
     EQUS "2304"     ; ASCII of entry point address 2304 = &0900
+;    EQUS "4096"     ; ASCII of entry point address 4096 = &1000
     EQUB 0          ; End of line
 .basicEnd
     EQUW 0          ; pointer to next line, 0 = end of program
 }
     SKIPTO &0900    ; Skip to the next page
-
+;    SKIPTO &1000
 ;   The program's entry point
 .entryPoint
     JSR initScreen          ; Initialise the screen
@@ -29,14 +30,16 @@ start = &0801       ; Base of basic program
     JSR serialInit          ; Initialise RS232
     JSR connectAPI          ; Connect to API
 
-    JSR debug
+    ;;JSR debug
 
 
     JSR outputReset         ; clear output buffer
-    LDXY test               ; append heloCmd
+    LDXY test               ; append test command
     JSR outputAppendString
     JSR outputTerminate
+    JSR serialStart
     JSR serialSendOutput    ; Send command
+    JSR serialWaitUntilSent
 
     ;JSR waitSecond ;; to prevent RS232NET: Error - Error writing: 32.
 {
@@ -46,6 +49,7 @@ start = &0801       ; Base of basic program
     DEX
     BNE l1
 }
+    JSR serialEnd
 
     RTS
 

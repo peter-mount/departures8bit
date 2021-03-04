@@ -5,27 +5,24 @@
 ; dialServer        Dial remote server
 .dialServer
 {
-IF c64
-    LDX #2                          ; Select serial device
-    JSR CHKOUT
-ENDIF
+    JSR serialStart
 
     LDY #0                          ; Start dialing
 .dial1
     LDA dialText,Y
     BNE dial2                       ; Finish when we hit 0
 
-IF c64
-    JMP CLRCHN                      ; Reset I/O channels
-ELSE
-    RTS                             ; we are connected (hopefully)
-ENDIF
+    JMP serialEnd
 
 .dial2
     INY
     CMP #1                          ; A=1 then wait 1 second
     BEQ dialWaitSecond
+IF c64
     JSR CHROUT                      ; write to serial port
+ELSE
+    ERROR "TODO implement"
+ENDIF
     CMP #10                         ; A=10 then wait for a short while
     BNE dial1
 
@@ -103,16 +100,8 @@ ELIF bbc                            ; BBC delay code using MOS
 ENDIF
 }
 
-.dialingText
-IF c64
-    EQUS "DIALING...", 13, 0
-ELSE
-    EQUS 12, 131, 157, 129, "Dialing...", 0
-ENDIF
-
 .dialText
-    EQUS "+++", 1
-    EQUS "ATH", 13, 10
-    EQUS "ATZ", 13, 10
-    EQUS "ATDTlocalhost:8082", 13, 10
+    EQUS "+++", 1, "ATH", 13, 10
+    EQUS 1, "ATZ", 13, 10
+    EQUS "ATDTlocalhost:10232", 13, 10
     EQUB 0

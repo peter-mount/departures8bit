@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	TelnetBinding = ":25232"
+	//TelnetBinding = ":25232"
+	TelnetBinding = ":10232"
 )
 
 type TelnetServer struct {
@@ -27,7 +28,7 @@ func (a *TelnetServer) PostInit() error {
 	a.shell = telsh.NewShellHandler()
 	a.shell.Prompt = ""
 	a.shell.WelcomeMessage = "00 DEPARTUREBOARDS.MOBI API"
-	a.shell.ExitCommandName = "QUIT"
+	a.shell.ExitCommandName = "quit"
 	a.shell.ExitMessage = "00 BYE"
 
 	a.server = &telnet.Server{
