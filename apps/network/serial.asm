@@ -170,7 +170,6 @@ ENDIF
     LDY #0
     STY tempA                   ; Counter to detect read timeout
 .loop1
-    JSR serialGetChar           ; Read from channel
 IF c64
     JSR GETIN                   ; Read from channel
     BCC loop2                   ; Carry clear means we have a char

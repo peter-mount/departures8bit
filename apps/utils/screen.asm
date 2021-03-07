@@ -116,33 +116,39 @@ ENDIF
 .showStatus
 {
 IF c64
+baseLine = &0400 + (24*40)  ; Address of first char
     STXY stringPointer      ; Save text location
-    SEC                     ; Get current cursor position
-    JSR PLOT
-    STXY tempAddr           ; Save it for later
-
-    LDX #24                 ; Bottom row
-    LDY #0                  ; Column 0
-    CLC                     ; Set cursor position
-    JSR PLOT
+;    SEC                     ; Get current cursor position
+;    JSR PLOT
+;    STXY tempAddr           ; Save it for later
+;
+;    LDX #24                 ; Bottom row
+;    LDY #0                  ; Column 0
+;    CLC                     ; Set cursor position
+;    JSR PLOT
 
     LDX #39                 ; Max chars to write
     LDY #0
 .loop
     LDA (stringPointer),Y   ; Next char
     BEQ endOfString         ; End of string
-    JSR oswrch              ; Write char converting to PETSCI as required
+    JSR ascii2petscii       ; Convert to petscii
+    STA baseLine,Y
+;    JSR oswrch              ; Write char converting to PETSCI as required
     INY
     DEX
     BNE loop                ; Loop until we hit max chars
 .endStatus
-    LDXY tempAddr           ; Now restore the original cursor position
-    SEC                     ; Get current cursor position
-    JMP PLOT                ; End routine
+    RTS
+;    LDXY tempAddr           ; Now restore the original cursor position
+;    SEC                     ; Get current cursor position
+;    JMP PLOT                ; End routine
 .endOfString
     LDA #' '                ; Clear rest of line
 .loop1
-    JSR CHROUT              ; write to screen, no need for PETSCI conversion here
+    STA baseLine,Y
+    INY
+;    JSR CHROUT              ; write to screen, no need for PETSCI conversion here
     DEX
     BNE loop1               ; loop for next space
     BEQ endStatus           ; BRA but valid here as X is zero

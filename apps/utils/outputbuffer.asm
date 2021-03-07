@@ -42,7 +42,6 @@
     STY outputLength
     RTS
 
-
 ; outputAppendString - Append string to output
 ;
 ; on entry:
@@ -69,4 +68,26 @@
 .end
     STX outputLength                ; store new length
 	RTS
+}
+
+.outputAppendHexChar
+{
+    STA tempA
+    PHAXY
+    LDA tempA
+    LSR A
+    LSR A
+    LSR A
+    LSR A
+    JSR appendHex
+    LDA tempA
+    JSR appendHex
+    PLAXY
+    RTS
+.appendHex
+    AND #&0F
+    TAY
+    LDA lookup,Y
+    JMP outputAppend
+.lookup EQUS "0123456789ABCDEF"
 }

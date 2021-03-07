@@ -1,6 +1,10 @@
 #!/bin/bash
 
-beebasm -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i c64.asm &&\
+exec beebasm -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i c64.asm
+
+exit 0
+
+# &&\
 /usr/local/bin/x64 \
       -verbose \
       ../builds/depart.prg

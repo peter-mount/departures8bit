@@ -3,8 +3,8 @@
 ; **********************************************************************
 
     INCLUDE "utils/macros.asm"          ; Our macros
-    INCLUDE "c64/loader.asm"            ; Start of the C64
     INCLUDE "utils/zeropage.asm"        ; 3rd Zero page allocations
+    INCLUDE "c64/loader.asm"            ; Start of the C64
     INCLUDE "c64/kernal.asm"            ; OS constants - TODO remove?
     INCLUDE "utils/outputbuffer.asm"    ; Output buffer handling
     INCLUDE "utils/screen.asm"          ; Screen handling
@@ -13,7 +13,8 @@
     INCLUDE "network/serial.asm"        ; RS232 handler
     INCLUDE "network/connect.asm"       ; Connect API
     INCLUDE "network/dialer.asm"        ; WiFi Modem dialer
-    INCLUDE "network/xmodem-6502.asm"   ; XModem protocol
+    ;INCLUDE "network/xmodem-6502.asm"   ; XModem protocol
+    INCLUDE "network/api.asm"           ; Our API
     INCLUDE "utils/debug.asm"           ; Debugging
 .end                                    ; End of the program
 

@@ -37,12 +37,7 @@ start = &0801       ; Base of basic program
     LDXY test               ; append test command
     JSR outputAppendString
     JSR outputTerminate
-    JSR serialStart
-    JSR serialSendOutput    ; Send command
-    JSR serialWaitUntilSent
-    JSR receiveResponse     ; Get response object
-    JSR serialEnd
-
+    JSR sendCommand
     RTS
 
 

@@ -13,7 +13,7 @@ const STX byte = 0x02
 const EOT byte = 0x04
 const ACK byte = 0x06
 const NAK byte = 0x15
-const POLL byte = 0x43
+const POLL byte = 'C' //0x43
 
 const SHORT_PACKET_PAYLOAD_LEN = 128
 const LONG_PACKET_PAYLOAD_LEN = 1024
@@ -114,11 +114,13 @@ func sendBlock(c io.ReadWriter, block uint8, data []byte) error {
 }
 
 func ModemSend(c io.ReadWriter, data []byte, cb *func(currentBlock, totalBlock uint)) error {
+	log.Printf("ModemSend %d %v", len(data), data)
 	oBuffer := make([]byte, 1)
 
 	if _, err := c.Read(oBuffer); err != nil {
 		return err
 	}
+	log.Printf("poll %d %v", len(oBuffer), oBuffer)
 	if oBuffer[0] != POLL {
 		return fmt.Errorf("xmodem expected %q in read buffer, found: %s", POLL, oBuffer[0])
 	}

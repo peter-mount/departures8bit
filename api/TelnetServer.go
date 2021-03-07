@@ -18,6 +18,7 @@ type TelnetServer struct {
 	server    *telnet.Server
 	refClient refclient.DarwinRefClient // ref api
 	ldbClient ldbclient.DarwinLDBClient // ldb api
+	test      *Boards
 }
 
 func (a *TelnetServer) Name() string {
@@ -27,13 +28,13 @@ func (a *TelnetServer) Name() string {
 func (a *TelnetServer) PostInit() error {
 	a.shell = telsh.NewShellHandler()
 	a.shell.Prompt = ""
-	a.shell.WelcomeMessage = "00 DEPARTUREBOARDS.MOBI API"
+	a.shell.WelcomeMessage = "" //"00 DEPARTUREBOARDS.MOBI API"
 	a.shell.ExitCommandName = "quit"
 	a.shell.ExitMessage = "00 BYE"
 
 	a.server = &telnet.Server{
 		Addr:    TelnetBinding,
-		Handler: a.shell,
+		Handler: a, //.shell,
 		Logger:  &TelnetLogger{},
 	}
 
@@ -55,4 +56,12 @@ func (a *TelnetServer) Run() error {
 	log.Println("Starting telnet server on ", TelnetBinding)
 
 	return a.server.ListenAndServe()
+}
+func (a *TelnetServer) ServeTELNET(ctx telnet.Context, writer telnet.Writer, reader telnet.Reader) {
+	log.Println(reader, writer)
+	r := Response{}
+	r.Append("TEST")
+	r.Append("line")
+	err := r.SendImpl(reader, writer)
+	log.Println(err)
 }

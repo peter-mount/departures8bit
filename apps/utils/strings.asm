@@ -19,10 +19,16 @@ ELIF c64
 ;    oswrch = CHROUT  ; point to KERNAL routine
 .oswrch
 {
-                        ; On the C64 upper & lower case are swapped so to get a
-                        ; "normal" ASCII representation we need to swap the cases
-                        ; so the display looks correct.
     PHA                 ; Preserve A
+    JSR fixcase         ; Fix C64 case
+    JSR CHROUT          ; Write to OS with alphabet swapped if necessary
+    PLA                 ; Restore A
+    RTS
+}
+
+.fixcase                ; On the C64 upper & lower case are swapped so to get a
+{                       ; "normal" ASCII representation we need to swap the cases
+                        ; so the display looks correct.
     CMP #'A'            ; <A then unchanged
     BMI end
     CMP #'Z'+1          ; A-Z then swap
@@ -34,10 +40,45 @@ ELIF c64
 .swap
     EOR #&20            ; Swap case
 .end
-    JSR CHROUT          ; Write to OS with alphabet swapped if necessary
-    PLA                 ; Restore A
     RTS
 }
+
+; ascii2petscii         C64 only, converts ASCII to PETSCII
+; ascii2petsciiraw      C64 only, as ascii2petscii but does not fix case first
+.ascii2petscii
+    JSR fixcase         ; Ensure case is swapped before conversion
+.ascii2petsciiraw
+{
+    CMP #64             ; 64-95 maps to 0-31
+    BMI end             ; <64 no conversion
+    CMP #95
+    BPL skipUpperCase   ; not 65-95
+.sub64
+    SEC
+    SBC #64
+.end
+    RTS
+.skipUpperCase
+    CMP #128            ; 96-127 maps to 95-95
+    BPL skipLowerCase   ; Not lower case
+    SEC
+    SBC #32
+    RTS
+.skipLowerCase
+    CMP #160            ; 160-191 maps to 96-127
+    BMI end             ; 128-160 are not mappable
+    CMP #192
+    BMI sub64           ; convert 160-191
+    CMP #255            ; 255 maps to 94
+    BNE skip255
+    SEC                 ; convert 192-254 to 64-126
+    SBC #128
+    RTS
+.skip255
+    LDA #94             ; 255 maps to 94
+    RTS
+}
+
 ENDIF
 
 ; writeString           writes a null terminated string pointed to by XY
