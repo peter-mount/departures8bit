@@ -29,11 +29,11 @@ func (h *Boards) PostInit() error {
 }
 
 func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
-	response := NewResponse()
+	response := NewResponse(stdin, stdout)
 
 	if len(args) != 1 {
 		return response.Append("ERR depart crs").
-			Write(stdout)
+			Send()
 	}
 	crs := strings.ToUpper(args[0])
 
@@ -45,7 +45,7 @@ func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.W
 
 	if sr == nil {
 		return response.Append("ERRUnknown station %s", crs).
-			Write(stdout)
+			Send()
 	}
 	var stationName string
 	if len(sr.Station) == 0 {
@@ -59,5 +59,5 @@ func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.W
 
 	response.Append("STN%03s%-16.16s%03d", crs, stationName, len(sr.Services))
 
-	return response.Write(stdout)
+	return response.Send()
 }

@@ -5,6 +5,7 @@
 ; dialServer        Dial remote server
 .dialServer
 {
+    SHOWSTATUS dialStart
     JSR serialStart
 
     LDY #0                          ; Start dialing
@@ -12,12 +13,16 @@
     LDA dialText,Y
     BNE dial2                       ; Finish when we hit 0
 
-    JMP serialEnd
+    JSR serialEnd
+    SHOWSTATUS dialEnd
+    RTS
 
 .dial2
     INY
     CMP #1                          ; A=1 then wait 1 second
     BEQ dialWaitSecond
+    CMP #2                          ; A=2 then wait fraction second
+    BEQ dailWait
 IF c64
     JSR CHROUT                      ; write to serial port
 ELSE
@@ -100,8 +105,14 @@ ELIF bbc                            ; BBC delay code using MOS
 ENDIF
 }
 
+.dialStart
+    EQUS "Connecting...", 0
+
+.dialEnd
+    EQUS "Connected", 0
+
 .dialText
-    EQUS "+++", 1, "ATH", 13, 10
-    EQUS 1, "ATZ", 13, 10
-    EQUS "ATDTlocalhost:10232", 13, 10
+    EQUS "+++", 1, "ATH", 13, 10, 2
+    EQUS "ATZ", 13, 10, 2
+    EQUS "ATDTlocalhost:10232", 13, 10, 1
     EQUB 0

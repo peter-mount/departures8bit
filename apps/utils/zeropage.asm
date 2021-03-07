@@ -22,12 +22,24 @@ tempAddr            = &0A   ; 2 byte scratch address, 5 bytes for OSWORD on BBC
 readLength          = &0F   ; Number of bytes read from serial
 outputLength        = &10   ; Size of output buffer
 next                = &11   ; next free location
+                            ; XModem
+crc		            = &38   ; CRC lo byte  (two byte variable)
+crch		        = &39	; CRC hi byte
+ptr		            = &3a	; data pointer (two byte variable)
+ptrh		        = &3b	;   "    "
+blkno		        = &3c	; block number
+retry		        = &3d	; retry counter
+retry2		        = &3e	; 2nd counter
+bflag		        = &3f	; block flag
+
 
 ; Here until I find somewhere better
 IF c64
-stationBuffer       = &C000 ; 4K workspace for stations as they are read
-outputBuffer        = &9E00 ; 256 bytes to create strings
-inputBuffer         = &9F00 ; 256 bytes before the Basic rom
+;stationBuffer       = &C000 ; 4K workspace for stations as they are read
+outputBuffer        = &C000 ; 256 bytes to create strings
+inputBuffer         = &C100 ; 256 bytes before the Basic rom
+workBase = &c200
+
 ELSE
     ERROR "Not implemented"
 ENDIF

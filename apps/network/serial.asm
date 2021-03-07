@@ -5,9 +5,6 @@
 ; This provides routines to setup and send/receive packets over the
 ; serial port.
 ;
-    INCLUDE "network/connect.asm"   ; Connect API
-    INCLUDE "network/dialer.asm"    ; WiFi Modem dialer
-    INCLUDE "network/api.asm"       ; API calls
 
 ; serialInit    Initialise the serial port
 .serialInit
@@ -59,7 +56,7 @@ SERIAL_COMMAND      = 3         ; Command
                     ; 1101 7200     [NI]
                     ; 1110 9600     [NI]
                     ; 1111 19200    [NI]
-    EQUB &0A  ; 2400 8N1
+    EQUB &08  ; 1200 8N1
                     ; Command register - PPPDxxxH
                     ;
                     ; PPP Parity
@@ -102,35 +99,32 @@ ENDIF
 ;   Y   undefined
 .serialSendBlock
 {
-    STA tempChar                ; Store parameters
-    STX stringPointer
+    STX stringPointer           ; Store pointer to data block
     STY stringPointer+1
-
-    ;JSR serialOutStart          ; Begin serial operation
-
-    LDX tempChar                ; Counter of chars to send
+    TAX                         ; Block size to X
     LDY #0                      ; Index of char in buffer
 .loop
     LDA (stringPointer),Y
-
-IF c64
-    JSR CHROUT                  ; Send to serial
-ELIF bbc
-    ERROR "TODO Not implemented"
-ENDIF
-
+    JSR serialSendChar
     INY                         ; Next char if any
     DEX
-    BNE loop                    ; Loop until complete then run into serialEnd
+    BNE loop                    ; Loop until complete
+    RTS
+}
 
-    LDA #10                     ; Line feed to end command
+; serialSendChar        Send character to serial
 IF c64
-    JSR CHROUT                  ; Send to serial
+serialSendChar = CHROUT                  ; Send to serial
 ELIF bbc
     ERROR "TODO Not implemented"
 ENDIF
-}                               ; Run into serialEnd
-    RTS
+
+; serialGetChar         Get character from serial
+IF c64
+serialGetChar = GETIN
+ELIF bbc
+    ERROR "TODO Not implemented"
+ENDIF
 
 ; serialEnd     End serial operation
 .serialEnd
@@ -140,33 +134,22 @@ IF c64
     JSR CHKOUT
     LDX #0                      ; Select Keyboard for input
     JSR CHKIN
-    ;JMP CLRCHN                 ; Reset I/O channels
 ENDIF
     PLAXY
     RTS
 
-.serialStart    JSR serialInStart
-; serialOutStart   Begin serial output operations
-.serialOutStart
+.serialStart
+    PHAXY
 IF c64
     LDX #SERIAL_LOGICAL_FILE    ; Select serial
     JSR CHKOUT
-ELIF bbc
-    ERROR "TODO Not implemented"
-ENDIF
-    RTS
-
-; serialInStart   Begin serial input operations
-.serialInStart
-IF c64
     LDX #SERIAL_LOGICAL_FILE    ; Select serial
     JSR CHKIN
-    RTS
 ELIF bbc
     ERROR "TODO Not implemented"
-ELSE
-    RTS                         ; NO-OP
 ENDIF
+    PLAXY
+    RTS
 
 ; serialWaitUntilSent           Waits until all characters have been transmitted
 .serialWaitUntilSent
@@ -187,6 +170,7 @@ ENDIF
     LDY #0
     STY tempA                   ; Counter to detect read timeout
 .loop1
+    JSR serialGetChar           ; Read from channel
 IF c64
     JSR GETIN                   ; Read from channel
     BCC loop2                   ; Carry clear means we have a char

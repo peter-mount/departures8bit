@@ -40,15 +40,7 @@ start = &0801       ; Base of basic program
     JSR serialStart
     JSR serialSendOutput    ; Send command
     JSR serialWaitUntilSent
-
-    ;JSR waitSecond ;; to prevent RS232NET: Error - Error writing: 32.
-{
-    LDX #0
-.l1
-    JSR debug
-    DEX
-    BNE l1
-}
+    JSR receiveResponse     ; Get response object
     JSR serialEnd
 
     RTS
@@ -67,4 +59,4 @@ ENDIF
     RTS
 }
 .test
-    EQUS "depart mde",0
+    EQUS "depart mde", 10, 0

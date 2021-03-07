@@ -28,7 +28,7 @@ func (h *Helo) PostInit() error {
 }
 
 func (h *Helo) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
-	return NewResponse().
+	return NewResponse(stdin, stdout).
 		Append("INF%s", strings.Join(args, " ")).
-		Write(stdout)
+		Send()
 }

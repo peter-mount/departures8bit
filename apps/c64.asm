@@ -11,6 +11,13 @@
     INCLUDE "utils/strings.asm"         ; String handling
     INCLUDE "utils/welcome.asm"         ; Welcome page
     INCLUDE "network/serial.asm"        ; RS232 handler
+    INCLUDE "network/connect.asm"       ; Connect API
+    INCLUDE "network/dialer.asm"        ; WiFi Modem dialer
+    INCLUDE "network/xmodem-6502.asm"   ; XModem protocol
     INCLUDE "utils/debug.asm"           ; Debugging
-.end
+.end                                    ; End of the program
+
+    ALIGN &100
+;.workBase                               ; First free block of memory
+
     SAVE "../builds/depart.prg", start-2, end
