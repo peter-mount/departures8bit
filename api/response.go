@@ -30,15 +30,23 @@ func (r *Response) Append(f string, a ...interface{}) *Response {
 func generateLines(s []string) []byte {
 	var response []byte
 	addr := uint(0)
-	for _, l := range s {
-		ln := uint(len(l))
-		addr = addr + ln
+	sl := len(s) - 1
+	for i, l := range s {
+		// Update address to point to next one
+		if i == sl {
+			addr = 0 // last line has 0 for the next address
+		} else {
+			// Next address, including 2 bytes for address & 1 for terminator
+			addr = addr + 2 + uint(len(l)) + 1
+		}
+
 		// 2 byte address of next record
-		response = append(response, byte(ln&0xff), byte((ln>>8)&0xff))
+		response = append(response, byte(addr&0xff), byte((addr>>8)&0xff))
 		// Record content
 		response = append(response, l...)
 		// Record terminator
 		response = append(response, 0)
+
 	}
 
 	// Add terminator of address 0x0000
@@ -46,8 +54,40 @@ func generateLines(s []string) []byte {
 }
 
 const (
-	BlockSize = 128 // Block size in responses
+	BlockSize      = 80 // Block size in responses
+	SOH       byte = 0x01
+	STX       byte = 0x02
+	EOT       byte = 0x04
+	ACK       byte = 0x06
+	NAK       byte = 0x15
+	SUB       byte = 0x26
+	POLL      byte = 'C' //0x43
 )
+
+func createBlock(blockNumber, blockCount int, payload []byte) []byte {
+	l := len(payload)
+	// Should not happen but truncate payload at BlockSize
+	if l > BlockSize {
+		l = BlockSize
+	}
+	block := []byte{
+		SOH,                      // Start block header
+		byte(blockNumber & 0xFF), // Block number
+		byte(blockCount & 0xFF),  // Block count
+		byte(l),                  // Block length
+	}
+
+	block = append(block, payload[0:l]...) // Block data
+
+	// Ensure the block is full size, padd with SUB
+	/*
+		for ; l < BlockSize; l++ {
+			block = append(block, SUB)
+		}
+	*/
+
+	return block
+}
 
 // Convert a byte slice into a series of blocks
 func splitBlocks(b []byte) [][]byte {
@@ -55,39 +95,24 @@ func splitBlocks(b []byte) [][]byte {
 	l := len(b)
 
 	// First block contains the details of how many blocks in the response
-	n := 1 + (l / BlockSize)
-	r = append(r, []byte{
-		0, 0, // Block 0
-		2,              // Block 0 length
-		byte(n & 0xff), // Number of blocks
-		byte((n >> 8) & 0xff),
-	})
+	nb := 2 + (l / BlockSize)
 
-	n = 1  // Block 0 is the header
+	n := 1 // Start actual payloads from block 1
 	p := 0 // Position in src slice
 	for p < l {
+		// Get this block's length, usually BlockSize except for the last block
 		bl := l - p
 		if bl > BlockSize {
 			bl = BlockSize
 		}
 
-		// Block content
-		// 0,1	block number
-		// 2	block length
-		// 3...	data
-		block := []byte{
-			byte(n & 0xff),
-			byte((n >> 8) & 0xff),
-			byte(bl),
-		}
-		block = append(block, b[p:bl]...)
-
-		r = append(r, block)
+		r = append(r, createBlock(n, nb, b[p:p+bl]))
 
 		// next block
 		n++
-		p += BlockSize
+		p += bl
 	}
+
 	return r
 }
 
@@ -96,16 +121,15 @@ func (r *Response) Send() error {
 }
 
 func (r *Response) SendImpl(i io.Reader, o io.Writer) error {
-	log.Printf("Send %d records", len(r.records))
 	blocks := splitBlocks(generateLines(r.records))
-	log.Printf("Sending %d blocks", len(blocks))
+	log.Printf("Sending %d records %d blocks", len(r.records), len(blocks))
 
 	curBlock := 0
 	for curBlock < len(blocks) {
-		log.Printf("Block %d", curBlock)
 		oBuffer := make([]byte, 1)
 
 		// Wait for NAK or ACK
+		log.Println("block", curBlock, len(blocks))
 		_, err := i.Read(oBuffer)
 
 		if err == nil {
@@ -118,11 +142,7 @@ func (r *Response) SendImpl(i io.Reader, o io.Writer) error {
 				curBlock++
 				err = sendRawBlock(curBlock, blocks, o)
 			default:
-				c := oBuffer[0]
-				if c < 32 || c >= 127 {
-					c = '*'
-				}
-				log.Printf("Recv %02x %c", oBuffer[0], c)
+				// do nothing
 			}
 		}
 
@@ -132,20 +152,18 @@ func (r *Response) SendImpl(i io.Reader, o io.Writer) error {
 		}
 	}
 
-	log.Println("Send completed")
+	log.Printf("Sent %d records %d blocks", len(r.records), len(blocks))
 	return nil
 }
 
 func sendRawBlock(curBlock int, blocks [][]byte, o io.Writer) error {
 	if curBlock < len(blocks) {
 		log.Println("Sending block", curBlock)
-		log.Printf("Sending block %v", blocks[curBlock])
 		_, err := o.Write(blocks[curBlock])
 		if err != nil {
 			log.Println("Send err", err)
 			return err
 		}
-		log.Println("Sent block", curBlock)
 	}
 	return nil
 }

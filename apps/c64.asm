@@ -15,7 +15,7 @@
     INCLUDE "network/dialer.asm"        ; WiFi Modem dialer
     ;INCLUDE "network/xmodem-6502.asm"   ; XModem protocol
     INCLUDE "network/api.asm"           ; Our API
-    INCLUDE "utils/debug.asm"           ; Debugging
+    ;INCLUDE "utils/debug.asm"           ; Debugging
 .end                                    ; End of the program
 
     ALIGN &100

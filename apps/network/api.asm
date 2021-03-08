@@ -11,86 +11,118 @@ CAN		=	&18		; cancel (not standard, not supported)
 CR		=	&0d		; carriage return
 LF		=	&0a		; line feed
 ESC		=	&1b		; ESC to exit
+SUB     =   &26     ; SUB - CP/M end-of-file marker
+
+; Protocol block structure
+proto_blockNum      = 0                         ; Offset to block number, 1 byte
+proto_blockCount    = proto_blockNum + 1        ; Number of blocks
+proto_dataSize      = proto_blockCount + 1      ; Data size, 0-128
+proto_blockData     = proto_dataSize + 1        ; Offset to start of block data
+proto_blockSize     = proto_blockData + 80      ; Max 128 bytes for payload
 
 ; receiveData       Receives data from the remote server and writes it
 ;                   into dataBase
 .receiveData
 {
-    LDA #0                      ; Clear block counters
-    STA curBlock                ; curBlock = 0
-    STA curBlock+1
-    STA curBlock+2              ; numBlock = 0
-    STA curBlock+3
-    STA dataBase                ; Wipe the dataBase
-    STA dataBase+1
+    LDA #0                              ; Clear block counters
+    STA curBlock                        ; curBlock = 0
+    STA numBlock                        ; numBlock = 0
+    STA dataBase                        ; Wipe the dataBase by resetting the next record
+    STA dataBase+1                      ; address
 
-    LDA #<dataBase              ; Reset dataPos
+    LDA #<dataBase                      ; Reset dataPos
     STA dataPos
     LDA #>dataBase
     STA dataPos+1
 
-    JSR serialStart
-    LDA #NAK                    ; Send initial NAK
+    JSR serialStart                     ; Start serial comms
+
+    LDA #NAK                            ; Send initial NAK, based on XModem protocol
     JSR serialSendChar
     JSR serialWaitUntilSent
+    JMP loopLastBlock                   ; treat first block as if it failed,
 
-    JSR receiveBlock            ; Get block 0
-    LDA outputBuffer+3          ; Store num blocks
-    STA numBlock
-    LDA outputBuffer+4
-    STA numBlock+1
-
-.loop
-    CLC                         ; Increment curBlock by 1
-    LDA curBlock
-    ADC #1
-    STA curBlock
-    LDA curBlock+1
-    ADC #0
-    STA curBlock+1
-
-    JSR receiveBlock
-
-    LDA #ACK                    ; Send ACK to confirm this block is valid
-    JSR serialSendChar
-    JSR serialWaitUntilSent
-
-    LDA curBlock+1              ; Compare block received
-    CMP numBlock+1              ; loop until we hit numBlock
-    BMI loop                    ; Loop for next block
-    LDA curBlock
+.loopNextBlock
+    INC curBlock                        ; Increment curBlock by 1
+    LDA curBlock                        ; Exit if we have all blocks
     CMP numBlock
-    BNE loop                    ; Loop for next block
+    BPL loopEnd
+.loopLastBlock                          ; entry point when expecting the existing block after NAK
+    JSR receiveBlock
+                                        ; TODO check block is valid here & NAK if not
+
+    LDA outputBuffer+proto_blockCount   ; Store num blocks. This should be static but doing this for every block
+    STA numBlock                        ; is shorter code & allows for dynamic feeds if we need it
+
+.sendAck                                ; Send ACK to confirm this block is valid
+    LDA #ACK
+    JSR serialSendChar
+    JSR serialWaitUntilSent
+    JMP loopNextBlock                   ; Get the next block
 
 .loopEnd
-    JMP serialEnd
+    JMP serialEnd                       ; End serial comms
 
 }
 
 ; receiveBlock      Receive a block from the remote
 .receiveBlock
 {
-    ;JSR receiveShowStatus
+    JSR receiveShowStatus
 
-    JSR outputReset             ; reset to receive block
-    LDX #5                      ; Receive block header
+    LDA #'0'
+    STA &400
+
+.waitForSOH                             ; Wait for initial SOH
+IF c64
+    JSR serialGetChar                   ; Read byte
+ELSE
+    ERROR "TODO implement"
+ENDIF
+    CMP #SOH                            ; Loop until we get SOH
+    BNE waitForSOH
+
+    LDA #'1'
+    STA &400
+
+    JSR outputReset                     ; reset to receive block
+    LDY #proto_blockData                ; read block header
     JSR receiveBlockImpl
-    LDX outputBuffer+2          ; Get block length
-    JSR receiveBlockImpl        ; & receive the data
-    ; TODO add CRC check here
+
+    LDA #'2'
+    STA &400
+    LDY outputBuffer+proto_dataSize     ; Read in the remainder of the block
+    JSR receiveBlockImpl
+                                        ; TODO add CRC check here
+
+    LDA #'3'
+    STA &400
+                                        ; TODO store payload in dataBase
 
 .receiveEnd
-    CLC                         ; mark as ok
+
+    LDA #'4'
+    STA &400
+    CLC                                 ; mark as ok
     RTS
 
-.receiveBlockImpl               ; receive X chars
+.receiveBlockImpl                       ; receive X chars
+    TYA                                 ; Save Y
+    PHA
+    JSR debug64                         ; Debug remove
 IF c64
-    JSR GETIN
-    BCS receiveBlockImpl        ; Loop until we get a char TODO add timeout
-    JSR outputAppend
-    DEX
-    BNE receiveBlockImpl
+    JSR serialGetChar
+ELSE
+    ERROR "TODO implement"
 ENDIF
+    LDY outputLength
+    STA &428,Y                          ; debug remove
+
+    JSR outputAppend                    ; append to buffer
+    PLA                                 ; Restore Y
+    TAY
+    DEY                                 ; Decrement & loop until we have the required number
+    BNE receiveBlockImpl                ; of characters
     RTS
 }
 
@@ -98,22 +130,46 @@ ENDIF
 ; receiveShowStatus Shows progress in status bar
 .receiveShowStatus
 {
-    JSR outputReset             ; Form status text
+    JSR outputReset                     ; Form status text
     LDXY receiveText
     JSR outputAppendString
-    LDA curBlock
+    LDA curBlock                        ; curBlock in hex
     JSR outputAppendHexChar
     LDA #'/'
     JSR outputAppend
-    LDA numBlock
+    LDA numBlock                        ; numBlock in hex
     JSR outputAppendHexChar
-    JSR outputTerminate
-    SHOWSTATUS outputBuffer
-
-.appendHex
+    JSR outputTerminate                 ; terminate & show new status line
+    LDXY outputBuffer
+    JMP showStatus
 
 .receiveText
     EQUS "Receiving ", 0
-.lookup
-    EQUS "0123456789ABCDEF"
+}
+
+.debug64
+{
+    STA tempA
+    PHAXY
+
+    LDA tempA
+    LSR A
+    LSR A
+    LSR A
+    LSR A
+    JSR debugHex
+    STA &401
+
+    LDA tempA
+    JSR debugHex
+    STA &402
+
+    PLAXY
+    RTS
+.debugHex
+    AND #&0F
+    TAY
+    LDA lookup,Y
+    RTS
+.lookup EQUS "0123456789ABCDEF"
 }

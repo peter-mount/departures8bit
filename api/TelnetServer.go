@@ -6,6 +6,7 @@ import (
 	"github.com/reiver/go-telnet"
 	"github.com/reiver/go-telnet/telsh"
 	"log"
+	"strconv"
 )
 
 const (
@@ -60,8 +61,9 @@ func (a *TelnetServer) Run() error {
 func (a *TelnetServer) ServeTELNET(ctx telnet.Context, writer telnet.Writer, reader telnet.Reader) {
 	log.Println(reader, writer)
 	r := Response{}
-	r.Append("TEST")
-	r.Append("line")
+	for i := 0; i < 10; i++ {
+		r.Append("INFTest " + strconv.Itoa(i))
+	}
 	err := r.SendImpl(reader, writer)
 	log.Println(err)
 }

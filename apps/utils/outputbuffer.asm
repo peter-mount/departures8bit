@@ -26,6 +26,27 @@
     STA outputBuffer,Y
     RTS
 
+.outputAppendHexChar
+{
+    STA tempA
+    PHAXY
+    LDA tempA
+    LSR A
+    LSR A
+    LSR A
+    LSR A
+    JSR appendHex
+    LDA tempA
+    JSR appendHex
+    PLAXY
+    RTS
+.lookup EQUS "0123456789ABCDEF"
+.appendHex
+    AND #&0F                        ; mask lower nibble
+    TAY
+    LDA lookup,Y                    ; A from lookup table, run through to outputAppend
+}
+
 ; outputAppend Append a to outputBuffer
 ;
 ; on entry:
@@ -68,26 +89,4 @@
 .end
     STX outputLength                ; store new length
 	RTS
-}
-
-.outputAppendHexChar
-{
-    STA tempA
-    PHAXY
-    LDA tempA
-    LSR A
-    LSR A
-    LSR A
-    LSR A
-    JSR appendHex
-    LDA tempA
-    JSR appendHex
-    PLAXY
-    RTS
-.appendHex
-    AND #&0F
-    TAY
-    LDA lookup,Y
-    JMP outputAppend
-.lookup EQUS "0123456789ABCDEF"
 }
