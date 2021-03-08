@@ -2,43 +2,17 @@
 ; Debugging utilities
 ; **********************************************************************
 
-.debug
-{
-    ;JSR waitSecond ;; to prevent RS232NET: Error - Error writing: 32.
-    PHAXY
-    JSR serialReceiveLine
-
-    LDXY inputBuffer
-    JSR strlen
-    CMP #0
-    BEQ end
-
-    PHAXY
-    WRITESTRING debugText
-    PLAXY
-
-    JSR writeString
-;    WRITESTRING inputBuffer
-    LDA #33
-    JSR oswrch
-    JSR osnewl
-.end
-    PLAXY
-    RTS
-.debugText EQUS "Debug:",0
-}
-
 .debugChar
 {
     STA tempA
     PHAXY
     LDA tempA
+    LSR A
+    LSR A
+    LSR A
+    LSR A
     JSR debugHex
     LDA tempA
-    LSR A
-    LSR A
-    LSR A
-    LSR A
     JSR debugHex
     PLAXY
     RTS

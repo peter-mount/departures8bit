@@ -37,11 +37,7 @@ start = &0801       ; Base of basic program
     LDXY test               ; append test command
     JSR outputAppendString
     JSR outputTerminate
-    JSR sendCommand
-
-    SHOWSTATUS run
-    JSR langExec            ; Run the response
-    RTS
+    JMP sendCommand
 
 
 .waitSecond                 ; wait loop for 1 second

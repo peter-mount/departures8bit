@@ -17,16 +17,6 @@
 
     RTS     ; TODO implement response
 
-.sendCommand
-    SHOWSTATUS sendingText
-    JSR serialStart         ; Start serial comms
-    JSR serialSendOutput    ; Send command
-    JSR serialWaitUntilSent
-    JSR receiveData         ; Get response object
-    JSR serialEnd           ; End serial comms
-    JSR relocateLang        ; relocate received code
-    RTS
-
 .sendingText
     EQUS "Sending...", 0
 .receivingText

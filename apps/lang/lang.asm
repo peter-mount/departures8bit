@@ -20,8 +20,8 @@ TokenError      = 1     ; Error, shows an error message
 ; this table maps tokens 0..127. Tokens with bit 8 set (128+) are not
 ; executable and are used for these lookup items.
 .langLookupTable
-    EQUW    nop     ; 0 no response
-    EQUW    nop     ; 1 error response
+    EQUW    nop             ; 0 no response
+    EQUW    langError       ; 1 error response
 
 ; langExec              Execute's the program
 .langExec
@@ -31,11 +31,33 @@ TokenError      = 1     ; Error, shows an error message
     LDA #>dataBase
     STA curLine+1
 .loop
+    ;JMP debugLine
     JSR langInvokeToken         ; Execute the current token
     JSR langNextLine            ; Move to the next line
     BNE loop                    ; Loop until we hit the end
     RTS
 }
+
+.debugLine
+    LDA curLine+1
+    JSR debugChar
+    LDA curLine
+    JSR debugChar
+    JSR langLineValid
+    BEQ debugEnd
+    JSR writeSpace
+    LDY #1
+    LDA (curLine),Y
+    JSR debugChar
+    DEY
+    LDA (curLine),Y
+    JSR debugChar
+    JSR writeSpace
+    LDY #2
+    LDA (curLine),Y
+    JSR debugChar
+.debugEnd
+    JMP osnewl
 
 ; langNextLine          Moves curLine to the next line in the program
 ;
@@ -109,16 +131,14 @@ ENDIF
 {
     LDA #<dataBase
     STA tempAddr
-    LDA #<dataBase
+    LDA #>dataBase
     STA tempAddr+1
 .loop
     LDY #0
     LDA (tempAddr),Y        ; Check for 0x0000 for next line pointer
-    CMP #0
     BNE relocate            ; relocate line
     INY
     LDA (tempAddr),Y
-    CMP #0
     BNE relocate            ; relocate line
     RTS                     ; All done, leave last 0x0000 alone as that's correct
 .relocate
@@ -137,3 +157,19 @@ ENDIF
     STA tempAddr            ; & update lower half of tempAddr so it now points to new location
     JMP loop                ; Loop to check the next address
 }
+
+.langError
+    LDA #COL_LIGHT_RED  ; Set text colour
+    JSR setColour
+
+    CLC
+    LDA curLine
+    ADC #3
+    TAX
+    LDA curLine+1
+    ADC #0
+    TAY
+    JSR writeString
+
+    LDA #COL_GREY1  ; Set text colour
+    JMP setColour

@@ -15,7 +15,7 @@
     INCLUDE "network/dialer.asm"        ; WiFi Modem dialer
     INCLUDE "network/api.asm"           ; Our API
     INCLUDE "lang/lang.asm"             ; Our "language"
-    ;INCLUDE "utils/debug.asm"           ; Debugging
+    INCLUDE "utils/debug.asm"           ; Debugging
 .end                                    ; End of the program
 
     ALIGN &100

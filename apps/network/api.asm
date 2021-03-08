@@ -20,6 +20,22 @@ proto_dataSize      = proto_blockCount + 1      ; Data size, 0-128
 proto_blockData     = proto_dataSize + 1        ; Offset to start of block data
 proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
 
+; sendCommand Sends the command in outputBuffer to the server, waits
+; for a response and sets it up
+.sendCommand
+    ;SHOWSTATUS sendingText
+    SHOWSTATUS outputBuffer
+    JSR serialStart         ; Start serial comms
+    JSR serialSendOutput    ; Send command
+    JSR serialWaitUntilSent
+    JSR receiveData         ; Get response object
+    JSR serialEnd           ; End serial comms
+    JSR clearStatus         ; Clear status line
+    JSR relocateLang        ; relocate received code
+    JSR langExec            ; Run the response
+    LDXY sendCommandComplete
+    JMP showStatus
+.sendCommandComplete EQUS "Complete",0
 ; receiveData       Receives data from the remote server and writes it
 ;                   into dataBase
 .receiveData
@@ -58,15 +74,15 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
     LDX outputBuffer+proto_dataSize     ; Copy proto_dataSize bytes to dataBase
     LDY #0
 .copyLoop
-    LDA outputBuffer,Y
-    STA (dataPos),y
+    LDA outputBuffer+proto_blockData,Y  ; Copy from payload in outputBuffer
+    STA (dataPos),Y
     INY
     DEX
     BNE copyLoop
 
     CLC                                 ; Increment dataPos by proto_dataSize
     LDA dataPos
-    ADC outputBuffer+proto_blockCount
+    ADC outputBuffer+proto_dataSize
     STA dataPos
     LDA dataPos+1
     ADC #0
@@ -87,9 +103,6 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
 {
     JSR receiveShowStatus
 
-    LDA #'0'
-    STA &400
-
 .waitForSOH                             ; Wait for initial SOH
 IF c64
     JSR serialGetChar                   ; Read byte
@@ -99,42 +112,26 @@ ENDIF
     CMP #SOH                            ; Loop until we get SOH
     BNE waitForSOH
 
-    LDA #'1'
-    STA &400
-
     JSR outputReset                     ; reset to receive block
     LDY #proto_blockData                ; read block header
     JSR receiveBlockImpl
 
-    LDA #'2'
-    STA &400
     LDY outputBuffer+proto_dataSize     ; Read in the remainder of the block
     JSR receiveBlockImpl
                                         ; TODO add CRC check here
 
-    LDA #'3'
-    STA &400
-                                        ; TODO store payload in dataBase
-
 .receiveEnd
-
-    LDA #'4'
-    STA &400
     CLC                                 ; mark as ok
     RTS
 
 .receiveBlockImpl                       ; receive X chars
     TYA                                 ; Save Y
     PHA
-    JSR debug64                         ; Debug remove
 IF c64
     JSR serialGetChar
 ELSE
     ERROR "TODO implement"
 ENDIF
-    LDY outputLength
-    STA &428,Y                          ; debug remove
-
     JSR outputAppend                    ; append to buffer
     PLA                                 ; Restore Y
     TAY
@@ -162,31 +159,4 @@ ENDIF
 
 .receiveText
     EQUS "Receiving ", 0
-}
-
-.debug64
-{
-    STA tempA
-    PHAXY
-
-    LDA tempA
-    LSR A
-    LSR A
-    LSR A
-    LSR A
-    JSR debugHex
-    STA &401
-
-    LDA tempA
-    JSR debugHex
-    STA &402
-
-    PLAXY
-    RTS
-.debugHex
-    AND #&0F
-    TAY
-    LDA lookup,Y
-    RTS
-.lookup EQUS "0123456789ABCDEF"
 }

@@ -130,6 +130,10 @@ baseLine = &0400 + (24*40)  ; Address of first char
     BNE loop                ; Loop until we hit max chars
 .endStatus
     RTS
+; Clear status clears the status line
+.*clearStatus
+    LDX #39                 ; Max chars to write
+    LDY #0
 .endOfString
     LDA #' '                ; Clear rest of line
 .loop1
