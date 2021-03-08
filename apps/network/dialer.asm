@@ -5,16 +5,23 @@
 ; dialServer        Dial remote server
 .dialServer
 {
-    SHOWSTATUS dialStart
-    JSR serialStart
+    JSR serialStart                 ; Start serial comms
 
-    LDY #0                          ; Start dialing
+    SHOWSTATUS resetModem
+    LDY #0                          ; Reset modem
+    JSR dial1
+
+    SHOWSTATUS dialingServer        ; Dial server
+    LDY #dialSequence-resetSequence
+    JSR dial1
+
+    SHOWSTATUS connected            ; Show we are connected
+    JMP serialEnd                   ; End serial comms
+    RTS
+
 .dial1
-    LDA dialText,Y
+    LDA resetSequence,Y
     BNE dial2                       ; Finish when we hit 0
-
-    JSR serialEnd
-    SHOWSTATUS dialEnd
     RTS
 
 .dial2
@@ -103,16 +110,27 @@ ELIF bbc                            ; BBC delay code using MOS
     LDY #>tmpaddr
     JMP osword
 ENDIF
-}
 
-.dialStart
-    EQUS "Connecting...", 0
+.resetModem
+    EQUS "Resetting modem...", 0
 
-.dialEnd
+.dialingServer
+    EQUS "Dialing server...", 0
+
+.connected
     EQUS "Connected", 0
 
-.dialText
-    EQUS "+++", 1, "ATH", 13, 10, 2
-    EQUS "ATZ", 13, 10, 2
-    EQUS "ATDTlocalhost:10232", 13, 10, 1
+; TODO add proper parsing of response from modem, e.g. OK or CONNECTED strings
+; 0 = end a sequence
+; 1 = 1s delay
+; 2 = 0.1s delay
+.resetSequence
+    EQUS "+++", 1                           ; send break then wait 1s, delay is part of Hayes protocol
+    EQUS "ATH", 13, 10, 2                   ; hang up any connection wait sub second for OK
+    EQUS "ATZ", 13, 10, 2, 0                ; reset modem, wait sub second
+    EQUB 0                                  ; end resetModem sequence
+.dialSequence
+    EQUS "ATDTlocalhost:10232", 13, 10      ; dial server
+    EQUB 1                                  ; wait 1s for CONNECTED response
     EQUB 0
+}
