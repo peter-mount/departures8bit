@@ -1,7 +1,6 @@
 package lang
 
 import (
-	"fmt"
 	"github.com/peter-mount/nre-feeds/darwinref"
 )
 
@@ -27,13 +26,10 @@ func NewTiploc(location *darwinref.Location) *Tiploc {
 
 func (l Tiploc) Compile() []byte {
 	r := []byte{TokenTiploc}
-	r = append(r, fmt.Sprintf(
-		"%-7.7s%-3.3s%-2.2s%s",
-		l.tiploc,
-		l.crs,
-		l.toc,
-		l.name,
-	)[:]...)
+	r = append(r, Pad(l.tiploc, 7)...) // Tiploc 7 chars max
+	r = append(r, Pad(l.crs, 3)...)    // CRS 3 chars max
+	r = append(r, Pad(l.toc, 2)...)    // TOC 2 chars max
+	r = append(r, l.name...)           // Name can be any lentgth
 	return append(r, 0)
 }
 

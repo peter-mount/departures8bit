@@ -58,3 +58,14 @@ func (p *Program) Compile() []byte {
 type Line interface {
 	Compile() []byte
 }
+
+func Pad(s string, l int) []byte {
+	b := []byte(s)
+	if len(b) > l {
+		b = b[:l]
+	}
+	for len(b) < l {
+		b = append(b, 0)
+	}
+	return b
+}
