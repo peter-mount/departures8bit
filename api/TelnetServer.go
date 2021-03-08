@@ -1,12 +1,13 @@
 package api
 
 import (
+	"github.com/peter-mount/departures8bit/apps/lang"
+	"github.com/peter-mount/departures8bit/apps/network"
 	refclient "github.com/peter-mount/nre-feeds/darwinref/client"
 	ldbclient "github.com/peter-mount/nre-feeds/ldb/client"
 	"github.com/reiver/go-telnet"
 	"github.com/reiver/go-telnet/telsh"
 	"log"
-	"strconv"
 )
 
 const (
@@ -59,11 +60,10 @@ func (a *TelnetServer) Run() error {
 	return a.server.ListenAndServe()
 }
 func (a *TelnetServer) ServeTELNET(ctx telnet.Context, writer telnet.Writer, reader telnet.Reader) {
-	log.Println(reader, writer)
-	r := Response{}
-	for i := 0; i < 10; i++ {
-		r.Append("INFTest " + strconv.Itoa(i))
-	}
-	err := r.SendImpl(reader, writer)
+	var p lang.Program
+	p = append(p, lang.Error("Test program"))
+	b := p.Compile()
+	r := network.SplitBytes(b)
+	err := r.Send(reader, writer)
 	log.Println(err)
 }

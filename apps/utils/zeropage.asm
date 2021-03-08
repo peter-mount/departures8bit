@@ -23,6 +23,7 @@
 .dataPos        EQUW 0      ; Current position in dataBase
 .curBlock       EQUB 0      ; Current block number being received
 .numBlock       EQUB 0      ; Number of blocks expected
+.curLine        EQUW 0      ; Address of the current line being executed
 
 IF bbc
 .oswordWork     EQUB 0,0,0,0,0  ; 5 bytes for OSWORD call on BBC

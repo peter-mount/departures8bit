@@ -13,8 +13,8 @@
     INCLUDE "network/serial.asm"        ; RS232 handler
     INCLUDE "network/connect.asm"       ; Connect API
     INCLUDE "network/dialer.asm"        ; WiFi Modem dialer
-    ;INCLUDE "network/xmodem-6502.asm"   ; XModem protocol
     INCLUDE "network/api.asm"           ; Our API
+    INCLUDE "lang/lang.asm"             ; Our "language"
     ;INCLUDE "utils/debug.asm"           ; Debugging
 .end                                    ; End of the program
 

@@ -38,6 +38,9 @@ start = &0801       ; Base of basic program
     JSR outputAppendString
     JSR outputTerminate
     JSR sendCommand
+
+    SHOWSTATUS run
+    JSR langExec            ; Run the response
     RTS
 
 
@@ -55,3 +58,4 @@ ENDIF
 }
 .test
     EQUS "depart mde", 10, 0
+.run EQUS "Running...", 0

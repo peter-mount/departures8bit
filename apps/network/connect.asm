@@ -19,13 +19,12 @@
 
 .sendCommand
     SHOWSTATUS sendingText
-    JSR serialStart
+    JSR serialStart         ; Start serial comms
     JSR serialSendOutput    ; Send command
     JSR serialWaitUntilSent
-;    JSR serialEnd
-;    SHOWSTATUS receivingText
-    JSR receiveData     ; Get response object
-;    JSR serialEnd
+    JSR receiveData         ; Get response object
+    JSR serialEnd           ; End serial comms
+    JSR relocateLang        ; relocate received code
     RTS
 
 .sendingText

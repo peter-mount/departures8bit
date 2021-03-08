@@ -94,7 +94,9 @@ func (r Response) Send(i io.Reader, o io.Writer) error {
 			case oBuffer[0] == ACK:
 				log.Printf("ACK block %d/%d", curBlock, numBlock)
 				curBlock++
-				err = r[curBlock].send(o)
+				if curBlock < numBlock {
+					err = r[curBlock].send(o)
+				}
 			default:
 				// do nothing
 			}

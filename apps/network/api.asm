@@ -28,7 +28,8 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
     STA curBlock                        ; curBlock = 0
     STA numBlock                        ; numBlock = 0
     STA dataBase                        ; Wipe the dataBase by resetting the next record
-    STA dataBase+1                      ; address
+    STA dataBase+1                      ; address to 0 as end of program
+    STA dataBase+2                      ; Set command to TokenNoResponse
 
     LDA #<dataBase                      ; Reset dataPos
     STA dataPos
@@ -54,6 +55,23 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
     LDA outputBuffer+proto_blockCount   ; Store num blocks. This should be static but doing this for every block
     STA numBlock                        ; is shorter code & allows for dynamic feeds if we need it
 
+    LDX outputBuffer+proto_dataSize     ; Copy proto_dataSize bytes to dataBase
+    LDY #0
+.copyLoop
+    LDA outputBuffer,Y
+    STA (dataPos),y
+    INY
+    DEX
+    BNE copyLoop
+
+    CLC                                 ; Increment dataPos by proto_dataSize
+    LDA dataPos
+    ADC outputBuffer+proto_blockCount
+    STA dataPos
+    LDA dataPos+1
+    ADC #0
+    STA dataPos+1
+
 .sendAck                                ; Send ACK to confirm this block is valid
     LDA #ACK
     JSR serialSendChar
@@ -62,7 +80,6 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
 
 .loopEnd
     JMP serialEnd                       ; End serial comms
-
 }
 
 ; receiveBlock      Receive a block from the remote
