@@ -18,7 +18,7 @@ proto_blockNum      = 0                         ; Offset to block number, 1 byte
 proto_blockCount    = proto_blockNum + 1        ; Number of blocks
 proto_dataSize      = proto_blockCount + 1      ; Data size, 0-128
 proto_blockData     = proto_dataSize + 1        ; Offset to start of block data
-proto_blockSize     = proto_blockData + 80      ; Max 128 bytes for payload
+proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
 
 ; receiveData       Receives data from the remote server and writes it
 ;                   into dataBase
