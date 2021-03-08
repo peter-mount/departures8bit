@@ -19,6 +19,6 @@
 .end                                    ; End of the program
 
     ALIGN &100
-;.workBase                               ; First free block of memory
+.dataBase                               ; First free block of memory
 
     SAVE "../builds/depart.prg", start-2, end

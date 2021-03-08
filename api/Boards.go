@@ -1,8 +1,8 @@
 package api
 
 import (
+	"github.com/peter-mount/departures8bit/apps/lang"
 	"github.com/peter-mount/go-kernel"
-	"io"
 	"log"
 	"strings"
 )
@@ -25,15 +25,14 @@ func (h *Boards) Init(k *kernel.Kernel) error {
 }
 
 func (h *Boards) PostInit() error {
-	return h.server.RegisterHandlerFunc("depart", h.Handler)
+	return h.server.Register("depart", h)
 }
 
-func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
-	response := NewResponse(stdin, stdout)
+func (h *Boards) Handle(prog *lang.Program, args ...string) error {
 
 	if len(args) != 1 {
-		return response.Append("ERR depart crs").
-			Send()
+		prog.Error("depart crs")
+		return nil
 	}
 	crs := strings.ToUpper(args[0])
 
@@ -44,20 +43,23 @@ func (h *Boards) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.W
 	}
 
 	if sr == nil {
-		return response.Append("ERRUnknown station %s", crs).
-			Send()
+		prog.Error("Unknown station %s", crs)
+		return nil
 	}
+
 	var stationName string
+	var stationTiploc string
 	if len(sr.Station) == 0 {
 		stationName = sr.Crs
 	} else {
-		stationName = sr.Station[0]
+		stationTiploc = sr.Station[0]
 	}
 	if d, ok := sr.Tiplocs.Get(stationName); ok {
 		stationName = d.Name
 	}
 
-	response.Append("STN%03s%-16.16s%03d", crs, stationName, len(sr.Services))
+	prog.Append(lang.NewStation(crs, stationTiploc, stationTiploc))
+	prog.AppendTiplocs(sr.Tiplocs)
 
-	return response.Send()
+	return nil
 }

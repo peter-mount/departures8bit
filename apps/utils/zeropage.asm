@@ -32,7 +32,7 @@ ENDIF
 ; Here until I find somewhere better
 IF c64
 outputBuffer        = &C000 ; 256 bytes to create strings
-dataBase            = &c100 ; Base of read data from the feeds
+;dataBase            = &c100 ; Base of read data from the feeds
 
 ELSE
     ERROR "Not implemented"

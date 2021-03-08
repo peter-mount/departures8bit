@@ -11,7 +11,9 @@
 ; Language tokens
 TokenNoResponse = 0     ; No response
 TokenError      = 1     ; Error, shows an error message
-
+; Lookup tokens
+TokenStation    = 128   ; Station header used for departure boards
+TokenTiploc     = 129   ; Tiploc lookup entry
 ; Token lookup table that links the token's to code to run when they are
 ; "executed". Not all tokens are to be executed as some are data markers
 ; e.g. TokenTiploc holds the definition for a tiploc in the result so it

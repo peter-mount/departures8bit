@@ -24,7 +24,7 @@ func (h *Helo) Init(k *kernel.Kernel) error {
 }
 
 func (h *Helo) PostInit() error {
-	return h.server.RegisterHandlerFunc("helo", h.Handler)
+	return nil //h.server.RegisterHandlerFunc("helo", h.Handler)
 }
 
 func (h *Helo) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {

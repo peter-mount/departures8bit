@@ -1,5 +1,7 @@
 package lang
 
+import "fmt"
+
 // Tokens for our pseudo language
 // Note These are dependent on lang.asm so don't change the values.
 //
@@ -7,19 +9,32 @@ package lang
 // will break as there's no versioning in the protocol!
 
 const (
-	TokenNoResponse = 0 // Built in error on client side, not normally sent from server
-	TokenError      = 1 // Error, show an error message
+	TokenNoResponse = 0   // Built in error on client side, not normally sent from server
+	TokenError      = 1   // Error, show an error message
+	TokenStation    = 128 // Station name, used in headers for boards
+	TokenTiploc     = 129 // Tiploc lookup entry
 )
 
 // Program is a series of lines
-type Program []Line
+type Program struct {
+	lines []Line
+}
+
+func (p *Program) Append(l ...Line) *Program {
+	p.lines = append(p.lines, l...)
+	return p
+}
+
+func (p *Program) Error(f string, a ...interface{}) *Program {
+	return p.Append(Error(fmt.Sprintf(f, a...)))
+}
 
 // Compile compiles the program into it's binary equivalent.
 func (p *Program) Compile() []byte {
 	var response []byte
 	addr := uint(0)
-	sl := len(*p) - 1
-	for i, l := range *p {
+	sl := len(p.lines) - 1
+	for i, l := range p.lines {
 		bl := l.Compile()
 
 		// Update address to point to next one
@@ -42,11 +57,4 @@ func (p *Program) Compile() []byte {
 // Line is a line in a Program
 type Line interface {
 	Compile() []byte
-}
-
-// Remark is a basic line of text which is ignored
-type Error string
-
-func (l Error) Compile() []byte {
-	return append([]byte{TokenError}, string(l)[:]...)
 }

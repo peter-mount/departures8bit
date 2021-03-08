@@ -25,6 +25,13 @@ start = &0801       ; Base of basic program
 ;    SKIPTO &1000
 ;   The program's entry point
 .entryPoint
+    LDA #%00110110          ; Replace basic with ram at a000-bfff for an extra 8K
+    STA &01
+    JSR entryPoint1         ; call our true entry point
+    LDA #%00110111          ; restore Basic rom
+    STA &01
+    RTS                     ; exit the program
+.entryPoint1
     JSR initScreen          ; Initialise the screen
     JSR welcome             ; Show the welcome screen
     JSR serialInit          ; Initialise RS232

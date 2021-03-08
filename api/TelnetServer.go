@@ -1,26 +1,30 @@
 package api
 
 import (
+	"fmt"
 	"github.com/peter-mount/departures8bit/apps/lang"
 	"github.com/peter-mount/departures8bit/apps/network"
 	refclient "github.com/peter-mount/nre-feeds/darwinref/client"
 	ldbclient "github.com/peter-mount/nre-feeds/ldb/client"
 	"github.com/reiver/go-telnet"
-	"github.com/reiver/go-telnet/telsh"
+	"io"
 	"log"
+	"strings"
 )
 
 const (
-	//TelnetBinding = ":25232"
 	TelnetBinding = ":10232"
 )
 
 type TelnetServer struct {
-	shell     *telsh.ShellHandler
 	server    *telnet.Server
 	refClient refclient.DarwinRefClient // ref api
 	ldbClient ldbclient.DarwinLDBClient // ldb api
-	test      *Boards
+	commands  map[string]TelnetHandler
+}
+
+type TelnetHandler interface {
+	Handle(prog *lang.Program, args ...string) error
 }
 
 func (a *TelnetServer) Name() string {
@@ -28,30 +32,25 @@ func (a *TelnetServer) Name() string {
 }
 
 func (a *TelnetServer) PostInit() error {
-	a.shell = telsh.NewShellHandler()
-	a.shell.Prompt = ""
-	a.shell.WelcomeMessage = "" //"00 DEPARTUREBOARDS.MOBI API"
-	a.shell.ExitCommandName = "quit"
-	a.shell.ExitMessage = "00 BYE"
-
 	a.server = &telnet.Server{
 		Addr:    TelnetBinding,
-		Handler: a, //.shell,
+		Handler: a,
 		Logger:  &TelnetLogger{},
 	}
 
 	a.refClient = refclient.DarwinRefClient{Url: "https://ref.prod.a51.li"}
 	a.ldbClient = ldbclient.DarwinLDBClient{Url: "https://ldb.prod.a51.li"}
 
+	a.commands = make(map[string]TelnetHandler)
 	return nil
 }
 
-func (a *TelnetServer) Register(name string, producer *telsh.ProducerFunc) error {
-	return a.shell.Register(name, producer)
-}
-
-func (a *TelnetServer) RegisterHandlerFunc(name string, producer telsh.HandlerFunc) error {
-	return a.shell.RegisterHandlerFunc(name, producer)
+func (a *TelnetServer) Register(name string, handler TelnetHandler) error {
+	if _, exists := a.commands[name]; exists {
+		return fmt.Errorf("handler %s already registered", name)
+	}
+	a.commands[name] = handler
+	return nil
 }
 
 func (a *TelnetServer) Run() error {
@@ -60,10 +59,52 @@ func (a *TelnetServer) Run() error {
 	return a.server.ListenAndServe()
 }
 func (a *TelnetServer) ServeTELNET(ctx telnet.Context, writer telnet.Writer, reader telnet.Reader) {
-	var p lang.Program
-	p = append(p, lang.Error("Test program"))
-	b := p.Compile()
-	r := network.SplitBytes(b)
-	err := r.Send(reader, writer)
-	log.Println(err)
+	for true {
+		l, err := a.readLine(reader)
+		if err == nil && l != "" {
+			var prog lang.Program
+			args := strings.Split(l, " ")
+			log.Println(args)
+			cmd, ok := a.commands[args[0]]
+			if ok {
+				err = cmd.Handle(&prog, args[1:]...)
+			} else {
+				prog.Error("Unknown command %s", args[0])
+			}
+			if err == nil {
+				b := prog.Compile()
+				r := network.SplitBytes(b)
+				err = r.Send(reader, writer)
+			}
+		}
+		if err != nil {
+			log.Println(err)
+			if err == io.EOF {
+				return
+			}
+		}
+	}
+}
+
+func (a *TelnetServer) readLine(reader io.Reader) (string, error) {
+	var s []byte
+	b := []byte{0}
+	for true {
+		n, err := reader.Read(b)
+		log.Printf("%02d %02d %02x %s", len(s), n, b[0], s)
+		if err != nil {
+			return "", err
+		}
+		if n == 1 {
+			c := b[0]
+			if c == '\n' {
+				return string(s[:]), nil
+			}
+
+			if c >= ' ' && c < 127 {
+				s = append(s, c)
+			}
+		}
+	}
+	return string(s[:]), nil
 }
