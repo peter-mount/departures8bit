@@ -4,16 +4,22 @@
 ;
 ; This defines our zero-page usage and is common to both the BBC & C64
 ;
-; On the C64 02-7F if Basic is swapped out.
-; On the BBC 00-8F if the current language rom
-;            70-8F if BBC Basic is active
+; Available:
+; 02-7F C64 if Basic is swapped out.
+; 00-8F BBC if running as or ignoring the current language rom
+; 70-8F BBC if Basic is active
 ;
-; 90-FF is reserved by Acorn MOS & 80-FF by Kernal.
+; Unusable:
+; 00-01 C64 used by the 6510 CPU
+; 90-FF BBC reserved by Acorn MOS
+; 80-FF C64 reserved by Kernal.
 ;
 ; As we replace the relevant language then we can safely use 02-7F on
 ; both architectures.
 ;
-                ORG 2       ; Bytes 0 & 1 are unavailable on the C64 as they are the 6510 processor port
+                ORG     &02 ; Bytes 0 & 1 are unavailable on the C64 as they are the 6510 processor port
+                GUARD   &80 ; Upper bound limit for zero page
+
 .stringPointer  EQUW 0      ; String utility pointer
 .tempChar       EQUB 0      ; 1 byte to store temp char
 .tempA          EQUB 0      ; 1 byte to store accumulator
@@ -27,13 +33,4 @@
 
 IF bbc
 .oswordWork     EQUB 0,0,0,0,0  ; 5 bytes for OSWORD call on BBC
-ENDIF
-
-; Here until I find somewhere better
-IF c64
-outputBuffer        = &C000 ; 256 bytes to create strings
-;dataBase            = &c100 ; Base of read data from the feeds
-
-ELSE
-    ERROR "Not implemented"
 ENDIF

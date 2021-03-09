@@ -6,7 +6,7 @@
 ; the machine code.
 ;
     CPU     0       ; 6502
-    GUARD   &A000   ; Guard to upper memory limit
+    GUARD   &A000   ; Guard to upper memory limit, valid only for generated code
 
 start = &0801       ; Base of basic program
     ORG start-2     ; Start 2 bytes earlier so we can inject the load address
@@ -23,42 +23,10 @@ start = &0801       ; Base of basic program
 }
     SKIPTO &0900    ; Skip to the next page
 ;    SKIPTO &1000
-;   The program's entry point
-.entryPoint
+;   The program's entry point from the Basic loader
     LDA #%00110110          ; Replace basic with ram at a000-bfff for an extra 8K
     STA &01
-    JSR entryPoint1         ; call our true entry point
+    JSR entryPoint          ; call our true entry point
     LDA #%00110111          ; restore Basic rom
     STA &01
     RTS                     ; exit the program
-.entryPoint1
-    JSR initScreen          ; Initialise the screen
-    JSR welcome             ; Show the welcome screen
-    JSR serialInit          ; Initialise RS232
-    JSR connectAPI          ; Connect to API
-
-    ;;JSR debug
-
-
-    JSR outputReset         ; clear output buffer
-    LDXY test               ; append test command
-    JSR outputAppendString
-    JSR outputTerminate
-    JMP sendCommand
-
-
-.waitSecond                 ; wait loop for 1 second
-{
-IF c64                      ; C64 delay code
-    LDX #75
-.dialWait0
-    LDA #&FF
-.dialWait1
-    CMP &d012               ; Wait for next frame
-    BNE dialWait1
-ENDIF
-    RTS
-}
-.test
-    EQUS "depart mde", 10, 0
-.run EQUS "Running...", 0

@@ -33,33 +33,11 @@ TokenTiploc     = 129   ; Tiploc lookup entry
     LDA #>dataBase
     STA curLine+1
 .loop
-    ;JMP debugLine
     JSR langInvokeToken         ; Execute the current token
     JSR langNextLine            ; Move to the next line
     BNE loop                    ; Loop until we hit the end
     RTS
 }
-
-.debugLine
-    LDA curLine+1
-    JSR debugChar
-    LDA curLine
-    JSR debugChar
-    JSR langLineValid
-    BEQ debugEnd
-    JSR writeSpace
-    LDY #1
-    LDA (curLine),Y
-    JSR debugChar
-    DEY
-    LDA (curLine),Y
-    JSR debugChar
-    JSR writeSpace
-    LDY #2
-    LDA (curLine),Y
-    JSR debugChar
-.debugEnd
-    JMP osnewl
 
 ; langNextLine          Moves curLine to the next line in the program
 ;
