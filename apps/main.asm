@@ -8,7 +8,6 @@
     INCLUDE "utils/strings.asm"         ; String handling
     INCLUDE "utils/welcome.asm"         ; Welcome page
     INCLUDE "network/serial.asm"        ; RS232 handler
-    INCLUDE "network/connect.asm"       ; Connect API
     INCLUDE "network/dialer.asm"        ; WiFi Modem dialer
     INCLUDE "network/api.asm"           ; Our API
     INCLUDE "lang/lang.asm"             ; Our "language"
@@ -17,7 +16,7 @@
     JSR initScreen          ; Initialise the screen
     JSR welcome             ; Show the welcome screen
     JSR serialInit          ; Initialise RS232
-    JSR connectAPI          ; Connect to API
+    JSR dialServer          ; Connect to API server
 
     ;;JSR debug
 
@@ -28,6 +27,9 @@
     JSR outputTerminate
     JMP sendCommand
 
+; Called at application end, free up resources
+.cleanup
+    JMP hangUp
 
 .waitSecond                 ; wait loop for 1 second
 {

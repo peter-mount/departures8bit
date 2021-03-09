@@ -2,24 +2,52 @@
 ; Dialer - handles hanging up and dialing the server using the WiFi modem
 ; ********************************************************************************
 
-; dialServer        Dial remote server
-.dialServer
-{
+; hangUp            Disconnect from remote server
+.hangUp
     JSR serialStart                 ; Start serial comms
 
-    SHOWSTATUS resetModem
+    SHOWSTATUS resetModemText
     LDY #0                          ; Reset modem
-    JSR dial1
-
-    SHOWSTATUS dialingServer        ; Dial server
-    LDY #dialSequence-resetSequence
-    JSR dial1
-
-    SHOWSTATUS connected            ; Show we are connected
+    JSR dialImpl
     JMP serialEnd                   ; End serial comms
-    RTS
 
-.dial1
+; dialServer        Dial remote server
+.dialServer
+    JSR hangUp
+    JSR serialStart                 ; Start serial comms
+
+    SHOWSTATUS dialingServerText    ; Dial server
+    LDY #dialSequence-resetSequence
+    JSR dialImpl
+
+    SHOWSTATUS connectedText        ; Show we are connected
+    JMP serialEnd                   ; End serial comms
+
+.resetModemText
+    EQUS "Resetting modem...", 0
+
+.dialingServerText
+    EQUS "Dialing server...", 0
+
+.connectedText
+    EQUS "Connected", 0
+
+; TODO add proper parsing of response from modem, e.g. OK or CONNECTED strings
+; 0 = end a sequence
+; 1 = 1s delay
+; 2 = 0.1s delay
+.resetSequence
+    EQUS "+++", 1                           ; send break then wait 1s, delay is part of Hayes protocol
+    EQUS "ATH", 13, 10, 2                   ; hang up any connection wait sub second for OK
+    EQUS "ATZ", 13, 10, 2, 0                ; reset modem, wait sub second
+    EQUB 0                                  ; end resetModem sequence
+.dialSequence
+    EQUS "ATDTlocalhost:10232", 13, 10      ; dial server
+    EQUB 1                                  ; wait 1s for CONNECTED response
+    EQUB 0
+
+.dialImpl
+{
     LDA resetSequence,Y
     BNE dial2                       ; Finish when we hit 0
     RTS
@@ -36,7 +64,7 @@ ELSE
     ERROR "TODO implement"
 ENDIF
     CMP #10                         ; A=10 then wait for a short while
-    BNE dial1
+    BNE dialImpl
 
 .dailWait                           ; wait 100 tics loop between commands
 IF c64                              ; C64 delay code
@@ -63,7 +91,7 @@ IF c64                              ; C64 delay code
 
     DEX                             ; Loop X times
     BNE dialWait0
-    JMP dial1                       ; return to main loop
+    JMP dialImpl                    ; return to main loop
 
 ELIF bbc                            ; BBC delay code using MOS
     LDA #0
@@ -110,27 +138,4 @@ ELIF bbc                            ; BBC delay code using MOS
     LDY #>tmpaddr
     JMP osword
 ENDIF
-
-.resetModem
-    EQUS "Resetting modem...", 0
-
-.dialingServer
-    EQUS "Dialing server...", 0
-
-.connected
-    EQUS "Connected", 0
-
-; TODO add proper parsing of response from modem, e.g. OK or CONNECTED strings
-; 0 = end a sequence
-; 1 = 1s delay
-; 2 = 0.1s delay
-.resetSequence
-    EQUS "+++", 1                           ; send break then wait 1s, delay is part of Hayes protocol
-    EQUS "ATH", 13, 10, 2                   ; hang up any connection wait sub second for OK
-    EQUS "ATZ", 13, 10, 2, 0                ; reset modem, wait sub second
-    EQUB 0                                  ; end resetModem sequence
-.dialSequence
-    EQUS "ATDTlocalhost:10232", 13, 10      ; dial server
-    EQUB 1                                  ; wait 1s for CONNECTED response
-    EQUB 0
 }
