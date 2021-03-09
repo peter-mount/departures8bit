@@ -72,7 +72,7 @@ func (a *TelnetServer) ServeTELNET(ctx telnet.Context, writer telnet.Writer, rea
 				prog.Error("Unknown command %s", args[0])
 			}
 			if err == nil {
-				b := prog.Compile()
+				b := prog.Compile(0)
 				r := network.SplitBytes(b)
 				err = r.Send(reader, writer)
 			}

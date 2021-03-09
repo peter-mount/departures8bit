@@ -25,8 +25,9 @@ func NewMessage(message *darwind3.StationMessage) *Message {
 	}
 }
 
-func (l Message) Compile() []byte {
-	r := []byte{TokenMessage}
+func (l Message) Compile(address uint16) []byte {
+	var r []byte
+	r = AppendHeader(r, TokenMessage)
 	r = append(r, Pad(l.category, 2)...) // Tiploc 7 chars max
 	r = append(r, uint8(l.severity))     // CRS 3 chars max
 	r = append(r, l.message...)          // Name can be any lentgth

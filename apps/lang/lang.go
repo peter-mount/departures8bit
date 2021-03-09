@@ -31,23 +31,25 @@ func (p *Block) Error(f string, a ...interface{}) *Block {
 }
 
 // Compile compiles the program into it's binary equivalent.
-func (p *Block) Compile() []byte {
+func (p *Block) Compile(address uint16) []byte {
 	var response []byte
-	addr := uint(0)
 	sl := len(p.lines) - 1
 	for i, l := range p.lines {
-		bl := l.Compile()
+		bl := l.Compile(address)
 
 		// Update address to point to next one
 		if i == sl {
 			// last line has 0 for the next address
-			addr = 0
+			address = 0
 		} else {
 			// Next address, including 2 bytes for address
-			addr = addr + 2 + uint(len(bl))
+			address = address + 2 + uint16(len(bl))
 		}
 
-		response = append(response, byte(addr&0xff), byte((addr>>8)&0xff))
+		// Fix address
+		bl[0] = uint8(address & 0xFF)
+		bl[1] = uint8((address >> 8) & 0xFF)
+
 		response = append(response, bl...)
 	}
 
@@ -55,9 +57,22 @@ func (p *Block) Compile() []byte {
 	return append(response, 0, 0)
 }
 
+func AppendHeader(r []byte, token uint8) []byte {
+	// 0,0 are for the next address which gets filled in later
+	return append(r, 0, 0, token)
+}
+
+func AppendAddress(r []byte, address uint16) []byte {
+	return append(r, uint8(address&0xFF), uint8((address>>8)&0xFF))
+}
+
+func NullString(s string) []byte {
+	return append([]byte(s), 0)
+}
+
 // Line is a line in a Block
 type Line interface {
-	Compile() []byte
+	Compile(address uint16) []byte
 }
 
 func Pad(s string, l int) []byte {

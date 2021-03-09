@@ -42,6 +42,8 @@ TokenMessage        = 130   ; Station Messages
 .langExec
 {
     JSR langStart               ; Point to the program start
+    JSR memViewer
+    JSR langStart               ; Point to the program start
 .loop
     JSR langInvokeToken         ; Execute the current token
     JSR langNextLine            ; Move to the next line

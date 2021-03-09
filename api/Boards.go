@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/peter-mount/departures8bit/apps/lang"
 	"github.com/peter-mount/go-kernel"
+	"github.com/peter-mount/nre-feeds/darwinref"
 	"log"
 	"strings"
 )
@@ -42,21 +43,30 @@ func (h *Boards) Handle(prog *lang.Block, args ...string) error {
 		return err
 	}
 
-	var stationTiploc string
+	//var stationTiploc string
 	if len(sr.Station) == 0 {
 		prog.Error("Unknown station %s", crs)
 		return nil
 	}
 
-	stationTiploc = sr.Station[0]
-	stationName := stationTiploc
-	if d, ok := sr.Tiplocs.Get(stationTiploc); ok {
-		stationName = d.Name
+	//stationTiploc = sr.Station[0]
+	//stationName := stationTiploc
+	//if d, ok := sr.Tiplocs.Get(stationTiploc); ok {
+	//	stationName = d.Name
+	//}
+
+	//prog.Append(lang.NewStation(crs, stationTiploc, stationName))
+
+	tiplocs := lang.NewLookupTable(lang.TokenTiploc)
+	prog.Append(tiplocs)
+	if sr.Tiplocs != nil {
+		sr.Tiplocs.ForEach(func(location *darwinref.Location) {
+			tiplocs.Add(location.Tiploc, lang.NullString(location.Name))
+		})
 	}
 
-	prog.Append(lang.NewStation(crs, stationTiploc, stationName))
-	prog.AppendTiplocs(sr.Tiplocs)
-	prog.NewMessage(sr.Messages)
+	//prog.AppendTiplocs(sr.Tiplocs)
+	//prog.NewMessage(sr.Messages)
 
 	return nil
 }
