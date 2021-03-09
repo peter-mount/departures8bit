@@ -19,6 +19,19 @@ PLOT    = &FFF0     ; Set/Get cursor position
 CLSR    = &E544     ; Clear screen
 
 ; **********************************************************************
+; Kernal zero page
+RIBUF   = &F7       ; RS-232 input buffer
+ROBUF   = &F9       ; RS-232 output buffer
+
+; Kernal variables outside of zero page
+BUF     = &0200     ; 0200-0258 Basic line editor buffer
+MEMSTR  = &0281     ; OS start of memory, usually &0800
+MEMSIZ  = &0283     ; OS end of memory, usually &A000
+COLOR   = &0286     ; Current foreground colour of text
+GDCOL   = &0287     ; Colour of char under cursor
+HIBASE  = &0288     ; Top page of screen memory, usually &04 for &0400
+AUTODN  = &0292     ; Screen scrolling enabled
+; **********************************************************************
 
 ; Colours
 COL_BLACK       = 0

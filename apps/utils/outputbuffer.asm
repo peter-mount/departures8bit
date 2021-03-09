@@ -26,6 +26,16 @@
     STA outputBuffer,Y
     RTS
 
+; outputAppendHexChar Append A to buffer in hex
+;
+; on entry:
+;   A   value to append
+;
+; on exit:
+;   A       preserved
+;   X       preserved
+;   Y       preserved
+;   tempA   value of A
 .outputAppendHexChar
 {
     STA tempA

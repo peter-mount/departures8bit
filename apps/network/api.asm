@@ -148,11 +148,13 @@ ENDIF
     LDXY receiveText
     JSR outputAppendString
     LDA curBlock                        ; curBlock in hex
+    BEQ noBlock                         ; Don't show initial block 0
     JSR outputAppendHexChar
     LDA #'/'
     JSR outputAppend
     LDA numBlock                        ; numBlock in hex
     JSR outputAppendHexChar
+.noBlock
     JSR outputTerminate                 ; terminate & show new status line
     LDXY outputBuffer
     JMP showStatus

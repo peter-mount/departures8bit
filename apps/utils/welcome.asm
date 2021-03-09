@@ -4,7 +4,7 @@
 
 .welcome
     JSR clearScreen
-    WRITESTRING welcomeText
+    ;WRITESTRING welcomeText
     RTS
 
 .welcomeText

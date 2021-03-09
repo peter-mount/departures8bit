@@ -11,9 +11,12 @@
 ; Language tokens
 TokenNoResponse = 0     ; No response
 TokenError      = 1     ; Error, shows an error message
+
 ; Lookup tokens
 TokenStation    = 128   ; Station header used for departure boards
 TokenTiploc     = 129   ; Tiploc lookup entry
+TokenMessage    = 130   ; Station Messages
+
 ; Token lookup table that links the token's to code to run when they are
 ; "executed". Not all tokens are to be executed as some are data markers
 ; e.g. TokenTiploc holds the definition for a tiploc in the result so it
@@ -25,13 +28,22 @@ TokenTiploc     = 129   ; Tiploc lookup entry
     EQUW    nop             ; 0 no response
     EQUW    langError       ; 1 error response
 
-; langExec              Execute's the program
-.langExec
-{
+    INCLUDE "lang/memviewer.asm"
+
+; langStart Reset PC to start of program
+.langStart
     LDA #<dataBase              ; Point to the program start
     STA curLine
     LDA #>dataBase
     STA curLine+1
+    RTS
+
+; langExec              Execute's the program
+.langExec
+{
+    JSR langDump
+    RTS
+    JSR langStart               ; Point to the program start
 .loop
     JSR langInvokeToken         ; Execute the current token
     JSR langNextLine            ; Move to the next line

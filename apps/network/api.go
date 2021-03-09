@@ -50,7 +50,7 @@ func SplitBytes(b []byte) Response {
 	// First block contains the details of how many blocks in the response
 	nb := 1 + (l / BlockSize)
 
-	n := 0 // Start block id at 0
+	n := 1 // Start block id at 0
 	p := 0 // Position in src slice
 	for p < l {
 		// Get this block's length, usually BlockSize except for the last block

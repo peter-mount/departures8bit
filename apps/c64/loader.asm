@@ -27,8 +27,11 @@ start = &0801       ; Base of basic program
 ;   The program's entry point from the Basic loader
     LDA #%00110110          ; Replace basic with ram at A000-BFFF for an extra 8K
     STA &01
+
     JSR entryPoint          ; call our true entry point
     JSR cleanup             ; call our cleanup code
+
     LDA #%00110111          ; restore Basic rom
     STA &01
+
     RTS                     ; exit the program

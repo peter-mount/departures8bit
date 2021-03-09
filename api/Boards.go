@@ -42,24 +42,21 @@ func (h *Boards) Handle(prog *lang.Program, args ...string) error {
 		return err
 	}
 
-	if sr == nil {
+	var stationTiploc string
+	if len(sr.Station) == 0 {
 		prog.Error("Unknown station %s", crs)
 		return nil
 	}
 
-	var stationName string
-	var stationTiploc string
-	if len(sr.Station) == 0 {
-		stationName = sr.Crs
-	} else {
-		stationTiploc = sr.Station[0]
-	}
-	if d, ok := sr.Tiplocs.Get(stationName); ok {
+	stationTiploc = sr.Station[0]
+	stationName := stationTiploc
+	if d, ok := sr.Tiplocs.Get(stationTiploc); ok {
 		stationName = d.Name
 	}
 
-	prog.Append(lang.NewStation(crs, stationTiploc, stationTiploc))
+	prog.Append(lang.NewStation(crs, stationTiploc, stationName))
 	prog.AppendTiplocs(sr.Tiplocs)
+	prog.NewMessage(sr.Messages)
 
 	return nil
 }

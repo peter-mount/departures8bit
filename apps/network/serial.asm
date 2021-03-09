@@ -13,6 +13,14 @@ SERIAL_LOGICAL_FILE = 2         ; Logical file number
 SERIAL_TRUE_FILE    = 2         ; 2 = RS232
 SERIAL_COMMAND      = 3         ; Command
 {
+    LDA #&00                    ; Setup RS232 buffers to upper memory
+    STA RIBUF                   ; This prevents Kernal allocating memory inside our
+    STA ROBUF                   ; own buffers causing crashes
+    LDA #>rs232InputBuffer
+    STA RIBUF+1
+    LDA #>rs232OutputBuffer
+    STA ROBUF+1
+
     LDA #SERIAL_LOGICAL_FILE    ; Logical file number 2 = RS232C
     LDX #SERIAL_TRUE_FILE       ; primary address 2 = RS232C
     LDY #SERIAL_COMMAND

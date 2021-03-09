@@ -5,20 +5,22 @@
 ; This defines our zero-page usage and is common to both the BBC & C64
 ;
 ; Available:
-; 02-7F C64 if Basic is swapped out.
+; 02-8F C64 if Basic is swapped out.
 ; 00-8F BBC if running as or ignoring the current language rom
 ; 70-8F BBC if Basic is active
+; FB-FE C64 free for user code
+; FF    C64 free if basic swapped out
 ;
 ; Unusable:
 ; 00-01 C64 used by the 6510 CPU
 ; 90-FF BBC reserved by Acorn MOS
-; 80-FF C64 reserved by Kernal.
+; 90-FA C64 reserved by Kernal.
 ;
-; As we replace the relevant language then we can safely use 02-7F on
+; As we replace the relevant language then we can safely use 02-8F on
 ; both architectures.
 ;
                 ORG     &02 ; Bytes 0 & 1 are unavailable on the C64 as they are the 6510 processor port
-                GUARD   &80 ; Upper bound limit for zero page
+                GUARD   &90 ; Upper bound limit for zero page
 
 .stringPointer  EQUW 0      ; String utility pointer
 .tempChar       EQUB 0      ; 1 byte to store temp char

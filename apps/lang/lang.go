@@ -13,6 +13,7 @@ const (
 	TokenError      = 1   // Error, show an error message
 	TokenStation    = 128 // Station name, used in headers for boards
 	TokenTiploc     = 129 // Tiploc lookup entry
+	TokenMessage    = 130 // Station Message
 )
 
 // Program is a series of lines
@@ -42,8 +43,8 @@ func (p *Program) Compile() []byte {
 			// last line has 0 for the next address
 			addr = 0
 		} else {
-			// Next address, including 2 bytes for address & 1 for terminator
-			addr = addr + 2 + uint(len(bl)) + 1
+			// Next address, including 2 bytes for address
+			addr = addr + 2 + uint(len(bl))
 		}
 
 		response = append(response, byte(addr&0xff), byte((addr>>8)&0xff))
