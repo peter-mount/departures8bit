@@ -24,7 +24,7 @@ type TelnetServer struct {
 }
 
 type TelnetHandler interface {
-	Handle(prog *lang.Program, args ...string) error
+	Handle(prog *lang.Block, args ...string) error
 }
 
 func (a *TelnetServer) Name() string {
@@ -62,7 +62,7 @@ func (a *TelnetServer) ServeTELNET(ctx telnet.Context, writer telnet.Writer, rea
 	for true {
 		l, err := a.readLine(reader)
 		if err == nil && l != "" {
-			var prog lang.Program
+			var prog lang.Block
 			args := strings.Split(l, " ")
 			log.Println(args)
 			cmd, ok := a.commands[args[0]]

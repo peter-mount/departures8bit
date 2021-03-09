@@ -16,22 +16,22 @@ const (
 	TokenMessage    = 130 // Station Message
 )
 
-// Program is a series of lines
-type Program struct {
+// Block is a series of lines
+type Block struct {
 	lines []Line
 }
 
-func (p *Program) Append(l ...Line) *Program {
+func (p *Block) Append(l ...Line) *Block {
 	p.lines = append(p.lines, l...)
 	return p
 }
 
-func (p *Program) Error(f string, a ...interface{}) *Program {
+func (p *Block) Error(f string, a ...interface{}) *Block {
 	return p.Append(Error(fmt.Sprintf(f, a...)))
 }
 
 // Compile compiles the program into it's binary equivalent.
-func (p *Program) Compile() []byte {
+func (p *Block) Compile() []byte {
 	var response []byte
 	addr := uint(0)
 	sl := len(p.lines) - 1
@@ -55,7 +55,7 @@ func (p *Program) Compile() []byte {
 	return append(response, 0, 0)
 }
 
-// Line is a line in a Program
+// Line is a line in a Block
 type Line interface {
 	Compile() []byte
 }

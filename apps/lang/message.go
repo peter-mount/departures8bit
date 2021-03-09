@@ -33,7 +33,7 @@ func (l Message) Compile() []byte {
 	return append(r, 0)
 }
 
-func (p *Program) NewMessage(messages []*darwind3.StationMessage) {
+func (p *Block) NewMessage(messages []*darwind3.StationMessage) {
 	for _, m := range messages {
 		p.Append(NewMessage(m))
 	}

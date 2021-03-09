@@ -33,7 +33,7 @@ func (l Tiploc) Compile() []byte {
 	return append(r, 0)
 }
 
-func (p *Program) AppendTiplocs(m *darwinref.LocationMap) {
+func (p *Block) AppendTiplocs(m *darwinref.LocationMap) {
 	m.ForEach(func(location *darwinref.Location) {
 		p.Append(NewTiploc(location))
 	})

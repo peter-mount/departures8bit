@@ -28,7 +28,7 @@ func (h *Boards) PostInit() error {
 	return h.server.Register("depart", h)
 }
 
-func (h *Boards) Handle(prog *lang.Program, args ...string) error {
+func (h *Boards) Handle(prog *lang.Block, args ...string) error {
 
 	if len(args) != 1 {
 		prog.Error("depart crs")

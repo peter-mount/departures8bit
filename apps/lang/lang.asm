@@ -9,13 +9,13 @@
 ; **********************************************************************
 
 ; Language tokens
-TokenNoResponse = 0     ; No response
-TokenError      = 1     ; Error, shows an error message
+TokenNoResponse     = 0     ; No response
+TokenError          = 1     ; Error, shows an error message
 
 ; Lookup tokens
-TokenStation    = 128   ; Station header used for departure boards
-TokenTiploc     = 129   ; Tiploc lookup entry
-TokenMessage    = 130   ; Station Messages
+TokenStation        = 128   ; Station header used for departure boards
+TokenTiploc         = 129   ; Tiploc lookup entry
+TokenMessage        = 130   ; Station Messages
 
 ; Token lookup table that links the token's to code to run when they are
 ; "executed". Not all tokens are to be executed as some are data markers
@@ -41,8 +41,6 @@ TokenMessage    = 130   ; Station Messages
 ; langExec              Execute's the program
 .langExec
 {
-    JSR langDump
-    RTS
     JSR langStart               ; Point to the program start
 .loop
     JSR langInvokeToken         ; Execute the current token
