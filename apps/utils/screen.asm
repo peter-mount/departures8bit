@@ -72,7 +72,7 @@ IF c64
     JMP PLOT
 ELIF bbc
     PHA                 ; BBC uses VDU &1F,x,y to set the position
-    LDA #&1F
+    LDA #&1F            ; FIXME beebrail used #30 not #&1F
     JSR oswrch
     TXA
     JSR oswrch
@@ -115,21 +115,37 @@ ENDIF
 ;   Y   undefined
 .showStatus
 {
+    STXY stringPointer      ; Save text location
+
+IF bbc
+baseLine = &7C00 + (24*40)  ; Address of first char on screen
+    JSR switchShadowRam
+ENDIF
+
 IF c64
 baseLine = &0400 + (24*40)  ; Address of first char
-    STXY stringPointer      ; Save text location
+ENDIF
+
     LDX #39                 ; Max chars to write
     LDY #0
 .loop
     LDA (stringPointer),Y   ; Next char
     BEQ endOfString         ; End of string
+
+IF c64
     JSR ascii2petscii       ; Convert to petscii
+ENDIF
+
     STA baseLine,Y
     INY
     DEX
     BNE loop                ; Loop until we hit max chars
 .endStatus
-    RTS
+IF bbcmaster
+    BRA switchMainRam       ; BBC Master switch back to main ram
+ELSE
+    RTS                     ; All others just exit
+ENDIF
 ; Clear status clears the status line
 .*clearStatus
     LDX #39                 ; Max chars to write
@@ -141,8 +157,58 @@ baseLine = &0400 + (24*40)  ; Address of first char
     INY
     DEX
     BNE loop1               ; loop for next space
-    RTS
-ELSE
-    ERROR "TODO implement"
-ENDIF
 }
+IF bbcmaster
+; switchMainRam uses main ram   *** MUST follow showStatus **
+.switchMainRam
+    LDA #&6C
+    LDX #0                  ; 0 = main ram
+    JMP osbyte
+ELSE
+    RTS                     ; All others just exit
+ENDIF
+
+IF bbcmaster
+
+; switchShadowRam uses shadow ram
+.switchShadowRam
+    LDA #&6C
+    LDX #1                  ; 1 = shadow ram
+    JMP osbyte
+
+ENDIF
+
+IF bbc
+; Disable the flashing cursor
+.disableCursor
+    LDX #1                  ; Disable cursor
+    LDY #0
+    JMP vdu23
+
+; Enable the flashing cursor
+.enableCursor
+    LDX #1                  ; Enable cursor
+    LDY #1
+    JMP vdu23
+
+; vdu23 handles simple flag settings
+;
+; Equivalent to VDU 23,X,Y;0;0;0
+;
+.vdu23
+{
+    LDA #23                 ; VDU 23,X,Y;0;0;0
+    JSR oswrch
+    TXA
+    JSR oswrch
+    TYA
+    JSR oswrch
+    LDY #7                  ; Remaining 7 bytes are 0
+    LDA #0
+.vdu23Loop
+    JSR oswrch
+    DEY
+    BNE vdu23Loop
+    RTS
+}
+ENDIF

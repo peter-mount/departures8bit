@@ -13,10 +13,7 @@
 ;
 ; This is simply an alias to the appropriate OS call so that we have a common
 ; name in code but platform independent. Name is based on the BBC OSWRCH
-IF bbc
-    oswrch = &FFEE  ; point to MOS routine
-ELIF c64
-;    oswrch = CHROUT  ; point to KERNAL routine
+IF c64
 .oswrch
 {
     PHA                 ; Preserve A
@@ -149,6 +146,4 @@ IF c64
 .osnewl
     LDA #13
     JMP CHROUT
-ELSE
-    ERROR "TODO not implemented"
 ENDIF

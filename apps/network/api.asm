@@ -107,7 +107,7 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
 IF c64
     JSR serialGetChar                   ; Read byte
 ELSE
-    ERROR "TODO implement"
+;    ERROR "TODO implement"
 ENDIF
     CMP #SOH                            ; Loop until we get SOH
     BNE waitForSOH
@@ -130,7 +130,7 @@ ENDIF
 IF c64
     JSR serialGetChar
 ELSE
-    ERROR "TODO implement"
+;    ERROR "TODO implement"
 ENDIF
     JSR outputAppend                    ; append to buffer
     PLA                                 ; Restore Y

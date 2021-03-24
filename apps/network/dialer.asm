@@ -61,7 +61,7 @@
 IF c64
     JSR CHROUT                      ; write to serial port
 ELSE
-    ERROR "TODO implement"
+;    ERROR "TODO implement"
 ENDIF
     CMP #10                         ; A=10 then wait for a short while
     BNE dialImpl

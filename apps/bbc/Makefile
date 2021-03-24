@@ -11,6 +11,7 @@ COPYRIGHT_ASM = copyright.asm
 # BBC Master 128 ROM
 MASTER_SRC = \
 	bbcmaster.asm \
+	language.asm \
 	romheader.asm \
 	$(VERSION_ASM) \
 	$(COPYRIGHT_ASM)
@@ -27,7 +28,7 @@ $(COPYRIGHT_ASM):
 	echo " EQUS \"$(COPYRIGHT)\"" >$(COPYRIGHT_ASM)
 
 $(MASTER_ROM): $(MASTER_SRC) $(COMMON6502)
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=1 -D c64=0 -i bbcmaster.asm
+	$(BEEBASM) -w -D bbc=1 -D bbcmaster=1 -D c64=0 -i bbcmaster.asm
 
 $(BUILDS)/$(MASTER_ROM): $(MASTER_ROM)
 	cp $(DEPART) $(BUILDS)/$(DEPART)

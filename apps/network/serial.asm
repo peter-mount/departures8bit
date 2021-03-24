@@ -124,7 +124,7 @@ ENDIF
 IF c64
 serialSendChar = CHROUT                  ; Send to serial
 ELIF bbc
-    ERROR "TODO Not implemented"
+;    ERROR "TODO Not implemented"
 ENDIF
 
 ; serialGetChar         Get character from serial
@@ -143,7 +143,7 @@ IF c64
     RTS
 }
 ELIF bbc
-    ERROR "TODO Not implemented"
+;    ERROR "TODO Not implemented"
 ENDIF
 
 ; serialEnd     End serial operation
@@ -166,7 +166,7 @@ IF c64
     LDX #SERIAL_LOGICAL_FILE    ; Select serial
     JSR CHKIN
 ELIF bbc
-    ERROR "TODO Not implemented"
+;    ERROR "TODO Not implemented"
 ENDIF
     PLAXY
     RTS
