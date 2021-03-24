@@ -2,11 +2,11 @@
 ; Commodore C64 departure boards
 ; **********************************************************************
 
-    INCLUDE "macros.asm"                ; Our macros
-    INCLUDE "zeropage.asm"              ; 3rd Zero page allocations
-    INCLUDE "c64/kernal.asm"            ; Kernal constants
-    INCLUDE "c64/loader.asm"            ; Start of the C64
-    INCLUDE "main.asm"                  ; The core application
+    INCLUDE "../macros.asm"                ; Our macros
+    INCLUDE "../zeropage.asm"              ; 3rd Zero page allocations
+    INCLUDE "../c64/kernal.asm"            ; Kernal constants
+    INCLUDE "../c64/loader.asm"            ; Start of the C64
+    INCLUDE "../main.asm"                  ; The core application
 
 ; end - the end of the saved program
 .end
@@ -25,4 +25,4 @@ rs232InputBuffer    = &CE00 ; RS232 input buffer, must be page aligned
 rs232OutputBuffer   = &CF00 ; RS232 output buffer, must be page aligned
 
     ; Save the program, start-2 to include the start address &0801
-    SAVE "../builds/depart.prg", start-2, end
+    SAVE "depart.prg", start-2, end

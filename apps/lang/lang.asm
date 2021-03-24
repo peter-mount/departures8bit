@@ -28,8 +28,6 @@ TokenMessage        = 130   ; Station Messages
     EQUW    nop             ; 0 no response
     EQUW    langError       ; 1 error response
 
-    INCLUDE "lang/memviewer.asm"
-
 ; langStart Reset PC to start of program
 .langStart
     LDA #<dataBase              ; Point to the program start
@@ -43,6 +41,7 @@ TokenMessage        = 130   ; Station Messages
 {
     JSR langStart               ; Point to the program start
     JSR memViewer
+    rts
     JSR langStart               ; Point to the program start
 .loop
     JSR langInvokeToken         ; Execute the current token
@@ -59,7 +58,7 @@ TokenMessage        = 130   ; Station Messages
 ;   Z   set if curLine is at the end of the program
 .langNextLine
     JSR langLineValid           ; Check we are not already at the end of the program
-    BEQ nop                     ; exit if we already are
+    BEQ nop                     ; exit if we already are at the end
     LDY #0
     LDA (curLine),Y             ; Get low byte
     PHA                         ; Save to stack
@@ -121,33 +120,71 @@ ENDIF
 ;                       e.g. The BBC Micro, BBC Master 128 & C64 all use different values.
 .relocateLang
 {
-    LDA #<dataBase
-    STA tempAddr
-    LDA #>dataBase
-    STA tempAddr+1
+    JSR langStart           ; Start from the beginning
 .loop
-    LDY #0
-    LDA (tempAddr),Y        ; Check for 0x0000 for next line pointer
-    BNE relocate            ; relocate line
-    INY
-    LDA (tempAddr),Y
-    BNE relocate            ; relocate line
-    RTS                     ; All done, leave last 0x0000 alone as that's correct
-.relocate
+    JSR langLineValid       ; Check line is valid
+    BEQ checkToken          ; last one so leave last 0x0000 alone as that's correct
+
     LDY #0
     CLC                     ; Add dataBase to the existing address
-    LDA (tempAddr),Y
+    LDA (curLine),Y
     ADC #<dataBase
-    STA (tempAddr),Y        ; Update address in memory
+    STA (curLine),Y        ; Update address in memory
     PHA                     ; Save lower half as we'll need it
     INY
-    LDA (tempAddr),Y
+    LDA (curLine),Y
     ADC #>dataBase
-    STA (tempAddr),Y        ; Update address in memory
-    STA tempAddr+1          ; Now update upper half of tempAddr to that address
-    PLA                     ; Pull new lower half of new address
-    STA tempAddr            ; & update lower half of tempAddr so it now points to new location
-    JMP loop                ; Loop to check the next address
+    STA (curLine),Y        ; Update address in memory
+
+.checkToken
+    JSR langGetToken        ; Now check the token
+    ;BMI relocateTable       ; It's a lookup table that needs relocating
+
+.nextLine
+    JSR langNextLine
+    BNE loop                ; Loop to check the next address
+    RTS
+}
+
+; Relocate the lookup table pointed to by curLine.
+;
+; Here we add curLine to each offset so it points to a real address
+;
+; Lookup table consists of:
+; 00 Address of next line
+; 02 Token with bit 8 set
+; 03 Number of entries
+; 04 Offset of first entry
+;
+; This supports tables up to 126 entries long
+.relocateTable
+{
+    LDY #3                  ; Get number of entries into tempChar
+    LDA (curLine),Y
+    BEQ end                 ; Table is actually empty
+    STA tempChar            ; save length
+    LDX #0                  ; X is the current index
+.loop
+    TXA                     ; Get current index
+    ASL A                   ; *2 to get offset of entry in line
+    CLC
+    ADC #4                  ; index starts at 4
+    TAY                     ; into Y
+
+    CLC                     ; add curLine to the entry value
+    LDA (curLine),Y
+    ADC curLine
+    STA (curLine),Y
+    INY
+    LDA (curLine),Y
+    ADC curLine+1
+    STA (curLine),Y
+
+    INX                     ; next entry
+    DEC tempChar
+    BNE loop
+.end
+    RTS
 }
 
 .langError
