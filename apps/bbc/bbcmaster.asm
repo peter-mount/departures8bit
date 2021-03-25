@@ -13,6 +13,9 @@
     GUARD   &C000                           ; Guard at end of Paged Rom
     INCLUDE "romheader.asm"                 ; Rom header must be the first code section
     INCLUDE "language.asm"                  ; Language entry point
+    INCLUDE "service.asm"                   ; Service entry point
+    INCLUDE "error.asm"                     ; BRK error handler
+    INCLUDE "oscli.asm"                     ; OSCLI handler
     INCLUDE "../main.asm"                   ; The core application
 
     ; Save the rom

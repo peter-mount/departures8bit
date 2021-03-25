@@ -1,3 +1,5 @@
 go_build_main_go
 *.prg
 *.P00
+/apps/bbc/copyright.asm
+/apps/bbc/version.asm

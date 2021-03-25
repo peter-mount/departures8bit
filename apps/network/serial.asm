@@ -80,7 +80,26 @@ SERIAL_COMMAND      = 3         ; Command
 .nameEnd
 }
 ELIF bbc
-    RTS                         ; TODO implement
+    PHAXY
+
+    LDA #&02                        ; Use keyboard for input but listen to serial port
+    LDX #2
+    LDY #0
+    JSR osbyte
+
+    LDA #&B5                        ; RS423 input taken as raw data, default but enforce it
+    LDX #1
+    LDY #0
+    JSR osbyte
+
+    LDA #&CC                        ; lets serial data enter the input buffer
+    LDX #0
+    LDY #0
+    JSR osbyte
+
+    PLAXY
+    RTS
+
 ELSE
     RTS                         ; Unknown system
 ENDIF
@@ -124,6 +143,24 @@ ENDIF
 IF c64
 serialSendChar = CHROUT                  ; Send to serial
 ELIF bbc
+.serialSendChar
+{
+IF bbcmaster
+    PHAXY                               ; Save registers, 65c02 has phx etc so A unchanged
+ELSE
+    STA serialChar                      ; Save A
+    PHAXY                               ; Save registers
+    LDA serialChar                      ; Restore A
+ENDIF
+    TAY                                 ; Send to serial buffer
+    LDA #$8A                            ; Insert into buffer 2
+    LDX #2
+    JSR osbyte
+
+    PLAXY                               ; Restore registers
+    BCS serialSendChar                  ; Buffer was full so try again
+}
+
 ;    ERROR "TODO Not implemented"
 ENDIF
 

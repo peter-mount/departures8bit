@@ -21,6 +21,7 @@
 
     ;;JSR debug
 
+.mainMenu                   ; Entry point to show the main menu
 
     JSR outputReset         ; clear output buffer
     LDXY test               ; append test command

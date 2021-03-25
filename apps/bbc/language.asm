@@ -37,7 +37,7 @@
     STX page
     STY page+1
 
-    JSR enableResult                ; Enable RS423
+    JSR serialInit                ; Enable RS423
 
     LDA #<errorHandler              ; Setup error handler
     STA BRKV
