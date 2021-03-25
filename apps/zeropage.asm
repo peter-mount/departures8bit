@@ -33,10 +33,8 @@
 .numBlock       EQUB 0      ; Number of blocks expected
 .curLine        EQUW 0      ; Address of the current line being executed
 .serialChar     EQUB 0      ; Char being sent/received
-
-; Old BEEBRAIL vars
-.highmem        EQUW 0      ; Highmem
-.page           EQUW 0      ; Page
+.page           EQUW 0      ; start of database memory
+.highmem        EQUW 0      ; end of database memory
 
 IF bbc
 .oswordWork     EQUB 0,0,0,0,0  ; 5 bytes for OSWORD call on BBC

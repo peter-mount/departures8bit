@@ -28,6 +28,16 @@ start = &0801       ; Base of basic program
     LDA #%00110110          ; Replace basic with ram at A000-BFFF for an extra 8K
     STA &01
 
+    LDA #<memBase           ; Setup PAGE
+    STA page
+    LDA #>memBase
+    STA page+1
+
+    LDA #<memTop            ; Setup HIGHMEM
+    STA highmem
+    LDA #>memTop
+    STA highmem+1
+
     JSR entryPoint          ; call our true entry point
     JSR cleanup             ; call our cleanup code
 

@@ -23,7 +23,6 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
 ; sendCommand Sends the command in outputBuffer to the server, waits
 ; for a response and sets it up
 .sendCommand
-    ;SHOWSTATUS sendingText
     SHOWSTATUS outputBuffer
     JSR serialStart         ; Start serial comms
     JSR serialSendOutput    ; Send command
@@ -40,17 +39,21 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
 ;                   into dataBase
 .receiveData
 {
+    LDA page                            ; Reset dataPos to PAGE
+    STA dataPos
+    LDA page+1
+    STA dataPos+1
+
     LDA #0                              ; Clear block counters
     STA curBlock                        ; curBlock = 0
     STA numBlock                        ; numBlock = 0
-    STA dataBase                        ; Wipe the dataBase by resetting the next record
-    STA dataBase+1                      ; address to 0 as end of program
-    STA dataBase+2                      ; Set command to TokenNoResponse
-
-    LDA #<dataBase                      ; Reset dataPos
-    STA dataPos
-    LDA #>dataBase
-    STA dataPos+1
+{
+    LDY #3                              ; Wipe the dataBase by resetting the next record
+.loop
+    STA (dataPos),Y
+    DEY
+    BPL loop
+}
 
     JSR serialStart                     ; Start serial comms
 

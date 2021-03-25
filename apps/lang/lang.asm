@@ -25,14 +25,14 @@ TokenMessage        = 130   ; Station Messages
 ; this table maps tokens 0..127. Tokens with bit 8 set (128+) are not
 ; executable and are used for these lookup items.
 .langLookupTable
-    EQUW    nop             ; 0 no response
-    EQUW    langError       ; 1 error response
+    EQUW    nop                 ; 0 no response
+    EQUW    langError           ; 1 error response
 
 ; langStart Reset PC to start of program
 .langStart
-    LDA #<dataBase              ; Point to the program start
+    LDA page                    ; Point to the program start at PAGE
     STA curLine
-    LDA #>dataBase
+    LDA page+1
     STA curLine+1
     RTS
 
@@ -126,14 +126,13 @@ ENDIF
     BEQ checkToken          ; last one so leave last 0x0000 alone as that's correct
 
     LDY #0
-    CLC                     ; Add dataBase to the existing address
+    CLC                     ; Add PAGE to the existing address
     LDA (curLine),Y
-    ADC #<dataBase
+    ADC page
     STA (curLine),Y        ; Update address in memory
-    PHA                     ; Save lower half as we'll need it
     INY
     LDA (curLine),Y
-    ADC #>dataBase
+    ADC page+1
     STA (curLine),Y        ; Update address in memory
 
 .checkToken
@@ -188,8 +187,10 @@ ENDIF
 }
 
 .langError
-    LDA #COL_LIGHT_RED  ; Set text colour
+IF c64
+    LDA #COL_LIGHT_RED  ; Set red text colour
     JSR setColour
+ENDIF
 
     CLC
     LDA curLine
@@ -198,7 +199,11 @@ ENDIF
     LDA curLine+1
     ADC #0
     TAY
-    JSR writeString
+IF c64
+    JSR writeString     ; write string
 
-    LDA #COL_GREY1  ; Set text colour
+    LDA #COL_GREY1      ; Restore text colour
     JMP setColour
+ELSE
+    JMP writeString     ; Just write the error string
+ENDIF

@@ -2,7 +2,7 @@
 # Commodore 64
 # ======================================================================
 
-MASTER_ROM = master.rom
+MASTER_ROM = m128rom
 
 # Generated sources
 VERSION_ASM = version.asm
@@ -31,4 +31,4 @@ $(MASTER_ROM): $(MASTER_SRC) $(COMMON6502)
 	$(BEEBASM) -w -D bbc=1 -D bbcmaster=1 -D c64=0 -i bbcmaster.asm
 
 $(BUILDS)/$(MASTER_ROM): $(MASTER_ROM)
-	cp $(DEPART) $(BUILDS)/$(DEPART)
+	cp $(MASTER_ROM) $(BUILDS)/$(MASTER_ROM)
