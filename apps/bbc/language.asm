@@ -22,10 +22,7 @@
     LDX #&FF                        ; Reset the stack
     TXS
 
-    LDA #22                         ; Switch to shadow mode 7
-    JSR oswrch
-    LDA #128+7
-    JSR oswrch
+    JSR initScreen                  ; Initialise the screen to mode 7
 
     LDA #&84                        ; set HIGHMEM
     JSR osbyte
