@@ -100,11 +100,12 @@ ELIF bbc                            ; BBC delay code using MOS
     STA currentStation              ; Store timer val
     STX currentStation+1
     STY tempChar                    ; Store Y
-    STZ oswordWork                     ; Reset timer
-    STZ oswordWork+1
-    STZ oswordWork+2
-    STZ oswordWork+3
-    STZ oswordWork+4
+    LDA #0                          ; Reset timer
+    STA oswordWork
+    STA oswordWork+1
+    STA oswordWork+2
+    STA oswordWork+3
+    STA oswordWork+4
     JSR writeTimer
 
 .dialWait1
@@ -125,17 +126,22 @@ ELIF bbc                            ; BBC delay code using MOS
     CMP currentStation
     BMI dialWait1                   ; Loop until timer hit
 
-    LDY totalPages
-    BRA dial1                       ; return to main loop
+    LDY tempChar
+    BRA dialImpl                    ; return to main loop
 
 .readTimer
-    LDA #3                          ; Read timer
+    LDA #3                          ; Read timer into oswordWork
+IF bbcmaster
     BRA readWriteTimer
+ELSE
+    JMP readWriteTimer
+ENDIF
+
 .writeTimer
-    LDA #4
+    LDA #4                          ; Write timer into oswordWork
 .readWriteTimer
-    LDX #<tmpaddr
-    LDY #>tmpaddr
+    LDX #<oswordWork
+    LDY #>oswordWork
     JMP osword
 ENDIF
 }
