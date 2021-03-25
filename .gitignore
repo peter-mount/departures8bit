@@ -4,3 +4,4 @@ go_build_main_go
 /apps/bbc/copyright.asm
 /apps/bbc/version.asm
 /apps/bbc/m128rom
+/builds/
