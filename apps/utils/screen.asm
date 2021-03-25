@@ -15,16 +15,14 @@ IF c64
     LDA #23         ; Select mixed case font
     STA &D018
                     ; fall through to clearScreen
-ELIF bbcmaster
-    LDA #22         ; VDU 22 to select screen mode
-    JSR oswrch
-    LDA #128+7      ; Mode 7 but using shadow ram
-    JMP oswrch
 ELIF bbc
-    ; TODO this is for the bbcmaster
     LDA #22         ; VDU 22 to select screen mode
     JSR oswrch
+IF bbcmaster
+    LDA #128+7      ; Mode 7 but using shadow ram
+ELSE
     LDA #7          ; Mode 7 no shadow ram on BBC B
+ENDIF
     JMP oswrch
 ELSE
     RTS             ; not C64 or BBC so ignore
@@ -72,7 +70,7 @@ IF c64
     JMP PLOT
 ELIF bbc
     PHA                 ; BBC uses VDU &1F,x,y to set the position
-    LDA #&1F            ; FIXME beebrail used #30 not #&1F
+    LDA #&1F
     JSR oswrch
     TXA
     JSR oswrch
