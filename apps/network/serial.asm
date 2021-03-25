@@ -165,22 +165,32 @@ ENDIF
 ENDIF
 
 ; serialGetChar         Get character from serial
+.serialGetChar
 IF c64
 ; From https://modelrail.otenko.com/electronics/commodore-64-fixing-rs-232-serial-limitations
 ; don't use GETIN as it screws up 0's. Instead check for data then direct read from kernal
-;serialGetChar = GETIN
-.serialGetChar
 {
     JSR &F14E
-    TAX                 ; Save received char
-    LDA &0297           ; Is RS232 input buffer empty
+    TAX                         ; Save received char
+    LDA &0297                   ; Is RS232 input buffer empty
     AND #&08
-    BNE serialGetChar   ; No char available
-    TXA                 ; Get returned character
+    BNE serialGetChar           ; No char available
+    TXA                         ; Get returned character
     RTS
 }
 ELIF bbc
-;    ERROR "TODO Not implemented"
+{
+    PHXY                        ; Save X & Y
+.loop
+    LDA #&91                    ; Read character from buffer
+    LDX #1                      ; RS423 input buffer
+    JSR osbyte
+    BCS loop                    ; No data read so loop
+    STY serialChar              ; Result in Y
+    PLXY                        ; Restore X & Y
+    LDA serialChar              ; get result
+    RTS
+}
 ENDIF
 
 ; serialEnd     End serial operation

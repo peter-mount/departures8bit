@@ -22,10 +22,9 @@ export COPYRIGHT = $(shell date "+%Y")
 all:
 	@mkdir -pv $(BUILDS)
 	@$(MAKE) -C api
-	@$(MAKE) -C apps/bbc
-	@$(MAKE) -C apps/c64
+	@$(MAKE) -C apps
 
 clean:
 	@$(MAKE) -C api clean
-	@$(MAKE) -C apps/c64 clean
+	@$(MAKE) -C apps clean
 	$(RM) $(BUILDS)/*

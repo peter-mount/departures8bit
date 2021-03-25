@@ -33,6 +33,34 @@ ELSE
 ENDIF
 ENDMACRO
 
+; Push X,Y to stack
+; A is undefined after this operation on the 6502, preserved on the 65C02
+MACRO PHXY
+IF bbcmaster
+    PHX
+    PHY
+ELSE
+    TXA
+    PHA
+    TYA
+    PHA
+ENDIF
+ENDMACRO
+
+; Pull X,Y from the stack, used after PHXY
+; A is undefined after this operation on the 6502, preserved on the 65C02
+MACRO PLXY
+IF bbcmaster
+    PLY
+    PLX
+ELSE
+    PLA
+    TAY
+    PLA
+    TAX
+ENDIF
+ENDMACRO
+
 ; Load X,Y with 16 bit value addr
 MACRO LDXY addr
     LDX #<addr

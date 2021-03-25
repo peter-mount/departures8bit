@@ -4,13 +4,13 @@
 
 .PHONY: all clean
 
-all: c64
+all:
+	@$(MAKE) -C c64 all
+	@$(MAKE) -C bbc all
 
 clean:
 	@$(MAKE) -C c64 clean
-
-c64:
-	@$(MAKE) -C c64 all
+	@$(MAKE) -C bbc clean
 
 # ======================================================================
 # Common sources
