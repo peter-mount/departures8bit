@@ -11,11 +11,6 @@
 ; end - the end of the saved program
 .end
 
-; outputBuffer starts on the C64 at the next page after end
-    ALIGN &100
-.outputBuffer                           ; 1 page for outputBuffer
-    EQUB 0
-
 ; Available memory for the received database.
 ; On the C64 this runs up to the end of the spare 4k block as we have
 ; paged the Basic rom out with ram
@@ -26,6 +21,8 @@ memTop              = &CDFF ; Upper bound of all free memory
 
 rs232InputBuffer    = &CE00 ; RS232 input buffer, must be page aligned
 rs232OutputBuffer   = &CF00 ; RS232 output buffer, must be page aligned
+
+outputBuffer        = &0800 ; Output buffer overwrites the Basic loader
 
     ; Save the program, start-2 to include the start address &0801
     SAVE "depart.prg", start-2, end

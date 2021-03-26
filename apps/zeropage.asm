@@ -22,20 +22,28 @@
                 ORG     &02 ; Bytes 0 & 1 are unavailable on the C64 as they are the 6510 processor port
                 GUARD   &90 ; Upper bound limit for zero page
 
-.stringPointer  EQUW 0      ; String utility pointer
-.tempChar       EQUB 0      ; 1 byte to store temp char
-.tempA          EQUB 0      ; 1 byte to store accumulator
-.currentStation EQUS "MDEx" ; 4 bytes current crs code + CR
-.tempAddr       EQUW 0      ; 2 byte scratch address
-.outputLength   EQUB 0      ; Size of output buffer
-.dataPos        EQUW 0      ; Current position in dataBase
-.curBlock       EQUB 0      ; Current block number being received
-.numBlock       EQUB 0      ; Number of blocks expected
-.curLine        EQUW 0      ; Address of the current line being executed
-.serialChar     EQUB 0      ; Char being sent/received
+                            ; Database
 .page           EQUW 0      ; start of database memory
 .highmem        EQUW 0      ; end of database memory
+.dataPos        EQUW 0      ; Current position in dataBase
+.curLine        EQUW 0      ; Address of the current line being executed
+
+                            ; String manipulation
+.outputLength   EQUB 0      ; Size of output buffer
+.stringPointer  EQUW 0      ; String utility pointer
+
+                            ; Scratch workspace
+.tempChar       EQUB 0      ; 1 byte to store temp char
+.tempA          EQUB 0      ; 1 byte to store accumulator
+.tempAddr       EQUW 0      ; 2 byte scratch address
+
+                            ; Data retrieval
+.curBlock       EQUB 0      ; Current block number being received
+.numBlock       EQUB 0      ; Number of blocks expected
+
+.currentStation EQUS "MDEx" ; 4 bytes current crs code + CR
 
 IF bbc
+.serialChar     EQUB 0          ; Char being sent/received
 .oswordWork     EQUB 0,0,0,0,0  ; 5 bytes for OSWORD call on BBC
 ENDIF
