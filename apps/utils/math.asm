@@ -6,6 +6,8 @@
 ;
 ; Dr. Dobb's Journal, August 1976, pages 17-19.
 ;
+; https://archive.org/details/dr_dobbs_journal_vol_01/page/n207/mode/2up
+;
 ; **********************************************************************
 ; With errata by Roy Rankin Sept 22, 1976 for the LOG routine:
 ;
