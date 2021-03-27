@@ -78,6 +78,10 @@ IF c64
 
 ENDIF
 
+; writeOuputBuffer      writes the output buffer to the screen
+.writeOutputBuffer
+    LDXY outputBuffer
+
 ; writeString           writes a null terminated string pointed to by XY
 ;
 ; on entry:

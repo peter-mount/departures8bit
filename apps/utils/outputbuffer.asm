@@ -90,8 +90,8 @@
 	LDX outputLength                ; append index
 .loop
 	LDA (stringPointer),Y           ; Read until 0
-	BEQ end
     STA outputBuffer,X              ; Store in buffer
+	BEQ end                         ; Finish when at end
 	INY                             ; next src index
 	BEQ end
 	INX                             ; next dest index

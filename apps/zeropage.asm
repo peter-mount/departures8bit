@@ -32,29 +32,19 @@
 .outputLength   EQUB 0      ; Size of output buffer
 .stringPointer  EQUW 0      ; String utility pointer
 
-                            ; Scratch workspace
-.tempChar       EQUB 0      ; 1 byte to store temp char
-.tempA          EQUB 0      ; 1 byte to store accumulator
-.tempX          EQUB 0      ; 1 byte to store X
-.tempAddr       EQUW 0      ; 2 byte scratch address
-
                             ; Data retrieval
 .curBlock       EQUB 0      ; Current block number being received
 .numBlock       EQUB 0      ; Number of blocks expected
 
+                            ; Scratch workspace
+.tempChar       EQUB 0      ; 1 byte to store temp char
+.tempA          EQUB 0      ; 1 byte to store accumulator
+.tempX          EQUB 0      ; 1 byte to store X
+.tempAddr       EQUW 0      ; 2 byte scratch address, value for outputAppend16
+
 .currentStation EQUS "MDEx" ; 4 bytes current crs code + CR
 
-; Math workspace
-.SIGN   EQUB 0
-.X2     EQUB 0              ; EXPONENT 2
-.M2     EQUB 0, 0, 0        ; MANTISSA 2
-.X1     EQUB 0              ; EXPONENT 1
-.M1     EQUB 0, 0, 0        ; MANTISSA 1
-.E      EQUW 0, 0           ; SCRATCH
-.Z      EQUW 0, 0
-.T      EQUW 0, 0
-.SEXP   EQUW 0, 0
-.INT    EQUB 0
+.pad            EQUB 0      ; 0=no padding, '0' or ' ' for padding
 
 IF bbc
 .serialChar     EQUB 0          ; Char being sent/received
