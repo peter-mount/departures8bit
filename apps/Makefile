@@ -24,6 +24,7 @@ export COMMON6502 = \
 	../network/serial.asm \
 	../network/dialer.asm \
 	../network/api.asm \
+	../utils/math.asm \
 	../utils/outputbuffer.asm \
 	../utils/screen.asm \
 	../utils/strings.asm \

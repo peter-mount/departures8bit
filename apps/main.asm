@@ -3,15 +3,16 @@
 ; **********************************************************************
 
 ; Include the rest of the application
-    INCLUDE "../utils/outputbuffer.asm"   ; Output buffer handling
-    INCLUDE "../utils/screen.asm"         ; Screen handling
-    INCLUDE "../utils/strings.asm"        ; String handling
-    INCLUDE "../utils/welcome.asm"        ; Welcome page
-    INCLUDE "../network/serial.asm"       ; RS232 handler
-    INCLUDE "../network/dialer.asm"       ; WiFi Modem dialer
-    INCLUDE "../network/api.asm"          ; Our API
-    INCLUDE "../lang/lang.asm"            ; Our "language"
-    INCLUDE "../lang/memviewer.asm"       ; Debug
+    INCLUDE "../utils/math.asm"         ; Math routines
+    INCLUDE "../utils/outputbuffer.asm" ; Output buffer handling
+    INCLUDE "../utils/screen.asm"       ; Screen handling
+    INCLUDE "../utils/strings.asm"      ; String handling
+    INCLUDE "../utils/welcome.asm"      ; Welcome page
+    INCLUDE "../network/serial.asm"     ; RS232 handler
+    INCLUDE "../network/dialer.asm"     ; WiFi Modem dialer
+    INCLUDE "../network/api.asm"        ; Our API
+    INCLUDE "../lang/lang.asm"          ; Our "language"
+    INCLUDE "../lang/memviewer.asm"     ; Debug
 
 .entryPoint
     JSR initScreen          ; Initialise the screen

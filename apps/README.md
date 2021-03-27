@@ -14,6 +14,11 @@ This app is comprised of a ROM image & a Disk/Tape loadable application.
 ## Disk
 ## Tape
 
+## Running in jsbeeb
+Get JSbeeb running locally. Copy the rom over to jsbeeb then run
+
+* http://localhost:8000/?&model=Master&rom=m128rom&embedBasic=%2ARAIL%0A
+* http://localhost:8000/?&model=Master&rom=beebrail&embedBasic=%2ARAIL%0A
 # Commodore 64
 
 This app is comprised of a Disk image.
@@ -24,5 +29,9 @@ Run bin/c64.sh which will build builds/depart.prg
 
 ## Running in Vice
 
-To run in vice you need to run 
+To run in vice you need to open 3 terminal windows, then run the following in each:
+* ./bin/tcpser.sh
+* ./builds/nrefeeds8bit
+* ./bin/c64.sh
+
 

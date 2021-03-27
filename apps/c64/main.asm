@@ -2,11 +2,11 @@
 ; Commodore C64 departure boards
 ; **********************************************************************
 
-    INCLUDE "../macros.asm"                ; Our macros
-    INCLUDE "../zeropage.asm"              ; 3rd Zero page allocations
-    INCLUDE "../c64/kernal.asm"            ; Kernal constants
-    INCLUDE "../c64/loader.asm"            ; Start of the C64
-    INCLUDE "../main.asm"                  ; The core application
+    INCLUDE "../macros.asm"             ; Our macros
+    INCLUDE "../zeropage.asm"           ; 3rd Zero page allocations
+    INCLUDE "kernal.asm"                ; Kernal constants
+    INCLUDE "loader.asm"                ; Start of the C64
+    INCLUDE "../main.asm"               ; The core application
 
 ; end - the end of the saved program
 .end
