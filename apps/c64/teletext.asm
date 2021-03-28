@@ -161,14 +161,13 @@ defaultColour   = &10                           ; White on Black at start of eac
     LDA textX
     CMP #screenWidth
     BMI end                                     ; still on current line
-    BPL teletextStartNextLine
 
     LDA #0                                      ; Move to start next line
     STA textX
-    INC textY
+    INC textY                                   ; Inc Y, textPos is already correct
     LDA textY
-    CMP #25
-    BPL wrapAround                              ; Still on screen
+    CMP #25                                     ; Are we still on the screen
+    BPL wrapAround                              ; If not then wrap
 .end
     RTS
 .wrapAround
@@ -202,9 +201,11 @@ defaultColour   = &10                           ; White on Black at start of eac
     JMP teletextRefreshPos
 }
 
-.teletextStartNextLine                          ; Move to next line
-    LDA #0                                      ; Start of line
+.teletextStartLine                              ; Start new line, aka CR
+    LDA #0                                      ; Set start of line
     STA textX
+    JMP teletextRefreshPos                      ; refresh textPos
+
 .teletextDown                                   ; Move down 1 row
 {
     INC textY                                   ; Increment Y
@@ -212,6 +213,15 @@ defaultColour   = &10                           ; White on Black at start of eac
     CMP #screenHeight                           ; Check if below bottom of screen
     BMI L1                                      ; Not so skip
     LDA #0                                      ; Point to row 0
+    STA textY
+.L1 JMP teletextRefreshPos                      ; refresh textPos to correct address
+}
+
+.teletextUp                                     ; Move up 1 row
+{
+    DEC textY                                   ; Increment Y
+    BPL L1                                      ; Still on screen
+    LDA #24                                     ; Point to bottom row
     STA textY
 .L1 JMP teletextRefreshPos                      ; refresh textPos to correct address
 }
@@ -254,37 +264,23 @@ defaultColour   = &10                           ; White on Black at start of eac
 .S0 CMP #32                                     ; >= 32 then render the character
     BPL L0
 
-    CMP #10                                     ; LF down one line
-    BNE S1
-    JMP teletextDown                            ; Move down 1 row
+    PHA                                         ; Save A
+    ASL A                                       ; Convert to offset in table
+    TAY
+    LDA table,Y                                 ; Get pending byte count or address low byte
+    STA workBuffer
+    LDA table+1,Y                               ; Get high byte
+    BEQ S1                                      ; 0 so low byte holds pending byte count
+    STA workBuffer+1                            ; Save high byte
+    PLA                                         ; Restore A
+    JMP (workBuffer)                            ; Call vdu handler
 
-.S1 CMP #12                                     ; FF Clear screen
-    BNE S2
-    JMP clearScreen
-
-.S2 CMP #13                                     ; CR Start of current line
-    BNE S3
-    LDA #0                                      ; Set start of line
-    STA textX
-    JMP teletextRefreshPos                      ; refresh textPos
-
-.S3 CMP #8                                      ; BS back 1 char
-    BNE S4                                      ; exit until we add more
-    JMP teletextBackward                        ; Move back 1 char
-
-.S4 CMP #30                                     ; Home
-    BNE S5
-    JMP teletextHome                            ; Move cursor to home
-
-.S5 CMP #31                                     ; TAB
-    BNE S6
-    LDX #2                                      ; Needs 2 more bytes
-
-.QS STA workBuffer                              ; Store workTask
-    STX textWorkLen                             ; Expect X more bytes
-    RTS
-
-.S6 RTS                                         ; Unknown so ignore
+.S1 LDA workBuffer                              ; Set textWorkLen to new value with the number
+    STA textWorkLen                             ; of bytes to expect
+    PLA                                         ; Restore A and set workBuffer so we know
+    STA workBuffer                              ; the pending command
+.nop                                            ; NOP handler
+    RTS                                         ; Stop here
 
 .L0 CMP #127
     BEQ D0                                      ; Delete previous char
@@ -309,9 +305,9 @@ defaultColour   = &10                           ; White on Black at start of eac
 
 .D0 JSR teletextBackward                        ; Backspace & delete
     LDA #' '                                    ; Move back 1 char
-    JMP teletextWrchr                           ; erase what's there
+    JMP teletextWrchr                           ; erase what's there & exit
 
-.C1
+.C1                                             ; TODO add Graphics
 
 .CE LDA #' '                                    ; Render as space
 
@@ -319,6 +315,41 @@ defaultColour   = &10                           ; White on Black at start of eac
     JSR teletextForward                         ; Move forward 1 char
 .end
     RTS
+
+; VDU command lookup table, either an address or number of additional bytes for the command
+.table
+    EQUW nop                ; 00 NUL does nothing
+    EQUW 1                  ; 01 SOH Send next char to printer only
+    EQUW nop                ; 02 STX Start print job
+    EQUW nop                ; 03 ETX End print job
+    EQUW nop                ; 04 EOT Write text at text cursor
+    EQUW nop                ; 05 ENQ Write text at graphics cursor
+    EQUW nop                ; 06 ACK Enable VDU drivers
+    EQUW nop                ; 07 BEL Make a short beep
+    EQUW teletextBackward   ; 08 BS  Backspace cursor one character
+    EQUW teletextForward    ; 09 HT  Advance cursor one character
+    EQUW teletextDown       ; 0A LF  Move cursor down one line
+    EQUW teletextUp         ; 0B VT  Move cursor up one line
+    EQUW clearScreen        ; 0C FF  Clear text area
+    EQUW teletextStartLine  ; 0D CR  Move cursor to start of current line
+    EQUW nop                ; 0E SO  Page mode on
+    EQUW nop                ; 0F SI  Page mode off
+    EQUW nop                ; 10 DLE Clear graphics area
+    EQUW 1                  ; 11 DC1 Define text colour
+    EQUW 2                  ; 12 DC2 Define graphics colour
+    EQUW 5                  ; 13 DC3 Define logical colour
+    EQUW nop                ; 14 DC4 Restore default logical colours
+    EQUW nop                ; 15 NAK Disable VDU drivers or delete current line
+    EQUW 1                  ; 16 SYN Select screen mode
+    EQUW 9                  ; 17 ETB Define display character & other commands
+    EQUW 8                  ; 18 CAN Define graphics window
+    EQUW 5                  ; 19 EM  Plot K,x,y
+    EQUW nop                ; 1A SUB Restore default windows
+    EQUW nop                ; 1B ESC Does nothing
+    EQUW 4                  ; 1C FS  Define text window
+    EQUW 4                  ; 1D GS  Define graphics origin
+    EQUW teletextHome       ; 1E RS  Home text cursor to top left
+    EQUW 2                  ; 1F US  Move text cursor to x,y
 }
 
 ; teletextWrchr     Write char in A to current text pos
