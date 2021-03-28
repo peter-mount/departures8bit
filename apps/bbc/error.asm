@@ -25,7 +25,7 @@
 .errorHandler0
     LDA (brkAddress),Y
     BEQ errorHandler1               ; Found end
-    JSR osasci
+    JSR osascii
     INY
     BNE errorHandler0
 .errorHandler1

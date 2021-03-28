@@ -3,20 +3,20 @@
 ; ********************************************************************************
 
 ; OS calls
-oscli  = &FFF7
-osbyte = &FFF4
-osword = &FFF1
-oswrch = &FFEE
-oswrcr = &FFEC
-osnewl = &FFE7
-osasci = &FFE3
-osrdch = &FFE0
-osfile = &FFDD
-osargs = &FFDA
-osbget = &FFD7
-osbput = &FFD4
-osgbpb = &FFD1
-osfind = &FFCE
+oscli   = &FFF7
+osbyte  = &FFF4
+osword  = &FFF1
+oswrch  = &FFEE
+oswrcr  = &FFEC
+osnewl  = &FFE7
+osascii = &FFE3
+osrdch  = &FFE0
+osfile  = &FFDD
+osargs  = &FFDA
+osbget  = &FFD7
+osbput  = &FFD4
+osgbpb  = &FFD1
+osfind  = &FFCE
 
 ; MOS Zero page
 oswordReason    = &EF           ; EF contains OSWORD reason code

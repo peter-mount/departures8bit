@@ -26,6 +26,7 @@ export COMMON6502 = \
 	../network/api.asm \
 	../utils/mathstr.asm \
 	../utils/outputbuffer.asm \
+	../utils/prompt.asm \
 	../utils/screen.asm \
 	../utils/strings.asm \
 	../utils/welcome.asm

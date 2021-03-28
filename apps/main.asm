@@ -3,9 +3,9 @@
 ; **********************************************************************
 
 ; Include the rest of the application
-    ;INCLUDE "../utils/math.asm"         ; Math routines
     INCLUDE "../utils/mathstr.asm"      ; Math string routines
     INCLUDE "../utils/outputbuffer.asm" ; Output buffer handling
+    INCLUDE "../utils/prompt.asm"       ; Prompts
     INCLUDE "../utils/screen.asm"       ; Screen handling
     INCLUDE "../utils/strings.asm"      ; String handling
     INCLUDE "../utils/welcome.asm"      ; Welcome page
