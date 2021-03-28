@@ -20,10 +20,15 @@
 .memBase                    ; First free block of memory
     EQUB 0
 
-memTop              = &CA00 ; Upper bound of all free memory
+; memTop is start of unusable memory.
+memTop              = &CC00 ; Upper bound of all free memory
 
-rs232InputBuffer    = &CA00 ; RS232 input buffer, must be page aligned
-rs232OutputBuffer   = &CB00 ; RS232 output buffer, must be page aligned
+; Use old screen memory for buffers
+rs232OutputBuffer   = &0400 ; RS232 output buffer, must be page aligned
+rs232InputBuffer    = &0500 ; RS232 input buffer, must be page aligned
+outputBuffer        = &0600 ; Output buffer
+; 0700 free
+; 0800 Basic loader, can be overwritten if required
 
 screenRam           = &CC00 ; 1K Screen ram (for high res) ends &CFFF
 
@@ -32,7 +37,6 @@ screenRam           = &CC00 ; 1K Screen ram (for high res) ends &CFFF
 
 screenBase          = &E000 ; Location of highres screen behind Kernal rom
 
-outputBuffer        = &0800 ; Output buffer overwrites the Basic loader
 
     ; Save the program, start-2 to include the start address &0801
     SAVE "depart.prg", start-2, end

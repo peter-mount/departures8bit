@@ -19,10 +19,9 @@ screenHeight    = 25                            ; Rows high     25 * 8 = 200
 
     LDA &DD00                                   ; Set VIC-II to point to upper 16K bank
     AND #&FC                                    ; Bits 0,1 = 0 for Bank 3
-   ;ORA #0                                      ; Bank 3 = 0 here so no need for OR
     STA &DD00
 
-    LDA #&38                    ; Screen at 0c00, bitmap at 2000 - from C000 bank
+    LDA #&38                                    ; Screen at 0c00, bitmap at 2000 - from C000 bank
     STA &D018
 
     LDA #&08            ; Multicolour off, 40 col, xscroll=0
@@ -120,7 +119,7 @@ screenHeight    = 25                            ; Rows high     25 * 8 = 200
     INC textX                                   ; Increment X
     LDA textX
     CMP #screenWidth                            ; If > width then next line
-    BPL teletextNewline
+    BPL osnewl
     CLC                                         ; Add 8 to textPos to move right 1 char
     LDA textPos
     ADC #8
@@ -130,7 +129,7 @@ screenHeight    = 25                            ; Rows high     25 * 8 = 200
     STA textPos+1
     RTS
 
-.teletextNewline                                ; Move to next line
+.osnewl                                         ; Move to next line
     LDA #0                                      ; Start of line
     STA textX
     INC textY                                   ; Increment Y
@@ -139,7 +138,7 @@ screenHeight    = 25                            ; Rows high     25 * 8 = 200
     BPL teletextHome                            ; Home screen when at bottom
     JMP teletextRefreshPos                      ; refresh textPos to correct address
 
-.teletextWriteChar                              ; Write char A at the current position
+.oswrch                                         ; Write char A at the current position
 {
     STA tA                                      ; Save A, X, Y to scratch ram
     STX tX

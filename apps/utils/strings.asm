@@ -14,7 +14,7 @@
 ; This is simply an alias to the appropriate OS call so that we have a common
 ; name in code but platform independent. Name is based on the BBC OSWRCH
 IF c64
-oswrch = teletextWriteChar
+;oswrch = teletextWriteChar
 ;.oswrch
 ;{
 ;    PHA                 ; Preserve A
@@ -145,13 +145,6 @@ ENDIF
 .writeSpace
 	LDA #' '
 	JMP oswrch
-
-;osnewl write a newline to the screen
-IF c64
-.osnewl
-    LDA #13
-    JMP CHROUT
-ENDIF
 
 ; Subroutine to print a byte in A in hex form (destructive)
 ; Based on PRBYTE from the Apple 1 monitor written by Woz
