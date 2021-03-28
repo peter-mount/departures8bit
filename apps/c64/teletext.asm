@@ -250,21 +250,19 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA workBuffer,Y                            ; Store in buffer, in reverse order, so +0 holds action & +1 last value, +2 first value
     DEC textWorkLen                             ; decrement
     BEQ Q0                                      ; we have enough data so process it
-    RTS
+.Q1 RTS                                         ; Do nothing
 
 .Q0 LDA workBuffer                              ; Check pending task
     CMP #31                                     ; TAB
-    BNE Q1
+    BNE Q1                                      ; For now all others are ignored
     LDX workBuffer+2                            ; workBuffer is 31, Y, X as data is in reverse order
     LDY workBuffer+1
     JMP setPos                                  ; Set new text position
 
-.Q1 RTS                                         ; Do nothing
-
 .S0 CMP #32                                     ; >= 32 then render the character
     BPL L0
 
-    PHA                                         ; Save A
+    PHA                                         ; Save control char
     ASL A                                       ; Convert to offset in table
     TAY
     LDA table,Y                                 ; Get pending byte count or address low byte
@@ -281,6 +279,10 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA workBuffer                              ; the pending command
 .nop                                            ; NOP handler
     RTS                                         ; Stop here
+
+.D0 JSR teletextBackward                        ; Backspace & delete
+    LDA #' '                                    ; Move back 1 char
+    JMP teletextWrchr                           ; erase what's there & exit
 
 .L0 CMP #127
     BEQ D0                                      ; Delete previous char
@@ -303,18 +305,12 @@ defaultColour   = &10                           ; White on Black at start of eac
     ;JSR teletextSetColour                       ; Set colour for this position & rest of the line
     JMP CE                                      ; Render a space with new colour set
 
-.D0 JSR teletextBackward                        ; Backspace & delete
-    LDA #' '                                    ; Move back 1 char
-    JMP teletextWrchr                           ; erase what's there & exit
-
 .C1                                             ; TODO add Graphics
 
 .CE LDA #' '                                    ; Render as space
 
 .L1 JSR teletextWrchr                           ; Render requested character
-    JSR teletextForward                         ; Move forward 1 char
-.end
-    RTS
+    JMP teletextForward                         ; Move forward 1 char
 
 ; VDU command lookup table, either an address or number of additional bytes for the command
 .table
