@@ -30,8 +30,8 @@ This app is comprised of a Disk image.
 | | 0D00 - 0DFF | | MOS NMI/ROM workspace |
 | | | 0800 - 08FF | Basic loader, can be reused once running |
 | | | 0900 | C64 Application entry point |
-| page | _variable_ | _variable_ | Start of database memory, first page after application |
-| highmem | 8000 | CC00 | First address after database memory |
+| page | _variable_ | _variable_ | Start of database memory, first page after application on C64, PAGE on BBC |
+| highmem | 8000 | CC00 | First address after database memory. Fixed on C64, HIGHMEM on BBC, 8000 on Master using shadow Mode 7. |
 | | 8000 - BFFF | | BBC Application ROM
 | | C000 - DBFF | | Sidewars ROM workspace* |
 | screenRam | | CC00 - CFFF | 1K for screen colour definitions |
