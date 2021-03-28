@@ -47,16 +47,16 @@
 .pad            EQUB 0      ; 0=no padding, '0' or ' ' for padding
 
 IF c64
-                            ; Teletext simulation workspace
-.textX          EQUB 0      ; X pos on screen, 0..39
-.textY          EQUB 0      ; Y pos on screen, 0..24
-.textPos        EQUW 0      ; Pos as an address on highres screen
-.tA             EQUB 0      ; oscli save A,X,Y
+                                ; Teletext simulation workspace
+.textX          EQUB 0          ; X pos on screen, 0..39
+.textY          EQUB 0          ; Y pos on screen, 0..24
+.textPos        EQUW 0          ; Pos as an address on highres screen
+.tA             EQUB 0          ; oscli save A,X,Y
 .tY             EQUB 0
 .tX             EQUB 0
-.textCol        EQUB 0      ; Text colour
-.textWorkLen    EQUB 0      ; Number of bytes remaining for sequence
-.workBuffer     EQUB 0,0,0  ; Storage of pending oswrch
+.textCol        EQUB 0          ; Text colour
+.textWorkLen    EQUB 0          ; Number of bytes remaining for sequence
+.workBuffer     EQUW 0,0,0,0,0  ; Storage of pending oswrch, 1 for op, up to 9 for data
 ENDIF
 
 IF bbc
