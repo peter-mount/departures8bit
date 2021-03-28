@@ -44,4 +44,4 @@ start = &0801       ; Base of basic program
     LDA #%00110111          ; restore Basic rom
     STA &01
 
-    JMP &FFFC               ; exit the program by resetting the C64
+    JMP (&FFFC)             ; exit the program by resetting the C64

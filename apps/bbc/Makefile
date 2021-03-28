@@ -13,6 +13,7 @@ MASTER_SRC = \
 	bbcmaster.asm \
 	language.asm \
 	romheader.asm \
+	screen.asm \
 	$(VERSION_ASM) \
 	$(COPYRIGHT_ASM)
 

@@ -6,6 +6,8 @@
     INCLUDE "../zeropage.asm"           ; 3rd Zero page allocations
     INCLUDE "kernal.asm"                ; Kernal constants
     INCLUDE "loader.asm"                ; Start of the C64
+    INCLUDE "charset.asm"               ; Teletext char set
+    INCLUDE "teletext.asm"              ; Teletext
     INCLUDE "../main.asm"               ; The core application
 
 ; end - the end of the saved program
@@ -17,10 +19,18 @@
     ALIGN &100
 .memBase                    ; First free block of memory
     EQUB 0
-memTop              = &CDFF ; Upper bound of all free memory
 
-rs232InputBuffer    = &CE00 ; RS232 input buffer, must be page aligned
-rs232OutputBuffer   = &CF00 ; RS232 output buffer, must be page aligned
+memTop              = &CA00 ; Upper bound of all free memory
+
+rs232InputBuffer    = &CA00 ; RS232 input buffer, must be page aligned
+rs232OutputBuffer   = &CB00 ; RS232 output buffer, must be page aligned
+
+screenRam           = &CC00 ; 1K Screen ram (for high res) ends &CFFF
+
+; DOS uses CC00 for scratch ram?
+; IO occupies &D000 - &DFFF
+
+screenBase          = &E000 ; Location of highres screen behind Kernal rom
 
 outputBuffer        = &0800 ; Output buffer overwrites the Basic loader
 

@@ -14,14 +14,15 @@
 ; This is simply an alias to the appropriate OS call so that we have a common
 ; name in code but platform independent. Name is based on the BBC OSWRCH
 IF c64
-.oswrch
-{
-    PHA                 ; Preserve A
-    JSR fixcase         ; Fix C64 case
-    JSR CHROUT          ; Write to OS with alphabet swapped if necessary
-    PLA                 ; Restore A
-    RTS
-}
+oswrch = teletextWriteChar
+;.oswrch
+;{
+;    PHA                 ; Preserve A
+;    JSR fixcase         ; Fix C64 case
+;    JSR CHROUT          ; Write to OS with alphabet swapped if necessary
+;    PLA                 ; Restore A
+;    RTS
+;}
 
 .fixcase                ; On the C64 upper & lower case are swapped so to get a
 {                       ; "normal" ASCII representation we need to swap the cases

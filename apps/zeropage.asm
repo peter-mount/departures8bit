@@ -46,6 +46,13 @@
 
 .pad            EQUB 0      ; 0=no padding, '0' or ' ' for padding
 
+.textX          EQUB 0      ; X pos on screen, 0..39
+.textY          EQUB 0      ; Y pos on screen, 0..24
+.textPos        EQUW 0      ; Pos as an address on highres screen
+.tA EQUB 0
+.tY EQUB 0
+.tX EQUB 0
+
 IF bbc
 .serialChar     EQUB 0          ; Char being sent/received
 .oswordWork     EQUB 0,0,0,0,0  ; 5 bytes for OSWORD call on BBC
