@@ -64,5 +64,10 @@ statusX = 22
     INY
     DEX
     BNE L1                  ; Loop until we hit max chars
-.L2 RTS
+    RTS
+.L2 LDA #' '
+.L3 JSR oswrch
+    DEX
+    BNE L3
+    RTS
 }

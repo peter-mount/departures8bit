@@ -15,14 +15,15 @@ screenHeight    = 25                            ; Rows high     25 * 8 = 200
 defaultColour   = &10                           ; White on Black at start of each line
 
 .teletextColours                                ; Translation table for colours
-    EQUB COL_BLACK                              ; 80 128 Alpha Black, not BBC but in some later BBCBasic for windows
-    EQUB COL_RED                                ; 81 129 Alphanumeric Red
-    EQUB COL_GREEN                              ; 82 130 Alphanumeric Green
-    EQUB COL_YELLOW                             ; 83 131 Alphanumeric Yellow
-    EQUB COL_BLUE                               ; 84 132 Alphanumeric Blue
-    EQUB COL_PURPLE                             ; 85 133 Alphanumeric Magenta
-    EQUB COL_CYAN                               ; 86 134 Alphanumeric Cyan
-    EQUB COL_WHITE                              ; 87 135 Alphanumeric White
+                                                ; Upper & lower nibbles set to same value
+    EQUB COL_BLACK + (COL_BLACK<<4)             ; 80 128 Alpha Black, not BBC but in some later BBCBasic for windows
+    EQUB COL_RED + (COL_RED<<4)                 ; 81 129 Alphanumeric Red
+    EQUB COL_GREEN + (COL_GREEN<<4)             ; 82 130 Alphanumeric Green
+    EQUB COL_YELLOW + (COL_YELLOW<<4)           ; 83 131 Alphanumeric Yellow
+    EQUB COL_BLUE + (COL_BLUE<<4)               ; 84 132 Alphanumeric Blue
+    EQUB COL_PURPLE + (COL_PURPLE<<4)           ; 85 133 Alphanumeric Magenta
+    EQUB COL_CYAN + (COL_CYAN<<4)               ; 86 134 Alphanumeric Cyan
+    EQUB COL_WHITE + (COL_WHITE<<4)             ; 87 135 Alphanumeric White
     ; 88 136    flash
     ; 89 137    steady
     ; 8C 140    normal height
@@ -35,12 +36,6 @@ defaultColour   = &10                           ; White on Black at start of eac
     ; 9D 157    new blackground (takes current foreground)
     ; 9E 158    hold graphics
     ; 9F 159    release graphics
-
-; *40 table
-.m40
-    EQUW &0000, &0028, &0050, &0078, &00a0, &00c8, &00f0, &0118, &0140, &0168
-    EQUW &0190, &01b8, &01e0, &0208, &0230, &0258, &0280, &02a8, &02d0, &02f8
-    EQUW &0320, &0348, &0370, &0398, &03c0
 
 .initScreen
     LDA &DD02                                   ; CIA2 bits 0,1 as output
@@ -66,11 +61,8 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA &d020                                   ; Border colour
     STA &d021                                   ; Background colour
 
-.setDefaultColour                               ; Set default colour in textCol & A
-    LDA #defaultColour
-    STA textCol                                 ; Save for rendering
-    RTS
-
+    LDA #0                                      ; reset oswrch work queue
+    STA textWorkLen
                                                 ; Run into clearScreen
 .clearScreen
 {
@@ -105,7 +97,12 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA textPos+1
     RTS
 
-.setPos                                        ; Set cursor to X,Y
+.setDefaultColour                               ; Set default colour in textCol & A
+    LDA #defaultColour
+    STA textCol                                 ; Save for rendering
+    RTS
+
+.setPos                                         ; Set cursor to X,Y
     STX textX                                   ; Store X & Y
     STY textY                                   ; then teletextRefreshPos to set textPos
 
@@ -238,12 +235,21 @@ defaultColour   = &10                           ; White on Black at start of eac
     RTS
 
 .oswrchImpl
-    CMP #127                                    ; Backspace & delete
-    BNE S0
+    LDY textWorkLen                             ; Need to store in workBuffer
+    BEQ S0                                      ; no so process it now
+    STA workBuffer,Y                            ; Store in buffer, in reverse order, so +0 holds action & +1 last value, +2 first value
+    DEC textWorkLen                             ; decrement
+    BEQ Q0                                      ; we have enough data so process it
+    RTS
 
-    JSR teletextBackward                        ; Move back 1 char
-    LDA #' '                                    ; erase what's there
-    JMP teletextWrchr
+.Q0 LDA workBuffer                              ; Check pending task
+    CMP #31                                     ; TAB
+    BNE Q1
+    LDX workBuffer+2                            ; workBuffer is 31, Y, X as data is in reverse order
+    LDY workBuffer+1
+    JMP setPos                                  ; Set new text position
+
+.Q1 RTS                                         ; Do nothing
 
 .S0 CMP #32                                     ; >= 32 then render the character
     BPL L0
@@ -270,29 +276,40 @@ defaultColour   = &10                           ; White on Black at start of eac
     BNE S5
     JMP teletextHome                            ; Move cursor to home
 
-.S5 LDA #'#'                                    ; Unknown so just space
+.S5 CMP #31                                     ; TAB
+    BNE S6
+    LDX #2                                      ; Needs 2 more bytes
 
-.L0 CMP #128
-    BMI L1                                      ; A between 32 & 127 so render char
+.QS STA workBuffer                              ; Store workTask
+    STX textWorkLen                             ; Expect X more bytes
+    RTS
+
+.S6 RTS                                         ; Unknown so ignore
+
+.L0 CMP #127
+    BEQ D0                                      ; Delete previous char
+    BMI L1                                      ; A between 32 & 126 so render char
+
     CMP #136                                    ; 128-135 text colour
-    BPL C1
+    BPL C1                                      ; skip text set colour
 
 .C0                                             ; Set foreground colour from A
     AND #&07                                    ; extract colour code
     TAY
     LDA teletextColours,Y                       ; get C64 colour
-    ASL A                                       ; Shift to high nibble
-    ASL A
-    ASL A
-    ASL A
+    AND #&F0                                    ; Use only high nibble for foreground
     TAY                                         ; Save in Y
     LDA textCol                                 ; Mask out foreground
     AND #&0F
     STA textCol
     TAY                                         ; Swap back Y
     ORA textCol                                 ; OR into textCol as theres no OR with Y
-    STA textCol
-    JMP CE
+    ;JSR teletextSetColour                       ; Set colour for this position & rest of the line
+    JMP CE                                      ; Render a space with new colour set
+
+.D0 JSR teletextBackward                        ; Backspace & delete
+    LDA #' '                                    ; Move back 1 char
+    JMP teletextWrchr                           ; erase what's there
 
 .C1
 
@@ -308,6 +325,7 @@ defaultColour   = &10                           ; White on Black at start of eac
 .teletextWrchr
     SEC                                         ; Subtract 32 for base of charset
     SBC #32
+    AND #&7F                                    ; Limit to 32..127
     STA tempAddr                                ; Store as 16bit offset
     LDA #0
     STA tempAddr+1
@@ -338,27 +356,28 @@ defaultColour   = &10                           ; White on Black at start of eac
 {
     STA textCol                                 ; Save colour
 
-    LDA #<screenRam                             ; Work out position
-    STA tempAddr
-    LDA #>screenRam
-    STA tempAddr+1
-
     LDA textY                                   ; Add textY * 40
     ASL A
     TAY
-    CLC
-    LDA tempAddr
-    ADC m40,Y
+    LDA m40,Y
     STA tempAddr
-    LDA tempAddr+1
-    ADC m40+1,Y
+    LDA m40+1,Y
     STA tempAddr+1
 
-    LDX textX                                   ; Now loop setting the colour until we hit the
+    LDY textX                                   ; Now loop setting the colour until we hit the
     LDA textCol                                 ; end of the current line
 .L1 STA (tempAddr),Y
     INY
     CPY #40
     BMI L1
     RTS
+
+; Address lookup of start of each line in screenRam
+.m40
+    EQUW screenRam + &0000, screenRam + &0028, screenRam + &0050, screenRam + &0078, screenRam + &00a0
+    EQUW screenRam + &00c8, screenRam + &00f0, screenRam + &0118, screenRam + &0140, screenRam + &0168
+    EQUW screenRam + &0190, screenRam + &01b8, screenRam + &01e0, screenRam + &0208, screenRam + &0230
+    EQUW screenRam + &0258, screenRam + &0280, screenRam + &02a8, screenRam + &02d0, screenRam + &02f8
+    EQUW screenRam + &0320, screenRam + &0348, screenRam + &0370, screenRam + &0398, screenRam + &03c0
+
 }

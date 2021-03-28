@@ -24,9 +24,10 @@
 memTop              = &CC00 ; Upper bound of all free memory
 
 ; Use old screen memory for buffers
-rs232OutputBuffer   = &0400 ; RS232 output buffer, must be page aligned
-rs232InputBuffer    = &0500 ; RS232 input buffer, must be page aligned
-outputBuffer        = &0600 ; Output buffer
+rs232OutputBuffer   = &0400                 ; RS232 output buffer, must be page aligned
+rs232InputBuffer    = &0500                 ; RS232 input buffer, must be page aligned
+outputBuffer        = &0600                 ; Output buffer
+
 ; 0700 free
 ; 0800 Basic loader, can be overwritten if required
 

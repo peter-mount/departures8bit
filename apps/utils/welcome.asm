@@ -31,7 +31,11 @@
     RTS
 
 .welcomeText
-    EQUS "DepartureBoards.mobi"
+    EQUS 30, 10
+    EQUS 132, 157, 135, 141, 31, 10, 1, "UK Departure Boards", 13, 10
+    EQUS 132, 157, 135, 141, 31, 10, 2, "UK Departure Boards", 13, 10
+    EQUS 10, "DepartureBoards.mobi", 13, 10, 10
+    EQUS "Version 0.01a"
 IF c64
     EQUS " C64"
 ELIF bbcmaster
@@ -39,10 +43,7 @@ ELIF bbcmaster
 ELIF bbc
     EQUS " BBC B"
 ENDIF
-    EQUS 30
-    EQUS 132, 157, 135, 141, 31, 10, 0, "UK Departure Boards", 13, 10
-    EQUS 132, 157, 135, 141, 31, 10, 1, "UK Departure Boards", 13, 10
-    EQUS 10, 10, "Version 0.01a", 13, 10, 0
+    EQUS 13, 10, 0
 
 .bytesFree
     EQUS " bytes free.", 13, 10, 10, 0
