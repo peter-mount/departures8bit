@@ -22,6 +22,7 @@ EQUALS  = &B2                           ; = equality or assign value
 IF      = &8B                           ; IF statement
 LOAD    = &93                           ; LOAD statement
 PLUS    = &AA                           ; + addition
+PRINT   = &99                           ; Print statement
 SYS     = &9E                           ; SYS statement
 THEN    = &A7                           ; THEN statement
 
@@ -29,18 +30,47 @@ start = &0801                           ; Base of basic program
             ORG start-2                 ; Start 2 bytes earlier so we can inject the
             EQUW start                  ; load address for the prg file format
 
-.L10        EQUW L20                    ; Pointer to next line
+.L10
+            EQUW L15                    ; Pointer to next line
             EQUW 10                     ; Line 10
             EQUS 'A', EQUALS, 'A', PLUS, '1'
             EQUB 0                      ; End of line
 
-.L20        EQUW L30                    ; Pointer to next line
+.L15
+            EQUW L20                    ; Pointer to next line
+            EQUW 15                      ; Line 5
+            EQUS IF, 'A', EQUALS, '1'   ; Load TELETEXT emulator
+            EQUS THEN, PRINT, '"', "LOADING, PLEASE WAIT!", '"'
+            EQUB 0                      ; End of line
+
+
+.L20
+            EQUW L30                    ; Pointer to next line
             EQUW 20
-            EQUS IF, 'A', EQUALS, '1'
-            EQUS THEN, LOAD, '"', "DEPART", '"', ",8,1"
+            EQUS IF, 'A', EQUALS, '1'   ; Load TELETEXT emulator
+            EQUS THEN, LOAD, '"', "TELETEXT", '"', ",8,1"
             EQUB 0                      ; End of line
 
 .L30
+            EQUW L40                    ; Pointer to next line
+            EQUW 30
+            EQUS IF, 'A', EQUALS, '2'
+            EQUS THEN, SYS, "49152"     ; Initialise screen, show splash 1
+            EQUB 0                      ; End of line
+
+.L40
+            ;EQUW L50                    ; Pointer to next line
+            ;EQUW 40
+            ;EQUS IF, 'A', EQUALS, '2'   ; Load application
+            ;EQUS THEN, LOAD, '"', "DEPART", '"', ",8,1"
+            ;EQUB 0                      ; End of line
+
+.L50        ;EQUW basicEnd               ; Pointer to next line
+            ;EQUW 50
+            ;EQUS IF, 'A', EQUALS, '3'
+            ;EQUS THEN, SYS, "2304"      ; Run application
+            ;EQUB 0                      ; End of line
+
 .basicEnd
     EQUW 0                              ; pointer to next line, 0 = end of program
 

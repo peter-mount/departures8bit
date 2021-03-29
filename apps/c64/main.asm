@@ -6,8 +6,7 @@
     INCLUDE "../zeropage.asm"               ; 3rd Zero page allocations
     INCLUDE "kernal.asm"                    ; Kernal constants
     INCLUDE "loader.asm"                    ; Start of the C64
-    INCLUDE "charset.asm"                   ; Teletext char set
-    INCLUDE "teletext.asm"                  ; Teletext emulation
+    INCLUDE "teletext.inc"                  ; Teletext emulation
     INCLUDE "../main.asm"                   ; The core application
 
 ; end - the end of the saved program

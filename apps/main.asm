@@ -16,7 +16,9 @@
     INCLUDE "../lang/memviewer.asm"     ; Debug
 
 .entryPoint
+IF bbc
     JSR initScreen          ; Initialise the screen
+ENDIF
     JSR welcome             ; Show the welcome screen
     JSR serialInit          ; Initialise RS232
     JSR dialServer          ; Connect to API server

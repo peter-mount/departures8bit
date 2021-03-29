@@ -9,24 +9,44 @@
 ; So we can keep Kernal in place, get a HighRes screen and gain 1K of ram
 ; that was the original text screen at &0400
 ;
-{ ; Entire module is scoped so only expose labels as required
-; Module header with public entry points
-.*initScreen    JMP initScreenInt               ; Initialise the screen
-.*refreshScreen RTS                             ; Reserved, future expansion, space for JMP
-                EQUB 0,0
-.*osascii       CMP #&0D                        ; write byte expanding CR (0x0D)
+                INCLUDE "kernal.asm"            ; Kernal constants
+
+                ORG &80
+                GUARD &90
+.textX          EQUB 0          ; X pos on screen, 0..39
+.textY          EQUB 0          ; Y pos on screen, 0..24
+.textPos        EQUW 0          ; Pos as an address on highres screen
+.tA             EQUB 0          ; oscli save A,X,Y
+.tX             EQUB 0
+.tY             EQUB 0
+.textCol        EQUB 0          ; Text colour
+.textWorkLen    EQUB 0          ; Number of bytes remaining for sequence
+.tempAddr       EQUW 0          ; Scratch address
+
+                ORG     &C000-2                 ; Start of spare 4K ram
+                GUARD   &CC00                   ; Start of colour ram
+                EQUW start                      ; PRG file format header
+.start                                          ; of load address
+
+; **********************************************************************
+; Public entry points - Addresses of these can't change once defined!
+; **********************************************************************
+.initScreen     JSR initScreenInt               ; Initialise the screen, shows black
+.refreshScreen  JMP refreshScreenInt            ; Refresh the screen to the buffer state
+.osascii        CMP #&0D                        ; write byte expanding CR (0x0D)
                 BNE oswrch                      ; to LF/CR sequence
-.*osnewl        LDA #&0A                        ; Output LF/CR sequence
+.osnewl         LDA #&0A                        ; Output LF/CR sequence
                 JSR oswrch
                 LDA #&0D
-.*oswrch        JMP oswrchInt                   ; Write char to screen              VDU A
-.*clearScreen   JMP clearScreenInt              ; Clear the screen                  VDU 12
-.*setPos        JMP setPosInt                   ; Set text cursor location          VDU 31,X,Y
+.oswrch         JMP oswrchInt                   ; Write char to screen              VDU A
+.clearScreen    JMP clearScreenInt              ; Clear the screen                  VDU 12
+.setPos         JMP setPosInt                   ; Set text cursor location          VDU 31,X,Y
+
+; **********************************************************************
 
 screenWidth     = 40                            ; Chars wide    40 * 8 = 320
 screenHeight    = 25                            ; Rows high     25 * 8 = 200
 
-textRam         = &C800                         ; 1K for holding screen chars for refresh
 screenRam       = &CC00                         ; 1K Screen ram for high res VIC-II colour
 screenBase      = &E000                         ; Location of VIC-II bitmap behind Kernal rom
 
@@ -286,7 +306,7 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA textWorkLen                             ; of bytes to expect
     PLA                                         ; Restore A and set workBuffer so we know
     STA workBuffer                              ; the pending command
-.nop                                            ; NOP handler
+.*nop                                           ; NOP handler
     RTS                                         ; Stop here
 
 .D0 JSR teletextBackward                        ; Backspace & delete
@@ -325,9 +345,14 @@ defaultColour   = &10                           ; White on Black at start of eac
 
 ; teletextWrchr     Write char in A to current text pos
 .teletextWrchr
+{
+    CMP #0
+    BMI L0                                      ; Skip teletext control char
     SEC                                         ; Subtract 32 for base of charset
     SBC #32
-    AND #&7F                                    ; Limit to 32..127
+    BPL L1                                      ; We have a valid char
+.L0 LDA #0                                      ; Use space for invalid chars
+.L1 AND #&7F                                    ; Limit to 32..127
     STA tempAddr                                ; Store as 16bit offset
     LDA #0
     STA tempAddr+1
@@ -348,11 +373,12 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA tempAddr+1
 
     LDY #7                                      ; Copy character to screen
-.L1 LDA (tempAddr),Y
+.L2 LDA (tempAddr),Y
     STA (textPos),Y
     DEY
-    BPL L1
+    BPL L2
     RTS
+}
 
 .teletextSetColour                              ; Update line from textX with colour in A
 {
@@ -374,6 +400,39 @@ defaultColour   = &10                           ; White on Black at start of eac
     BMI L1
     RTS
 
+}
+
+.refreshScreenInt                       ; Refresh screen
+{
+    LDA textX                           ; Save textX & Y
+    PHA
+    LDA textY
+    PHA
+    JSR L0
+    PLA                                 ; Restore textX & Y
+    STA textY
+    PLA
+    STA textX
+    JMP teletextRefreshPos              ; Recalc addresses
+
+.L0 LDA #<textRam                       ; Start at text ram start
+    STA tA
+    LDA #>textRam
+    STA tA+1
+
+    JSR teletextHome                    ; Home cursor
+.L1 LDY #0                              ; Get char
+    LDA (tA),Y
+    JSR teletextWrchr                   ; Render it
+    JSR teletextForward                 ; move forward
+    LDA textX                           ; X | Y = 0 then we are back at home so complete
+    ORA textY
+    BEQ L2
+    INC tA
+    BNE L1
+    INC tA+1
+    BNE L1                              ; Always the case so implicit BRA
+.L2 RTS
 }
 
 ; Address lookup of start of each line in screenRam
@@ -419,4 +478,38 @@ defaultColour   = &10                           ; White on Black at start of eac
     EQUW teletextHome       ; 1E RS  Home text cursor to top left
     EQUW 2                  ; 1F US  Move text cursor to x,y
 
-} ; End of module
+    INCLUDE "charset.asm"   ; Include our char definitions
+
+    ALIGN &100
+.textRam                    ; 1K for holding screen chars for refresh
+    EQUS " Project Area51                    v0.01" ; Each line must be 40 bytes long
+    EQUS "              Teletext C64              "
+    EQUS "              Teletext C64              "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    ALIGN &100
+.end
+workBuffer  = end - 10      ; Storage of pending oswrch storage
+
+    SAVE "teletext", start-2, end
