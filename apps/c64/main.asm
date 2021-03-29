@@ -16,6 +16,10 @@
 start = &0900               ; Base of application
     ORG start-2             ; Start 2 bytes earlier so we can inject the load address for the prg file format
     EQUW start              ; Load address in prg file format
+
+    LDX #&FF                ; Reset the stack as we won't be returning from here
+    TXS
+
     LDA #%00110110          ; Replace basic with ram at A000-BFFF for an extra 8K
     STA &01
 
