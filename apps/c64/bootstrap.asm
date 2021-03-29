@@ -82,8 +82,8 @@ start = &7000                   ; Base of bootstrap
     BNE L1
 .L2 RTS
 .banner
-    EQUS "Area51 Teletext C64 1.0", 13, 13
-    EQUS "Loading application", 13, 0
+    EQUS 132, "Area51 Teletext", 135, "C64", 129, "1.0", 13, 13
+    EQUS 130, "Loading application...", 13, 0
 }
 
 .teletext   EQUS "TELETEXT", 0
