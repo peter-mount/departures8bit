@@ -2,15 +2,17 @@
 # Commodore 64
 # ======================================================================
 
-LOADER=loader
-DEPART=depart
-TELETEXT=teletext
-DISK=$(BUILDS)/depart.d64
+LOADER		= loader
+BOOTSTRAP	= bootstrap
+DEPART		= depart
+SPLASH		= splash
+TELETEXT	= teletext
+DISK		= $(BUILDS)/depart.d64
 
 all: $(DISK)
 
 clean:
-	$(RM) $(LOADER) $(DEPART) $(TELETEXT) $(DISK)
+	$(RM) $(LOADER) $(BOOTSTRAP) $(DEPART) $(TELETEXT) $(SPLASH) $(DISK)
 
 C64SRC = main.asm \
 	kernal.asm \
@@ -23,6 +25,14 @@ TELETEXTSRC = teletext.asm charset.asm
 $(LOADER): diskloader.asm basictokens.asm
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
 
+# BOOTSTRAP - the application bootstrap
+$(BOOTSTRAP): bootstrap.asm
+	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
+
+# SPLASH - the splash screen
+$(SPLASH): splash.asm
+	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
+
 # TELETEXT - the teletext emulator
 $(TELETEXT): $(TELETEXTSRC)
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
@@ -31,8 +41,9 @@ $(TELETEXT): $(TELETEXTSRC)
 $(DEPART): $(C64SRC) $(COMMON6502)
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
 
-# Build the disk image, files ordered so first file gets loaded first!
-$(DISK): $(LOADER) $(TELETEXT) $(DEPART)
+# Build the disk image
+# $(LOADER) needs to be the first entry for LOAD "*",8,1 to work when booting the disk.
+$(DISK): $(LOADER) $(BOOTSTRAP) $(TELETEXT) $(SPLASH) $(DEPART)
 	$(RM) $@
-	c1541 -format departure,8 d64 $@
+	c1541 -format ukdepartures,8 d64 $@
 	$(foreach file, $^, c1541 -attach $@ -write $(file);)

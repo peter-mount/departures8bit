@@ -12,6 +12,7 @@ CHKOUT  = &FFC9     ; Open channel for output
 CLRCHN  = &FFCC     ; Clear IO channels
 CHRIN   = &FFCF     ; Input 1 char from keyboard, reads a line until return pressed
 CHROUT  = &FFD2     ; Output 1 char to screen (or open channel)
+LOAD    = &FFD5     ; Load RAM from device
 GETIN   = &FFE4     ; Get 1 char from keyboard
 PLOT    = &FFF0     ; Set/Get cursor position
 

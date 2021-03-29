@@ -28,3 +28,7 @@ clean:
 	@$(MAKE) -C api clean
 	@$(MAKE) -C apps clean
 	$(RM) $(BUILDS)/*
+
+
+testc64: clean all
+	x64sc -verbose ./builds/depart.d64

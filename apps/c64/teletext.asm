@@ -22,6 +22,8 @@
 .textCol        EQUB 0          ; Text colour
 .textWorkLen    EQUB 0          ; Number of bytes remaining for sequence
 .tempAddr       EQUW 0          ; Scratch address
+.tempAddr2      EQUW 0          ; Scratch address
+.tempAddr3      EQUW 0          ; Scratch address
 
                 ORG     &C000-2                 ; Start of spare 4K ram
                 GUARD   &CC00                   ; Start of colour ram
@@ -31,7 +33,7 @@
 ; **********************************************************************
 ; Public entry points - Addresses of these can't change once defined!
 ; **********************************************************************
-.initScreen     JSR initScreenInt               ; Initialise the screen, shows black
+.initScreen     JMP initScreenInt               ; Initialise the screen, shows black
 .refreshScreen  JMP refreshScreenInt            ; Refresh the screen to the buffer state
 .osascii        CMP #&0D                        ; write byte expanding CR (0x0D)
                 BNE oswrch                      ; to LF/CR sequence
@@ -47,6 +49,7 @@
 screenWidth     = 40                            ; Chars wide    40 * 8 = 320
 screenHeight    = 25                            ; Rows high     25 * 8 = 200
 
+textRam         = &0400                         ; Original screen memory used for text ram
 screenRam       = &CC00                         ; 1K Screen ram for high res VIC-II colour
 screenBase      = &E000                         ; Location of VIC-II bitmap behind Kernal rom
 
@@ -379,6 +382,85 @@ defaultColour   = &10                           ; White on Black at start of eac
 
 }
 
+.refreshLineColour                              ; Refresh the current line's colours based on control chars
+{
+    PHA                                         ; Preserve A
+    TYA                                         ; Preserve Y
+    PHA
+
+    LDY textY                                   ; Get current line
+
+    LDA r40,Y                                   ; Get textRam address
+    STA tempAddr
+    LDA r40+1,Y
+    STA tempAddr+1
+
+    LDA m40,Y                                   ; Get screenRam address
+    STA tempAddr2
+    LDA m40+1,Y
+    STA tempAddr2+1
+
+    LDA #defaultColour                          ; Reset colour
+    STA textCol
+
+    LDX #40                                     ; 40 chars to process
+    LDY #0                                      ; start of line
+.L1 LDA (tempAddr),Y                            ; Get Char
+    BPL L2                                      ; Ignore text
+
+    CMP #156                                    ; Black background
+    BNE S1
+    LDA textCol                                 ; Clear background in lower nibble
+    AND #&F0
+    STA textCol
+    JMP L2
+
+.S1 CMP #157                                    ; New background from foreground
+    BNE S2
+    LDA textCol                                 ; Set background to that of foreground
+    AND #&F0                                    ; Rotate upper nibble to lower
+    SEC                                         ; Set carry as we want top bit set
+    ROR A                                       ; ROR 4 times
+    ROR A
+    ROR A
+    ROR A
+    AND #&1F                                    ; Mask out top 3 bits so that we now
+    STA textCol                                 ; have new background & white text
+    JMP L2
+
+.S2 AND #&0F                                    ; Lower nibble of command
+    CMP #&08                                    ; Ignore >=8 as not a valid colour
+    BPL L2
+    ASL A                                       ; A<<1
+    STA tempAddr3                               ; Save colour offset
+
+    LDA textCol                                 ; Clear upper nibble of textCol
+    AND #&0F
+    STA textCol
+
+    TYA                                         ; Save Y
+    PHA
+    LDY tempAddr3                               ; Get offset to transalation table
+    LDA teletextColours,Y                       ; Colour conversion to VIC-II
+    AND #&F0                                    ; we want upper nibble
+    ORA textCol                                 ; Merge with TextCol
+    STA textCol
+
+    PLA                                         ; Restore Y
+    TAY
+
+.L2 LDA textCol                                 ; Get current colour
+    ;STA (tempAddr2),Y                           ; Update screen
+    INY                                         ; next character
+    DEX
+    BNE L1                                      ; Loop back for next colour
+
+.E0 PLA                                         ; Restore Y
+    TAY
+    PLA                                         ; Restore A
+    RTS
+}
+
 .refreshScreenInt                       ; Refresh screen
 {
     LDA textX                           ; Save textX & Y
@@ -403,13 +485,15 @@ defaultColour   = &10                           ; White on Black at start of eac
     JSR teletextWrchr                   ; Render it
     JSR teletextForward                 ; move forward
     LDA textX                           ; X | Y = 0 then we are back at home so complete
-    ORA textY
-    BEQ L2
-    INC tA
+    BNE L2                              ; Skip if we are in this line
+    JSR refreshLineColour               ; New line so refresh it's colour
+.L2 ORA textY                           ; textX or textY = 0 when we are back at home
+    BEQ L3                              ; for which we can exit
+    INC tA                              ; Increment tA to next char
     BNE L1
     INC tA+1
     BNE L1                              ; Always the case so implicit BRA
-.L2 RTS
+.L3 RTS
 }
 
 .teletextColours                                ; Translation table for colours
@@ -434,6 +518,14 @@ defaultColour   = &10                           ; White on Black at start of eac
     ; 9D 157    new blackground (takes current foreground)
     ; 9E 158    hold graphics
     ; 9F 159    release graphics
+
+; Address lookup of start of each line in textRam
+.r40
+    EQUW textRam + &0000, textRam + &0028, textRam + &0050, textRam + &0078, textRam + &00a0
+    EQUW textRam + &00c8, textRam + &00f0, textRam + &0118, textRam + &0140, textRam + &0168
+    EQUW textRam + &0190, textRam + &01b8, textRam + &01e0, textRam + &0208, textRam + &0230
+    EQUW textRam + &0258, textRam + &0280, textRam + &02a8, textRam + &02d0, textRam + &02f8
+    EQUW textRam + &0320, textRam + &0348, textRam + &0370, textRam + &0398, textRam + &03c0
 
 ; Address lookup of start of each line in screenRam
 .m40
@@ -479,36 +571,8 @@ defaultColour   = &10                           ; White on Black at start of eac
     EQUW 2                  ; 1F US  Move text cursor to x,y
 
     INCLUDE "charset.asm"   ; Include our char definitions
-
-    ALIGN &100
-.textRam                    ; 1K for holding screen chars for refresh
-    EQUS 134, "Project Area51                   ",130,"v0.01" ; Each line must be 40 bytes long
-    EQUS 132, 157, 135, 141, "          Teletext C64              "
-    EQUS 132, 157, 135, 141, "          Teletext C64              "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS 141, "              Loading...               "
-    EQUS 141, "              Loading...               "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "(C) Peter Mount, Area51.dev             "
-.end
 .workBuffer
     EQUW 0, 0, 0, 0, 0      ; Storage of pending oswrch storage
+.end
 
     SAVE "teletext", start-2, end
