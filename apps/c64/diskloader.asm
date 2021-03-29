@@ -21,12 +21,12 @@ start = &0801                                   ; Base of basic program
             EQUS 'A', BASTOKEN_EQUALS, 'A', BASTOKEN_PLUS, '1'
             EQUB 0                              ; End of line
 
-.L20        ; IF A=1 THEN PRINT "LOADING BOOTSTRAP..."
+.L20        ; IF A=1 THEN PRINT "LOADING BOOTSTRAP"
             EQUW L20
             EQUW 20
             EQUS BASTOKEN_IF, 'A', BASTOKEN_EQUALS, '1'
             EQUS BASTOKEN_THEN, BASTOKEN_PRINT
-            EQUS BASTOKEN_QUOTE, "LOADING BOOTSTRAP...", BASTOKEN_QUOTE
+            EQUS BASTOKEN_QUOTE, "LOADING BOOTSTRAP", BASTOKEN_QUOTE
             EQUB 0
 
 

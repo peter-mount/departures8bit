@@ -68,7 +68,7 @@ start = &7000                   ; Base of bootstrap
     BNE L1
 .L2 RTS
 .banner
-    EQUS "LOADING TELETEXT 1.0", 13, 0
+    EQUS "LOADING TELETEXT", 13, 0
 }
 
 ; Teletext screen message
