@@ -14,16 +14,20 @@ clean:
 
 C64SRC = main.asm \
 	kernal.asm \
-	loader.asm
+	loader.asm \
+	basictokens.asm
 
 TELETEXTSRC = teletext.asm charset.asm
 
-$(LOADER): splash.asm
+# LOADER - the disk bootstrap
+$(LOADER): splash.asm basictokens.asm
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
 
+# TELETEXT - the teletext emulator
 $(TELETEXT): $(TELETEXTSRC)
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
 
+# DEPART - the main application
 $(DEPART): $(C64SRC) $(COMMON6502)
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
 
