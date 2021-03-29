@@ -9,8 +9,26 @@
 ; So we can keep Kernal in place, get a HighRes screen and gain 1K of ram
 ; that was the original text screen at &0400
 ;
+{ ; Entire module is scoped so only expose labels as required
+; Module header with public entry points
+.*initScreen    JMP initScreenInt               ; Initialise the screen
+.*refreshScreen RTS                             ; Reserved, future expansion, space for JMP
+                EQUB 0,0
+.*osascii       CMP #&0D                        ; write byte expanding CR (0x0D)
+                BNE oswrch                      ; to LF/CR sequence
+.*osnewl        LDA #&0A                        ; Output LF/CR sequence
+                JSR oswrch
+                LDA #&0D
+.*oswrch        JMP oswrchInt                   ; Write char to screen              VDU A
+.*clearScreen   JMP clearScreenInt              ; Clear the screen                  VDU 12
+.*setPos        JMP setPosInt                   ; Set text cursor location          VDU 31,X,Y
+
 screenWidth     = 40                            ; Chars wide    40 * 8 = 320
 screenHeight    = 25                            ; Rows high     25 * 8 = 200
+
+textRam         = &C800                         ; 1K for holding screen chars for refresh
+screenRam       = &CC00                         ; 1K Screen ram for high res VIC-II colour
+screenBase      = &E000                         ; Location of VIC-II bitmap behind Kernal rom
 
 defaultColour   = &10                           ; White on Black at start of each line
 
@@ -37,7 +55,7 @@ defaultColour   = &10                           ; White on Black at start of eac
     ; 9E 158    hold graphics
     ; 9F 159    release graphics
 
-.initScreen
+.initScreenInt
     LDA &DD02                                   ; CIA2 bits 0,1 as output
     ORA #3
     STA &DD02
@@ -49,7 +67,7 @@ defaultColour   = &10                           ; White on Black at start of eac
     LDA #&38                                    ; Screen at 0c00, bitmap at 2000 - from C000 bank
     STA &D018
 
-    LDA #&08            ; Multicolour off, 40 col, xscroll=0
+    LDA #&08                                    ; Multicolour off, 40 col, xscroll=0
     STA &D016
 
     LDA &D011                                   ; Switch to high resolution mode
@@ -57,14 +75,12 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA &D011
                                                 ; TODO disable RESTORE key? 0318 & 0328
 
-    LDA #&00                                    ; Set border to black
-    STA &d020                                   ; Border colour
-    STA &d021                                   ; Background colour
-
-    LDA #0                                      ; reset oswrch work queue
-    STA textWorkLen
+    LDA #COL_BLACK
+    STA &d020                                   ; Black border
+    STA &d021                                   ; Black background
+    STA textWorkLen                             ; reset oswrch work queue
                                                 ; Run into clearScreen
-.clearScreen
+.clearScreenInt
 {
     JSR setDefaultColour                        ; Set default colour
     LDY #0                                      ; Reset screen ram to same default colour
@@ -102,7 +118,7 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA textCol                                 ; Save for rendering
     RTS
 
-.setPos                                         ; Set cursor to X,Y
+.setPosInt                                      ; Set cursor to X,Y
     STX textX                                   ; Store X & Y
     STY textY                                   ; then teletextRefreshPos to set textPos
 
@@ -226,14 +242,7 @@ defaultColour   = &10                           ; White on Black at start of eac
 .L1 JMP teletextRefreshPos                      ; refresh textPos to correct address
 }
 
-.osascii                                        ; write byte expanding CR (0x0D)
-    CMP #&0D                                    ; to LF/CR sequence
-    BNE oswrch
-.osnewl                                         ; Output LF/CR sequence
-    LDA #&0A
-    JSR oswrch
-    LDA #&0D
-.oswrch                                         ; Write char A at the current position
+.oswrchInt                                      ; Write char A at the current position
 {
     STA tA                                      ; Save A, X, Y to scratch ram
     STX tX
@@ -302,7 +311,8 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA textCol
     TAY                                         ; Swap back Y
     ORA textCol                                 ; OR into textCol as theres no OR with Y
-    ;JSR teletextSetColour                       ; Set colour for this position & rest of the line
+    LDA #&16
+    JSR teletextSetColour                       ; Set colour for this position & rest of the line
     JMP CE                                      ; Render a space with new colour set
 
 .C1                                             ; TODO add Graphics
@@ -311,41 +321,6 @@ defaultColour   = &10                           ; White on Black at start of eac
 
 .L1 JSR teletextWrchr                           ; Render requested character
     JMP teletextForward                         ; Move forward 1 char
-
-; VDU command lookup table, either an address or number of additional bytes for the command
-.table
-    EQUW nop                ; 00 NUL does nothing
-    EQUW 1                  ; 01 SOH Send next char to printer only
-    EQUW nop                ; 02 STX Start print job
-    EQUW nop                ; 03 ETX End print job
-    EQUW nop                ; 04 EOT Write text at text cursor
-    EQUW nop                ; 05 ENQ Write text at graphics cursor
-    EQUW nop                ; 06 ACK Enable VDU drivers
-    EQUW nop                ; 07 BEL Make a short beep
-    EQUW teletextBackward   ; 08 BS  Backspace cursor one character
-    EQUW teletextForward    ; 09 HT  Advance cursor one character
-    EQUW teletextDown       ; 0A LF  Move cursor down one line
-    EQUW teletextUp         ; 0B VT  Move cursor up one line
-    EQUW clearScreen        ; 0C FF  Clear text area
-    EQUW teletextStartLine  ; 0D CR  Move cursor to start of current line
-    EQUW nop                ; 0E SO  Page mode on
-    EQUW nop                ; 0F SI  Page mode off
-    EQUW nop                ; 10 DLE Clear graphics area
-    EQUW 1                  ; 11 DC1 Define text colour
-    EQUW 2                  ; 12 DC2 Define graphics colour
-    EQUW 5                  ; 13 DC3 Define logical colour
-    EQUW nop                ; 14 DC4 Restore default logical colours
-    EQUW nop                ; 15 NAK Disable VDU drivers or delete current line
-    EQUW 1                  ; 16 SYN Select screen mode
-    EQUW 9                  ; 17 ETB Define display character & other commands
-    EQUW 8                  ; 18 CAN Define graphics window
-    EQUW 5                  ; 19 EM  Plot K,x,y
-    EQUW nop                ; 1A SUB Restore default windows
-    EQUW nop                ; 1B ESC Does nothing
-    EQUW 4                  ; 1C FS  Define text window
-    EQUW 4                  ; 1D GS  Define graphics origin
-    EQUW teletextHome       ; 1E RS  Home text cursor to top left
-    EQUW 2                  ; 1F US  Move text cursor to x,y
 }
 
 ; teletextWrchr     Write char in A to current text pos
@@ -399,6 +374,8 @@ defaultColour   = &10                           ; White on Black at start of eac
     BMI L1
     RTS
 
+}
+
 ; Address lookup of start of each line in screenRam
 .m40
     EQUW screenRam + &0000, screenRam + &0028, screenRam + &0050, screenRam + &0078, screenRam + &00a0
@@ -407,4 +384,39 @@ defaultColour   = &10                           ; White on Black at start of eac
     EQUW screenRam + &0258, screenRam + &0280, screenRam + &02a8, screenRam + &02d0, screenRam + &02f8
     EQUW screenRam + &0320, screenRam + &0348, screenRam + &0370, screenRam + &0398, screenRam + &03c0
 
-}
+; VDU command lookup table, either an address or number of additional bytes for the command
+.table
+    EQUW nop                ; 00 NUL does nothing
+    EQUW 1                  ; 01 SOH Send next char to printer only
+    EQUW nop                ; 02 STX Start print job
+    EQUW nop                ; 03 ETX End print job
+    EQUW nop                ; 04 EOT Write text at text cursor
+    EQUW nop                ; 05 ENQ Write text at graphics cursor
+    EQUW nop                ; 06 ACK Enable VDU drivers
+    EQUW nop                ; 07 BEL Make a short beep
+    EQUW teletextBackward   ; 08 BS  Backspace cursor one character
+    EQUW teletextForward    ; 09 HT  Advance cursor one character
+    EQUW teletextDown       ; 0A LF  Move cursor down one line
+    EQUW teletextUp         ; 0B VT  Move cursor up one line
+    EQUW clearScreen        ; 0C FF  Clear text area
+    EQUW teletextStartLine  ; 0D CR  Move cursor to start of current line
+    EQUW nop                ; 0E SO  Page mode on
+    EQUW nop                ; 0F SI  Page mode off
+    EQUW nop                ; 10 DLE Clear graphics area
+    EQUW 1                  ; 11 DC1 Define text colour
+    EQUW 2                  ; 12 DC2 Define graphics colour
+    EQUW 5                  ; 13 DC3 Define logical colour
+    EQUW nop                ; 14 DC4 Restore default logical colours
+    EQUW nop                ; 15 NAK Disable VDU drivers or delete current line
+    EQUW 1                  ; 16 SYN Select screen mode
+    EQUW 9                  ; 17 ETB Define display character & other commands
+    EQUW 8                  ; 18 CAN Define graphics window
+    EQUW 5                  ; 19 EM  Plot K,x,y
+    EQUW nop                ; 1A SUB Restore default windows
+    EQUW nop                ; 1B ESC Does nothing
+    EQUW 4                  ; 1C FS  Define text window
+    EQUW 4                  ; 1D GS  Define graphics origin
+    EQUW teletextHome       ; 1E RS  Home text cursor to top left
+    EQUW 2                  ; 1F US  Move text cursor to x,y
+
+} ; End of module

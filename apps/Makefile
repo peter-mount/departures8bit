@@ -4,6 +4,8 @@
 
 .PHONY: all clean
 
+export DISKTOOL = $(shell pwd)/../bin/disktool
+
 all:
 	@$(MAKE) -C c64 all
 	@$(MAKE) -C bbc all
