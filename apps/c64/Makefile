@@ -20,7 +20,7 @@ C64SRC = main.asm \
 TELETEXTSRC = teletext.asm charset.asm
 
 # LOADER - the disk bootstrap
-$(LOADER): splash.asm basictokens.asm
+$(LOADER): diskloader.asm basictokens.asm
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
 
 # TELETEXT - the teletext emulator
