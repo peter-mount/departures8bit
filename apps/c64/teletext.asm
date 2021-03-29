@@ -52,29 +52,6 @@ screenBase      = &E000                         ; Location of VIC-II bitmap behi
 
 defaultColour   = &10                           ; White on Black at start of each line
 
-.teletextColours                                ; Translation table for colours
-                                                ; Upper & lower nibbles set to same value
-    EQUB COL_BLACK + (COL_BLACK<<4)             ; 80 128 Alpha Black, not BBC but in some later BBCBasic for windows
-    EQUB COL_RED + (COL_RED<<4)                 ; 81 129 Alphanumeric Red
-    EQUB COL_GREEN + (COL_GREEN<<4)             ; 82 130 Alphanumeric Green
-    EQUB COL_YELLOW + (COL_YELLOW<<4)           ; 83 131 Alphanumeric Yellow
-    EQUB COL_BLUE + (COL_BLUE<<4)               ; 84 132 Alphanumeric Blue
-    EQUB COL_PURPLE + (COL_PURPLE<<4)           ; 85 133 Alphanumeric Magenta
-    EQUB COL_CYAN + (COL_CYAN<<4)               ; 86 134 Alphanumeric Cyan
-    EQUB COL_WHITE + (COL_WHITE<<4)             ; 87 135 Alphanumeric White
-    ; 88 136    flash
-    ; 89 137    steady
-    ; 8C 140    normal height
-    ; 8D 141    double height
-    ; 91-97     Graphics colours like teletextColours
-    ; 98        conceal
-    ; 99 153    contiguous graphics
-    ; 9A 154    separated graphics
-    ; 9C 156    black background
-    ; 9D 157    new blackground (takes current foreground)
-    ; 9E 158    hold graphics
-    ; 9F 159    release graphics
-
 .initScreenInt
     LDA &DD02                                   ; CIA2 bits 0,1 as output
     ORA #3
@@ -435,6 +412,29 @@ defaultColour   = &10                           ; White on Black at start of eac
 .L2 RTS
 }
 
+.teletextColours                                ; Translation table for colours
+                                                ; Upper & lower nibbles set to same value
+    EQUB COL_BLACK + (COL_BLACK<<4)             ; 80 128 Alpha Black, not BBC but in some later BBCBasic for windows
+    EQUB COL_RED + (COL_RED<<4)                 ; 81 129 Alphanumeric Red
+    EQUB COL_GREEN + (COL_GREEN<<4)             ; 82 130 Alphanumeric Green
+    EQUB COL_YELLOW + (COL_YELLOW<<4)           ; 83 131 Alphanumeric Yellow
+    EQUB COL_BLUE + (COL_BLUE<<4)               ; 84 132 Alphanumeric Blue
+    EQUB COL_PURPLE + (COL_PURPLE<<4)           ; 85 133 Alphanumeric Magenta
+    EQUB COL_CYAN + (COL_CYAN<<4)               ; 86 134 Alphanumeric Cyan
+    EQUB COL_WHITE + (COL_WHITE<<4)             ; 87 135 Alphanumeric White
+    ; 88 136    flash
+    ; 89 137    steady
+    ; 8C 140    normal height
+    ; 8D 141    double height
+    ; 91-97     Graphics colours like teletextColours
+    ; 98        conceal
+    ; 99 153    contiguous graphics
+    ; 9A 154    separated graphics
+    ; 9C 156    black background
+    ; 9D 157    new blackground (takes current foreground)
+    ; 9E 158    hold graphics
+    ; 9F 159    release graphics
+
 ; Address lookup of start of each line in screenRam
 .m40
     EQUW screenRam + &0000, screenRam + &0028, screenRam + &0050, screenRam + &0078, screenRam + &00a0
@@ -482,9 +482,18 @@ defaultColour   = &10                           ; White on Black at start of eac
 
     ALIGN &100
 .textRam                    ; 1K for holding screen chars for refresh
-    EQUS " Project Area51                    v0.01" ; Each line must be 40 bytes long
-    EQUS "              Teletext C64              "
-    EQUS "              Teletext C64              "
+    EQUS 134, "Project Area51                   ",130,"v0.01" ; Each line must be 40 bytes long
+    EQUS 132, 157, 135, 141, "          Teletext C64              "
+    EQUS 132, 157, 135, 141, "          Teletext C64              "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS "                                        "
+    EQUS 141, "              Loading...               "
+    EQUS 141, "              Loading...               "
     EQUS "                                        "
     EQUS "                                        "
     EQUS "                                        "
@@ -497,19 +506,9 @@ defaultColour   = &10                           ; White on Black at start of eac
     EQUS "                                        "
     EQUS "                                        "
     EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    EQUS "                                        "
-    ALIGN &100
+    EQUS "(C) Peter Mount, Area51.dev             "
 .end
-workBuffer  = end - 10      ; Storage of pending oswrch storage
+.workBuffer
+    EQUW 0, 0, 0, 0, 0      ; Storage of pending oswrch storage
 
     SAVE "teletext", start-2, end
