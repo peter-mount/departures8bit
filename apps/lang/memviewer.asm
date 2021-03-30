@@ -41,7 +41,7 @@
     JSR outputAppendHexChar
 
     JSR outputTerminate
-    WRITESTRING outputBuffer
+    JSR writeOutputBuffer
     JSR osnewl
 
     JSR langNextLine
@@ -56,6 +56,10 @@
 ; memViewer Shows first &A0 bytes of dataBase for debugging
 .memViewer
 {
+    LDX #0          ; Move cursor to line 1 on screen
+    LDY #1
+    JSR setPos
+
     LDA curLine
     STA tempAddr
     LDA curLine+1

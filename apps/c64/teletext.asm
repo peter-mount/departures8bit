@@ -13,17 +13,17 @@
 
                 ORG &80
                 GUARD &90
-.textX          EQUB 0          ; X pos on screen, 0..39
-.textY          EQUB 0          ; Y pos on screen, 0..24
-.textPos        EQUW 0          ; Pos as an address on highres screen
-.tA             EQUB 0          ; oscli save A,X,Y
+.textX          EQUB 0      ; X pos on screen, 0..39
+.textY          EQUB 0      ; Y pos on screen, 0..24
+.screenPos      EQUW 0      ; Position in screenRam
+.textPos        EQUW 0      ; Position in textRam
+.tA             EQUB 0      ; oscli save A,X,Y
 .tX             EQUB 0
 .tY             EQUB 0
-.textCol        EQUB 0          ; Text colour
-.textWorkLen    EQUB 0          ; Number of bytes remaining for sequence
-.tempAddr       EQUW 0          ; Scratch address
-.tempAddr2      EQUW 0          ; Scratch address
-.tempAddr3      EQUW 0          ; Scratch address
+.textCol        EQUB 0      ; Text colour during refreshLineColour
+.textWorkLen    EQUB 0      ; Number of bytes remaining for sequence
+.tempAddr       EQUW 0      ; Scratch address for teletextWrchr & refreshLineColour
+.tempAddr2      EQUW 0      ; Scratch address for refreshLineColour
 
                 ORG     &C000-2                 ; Start of spare 4K ram
                 GUARD   &CC00                   ; Start of colour ram
@@ -50,8 +50,8 @@ screenWidth     = 40                            ; Chars wide    40 * 8 = 320
 screenHeight    = 25                            ; Rows high     25 * 8 = 200
 
 textRam         = &0400                         ; Original screen memory used for text ram
-screenRam       = &CC00                         ; 1K Screen ram for high res VIC-II colour
-screenBase      = &E000                         ; Location of VIC-II bitmap behind Kernal rom
+colourRam       = &CC00                         ; 1K Screen ram for high res VIC-II colour
+screenRam       = &E000                         ; Location of VIC-II bitmap behind Kernal rom
 
 defaultColour   = &10                           ; White on Black at start of each line
 
@@ -82,12 +82,17 @@ defaultColour   = &10                           ; White on Black at start of eac
                                                 ; Run into clearScreen
 .clearScreenInt
 {
-    JSR setDefaultColour                        ; Set default colour
     LDY #0                                      ; Reset screen ram to same default colour
-.L3 STA screenRam,Y
-    STA screenRam + &100,Y
-    STA screenRam + &200,Y
-    STA screenRam + &300,Y
+.L3 LDA #defaultColour                          ; Set default colour
+    STA colourRam,Y
+    STA colourRam + &100,Y
+    STA colourRam + &200,Y
+    STA colourRam + &300,Y
+    LDA #' '                                    ; Set space in textRam
+    STA textRam,Y
+    STA textRam + &100,Y
+    STA textRam + &200,Y
+    STA textRam + &300,Y
     DEY
     BNE L3
 
@@ -96,10 +101,10 @@ defaultColour   = &10                           ; White on Black at start of eac
     LDA #&00                                    ; Clear screen
     LDX #&20                                    ; &2000 bytes to clear
     LDY #0
-.L1 STA (textPos),Y                             ; Set screen memory
+.L1 STA (screenPos),Y                           ; Set screen memory
     INY
     BNE L1                                      ; Loop until page cleared
-    INC textPos+1                               ; Move to next page
+    INC screenPos+1                             ; Move to next page
     DEX
     BNE L1                                      ; Loop until all done
 }                                               ; Run through to home cursor
@@ -108,138 +113,68 @@ defaultColour   = &10                           ; White on Black at start of eac
     LDA #0                                      ; Reset screen position
     STA textX                                   ; as A is always 0 reset X & Y
     STA textY
+    STA screenPos
     STA textPos
-    LDA #>screenBase
+    LDA #>screenRam                             ; screenPos = screenRam
+    STA screenPos+1
+    LDA #>textRam                               ; textPos = textRam
     STA textPos+1
-    RTS
-
-.setDefaultColour                               ; Set default colour in textCol & A
-    LDA #defaultColour
-    STA textCol                                 ; Save for rendering
     RTS
 
 .setPosInt                                      ; Set cursor to X,Y
     STX textX                                   ; Store X & Y
-    STY textY                                   ; then teletextRefreshPos to set textPos
+    STY textY                                   ; then teletextRefreshPos to set screenPos
 
-.teletextRefreshPos                             ; Set textPos to textX,textY
+.teletextRefreshPos                             ; Set screenPos to textX,textY
 {
     PHA                                         ; Save A & Y
     TYA
     PHA
 
-    LDA #0                                      ; Reset textPos to screenBase
+    LDA textY                                   ; Index in m40 of textY
+    ASL A
+    TAY
+
+    CLC                                         ; Calc textPos in textRam
+    LDA m40,Y
+    ADC #<textRam
     STA textPos
-    LDA #>screenBase
+    LDA m40+1,Y
+    ADC #>textRam
     STA textPos+1
 
-    LDY textY                                   ; Start with lines
-    BEQ L2                                      ; Skip if line 0
-.L1 CLC                                         ; Add 320 bytes to textPos
-    LDA textPos                                 ; as that's the line length
-    ADC #<320
-    STA textPos
-    LDA textPos+1
-    ADC #>320
-    STA textPos+1
-    DEY                                         ; Dec Y
-    BNE L1                                      ; Loop if more lines required
-
-.L2 LDY textX                                   ; Now for characters
-    BEQ L4                                      ; Skip if column 0
-.L3 CLC                                         ; Add 8 bytes to textPos
+    CLC                                         ; Add textX to textPos
     LDA textPos
-    ADC #8
+    ADC textX
     STA textPos
     LDA textPos+1
     ADC #0
     STA textPos+1
-    DEY                                         ; Dec col counter
-    BNE L3                                      ; Loop if more columns required
-.L4
+
+    CLC                                         ; Calc screenPos in bitmap
+    LDA m360,Y
+    ADC #<screenRam
+    STA screenPos
+    LDA m360+1,Y
+    ADC #>screenRam
+    STA screenPos+1
+
+    LDA textX                                   ; Index in m8 of textX
+    ASL A
+    TAY
+
+    CLC                                         ; Add to screenPos
+    LDA m8,Y
+    ADC screenPos
+    STA screenPos
+    LDA m8+1,Y
+    ADC screenPos+1
+    STA screenPos+1
+
     PLA                                         ; Restore A & Y
     TAY
     PLA
     RTS
-}
-
-.teletextForward                                ; Move forward 1 char
-{
-    CLC                                         ; Add 8 to textPos to move right 1 char
-    LDA textPos
-    ADC #8
-    STA textPos
-    LDA textPos+1
-    ADC #0
-    STA textPos+1
-
-    INC textX                                   ; Increment X
-    LDA textX
-    CMP #screenWidth
-    BMI end                                     ; still on current line
-
-    LDA #0                                      ; Move to start next line
-    STA textX
-    INC textY                                   ; Inc Y, textPos is already correct
-    LDA textY
-    CMP #25                                     ; Are we still on the screen
-    BPL wrapAround                              ; If not then wrap
-.end
-    RTS
-.wrapAround
-    LDA #0                                      ; Move to top row
-    STA textY
-    JMP teletextRefreshPos
-}
-
-.teletextBackward                               ; Move forward 1 char
-{
-    SEC                                         ; Sub 8 to textPos to move left 1 char
-    LDA textPos
-    SBC #8
-    STA textPos
-    LDA textPos+1
-    SBC #0
-    STA textPos+1
-
-    DEC textX                                   ; Decrement X
-    BPL end
-
-    LDA #39                                     ; Move to end of prev line
-    STA textX
-    DEC textY
-    BMI wrapAround
-.end
-    RTS
-.wrapAround
-    LDA #24                                     ; Move to bottom row & refresh pos
-    STA textY
-    JMP teletextRefreshPos
-}
-
-.teletextStartLine                              ; Start new line, aka CR
-    LDA #0                                      ; Set start of line
-    STA textX
-    JMP teletextRefreshPos                      ; refresh textPos
-
-.teletextDown                                   ; Move down 1 row
-{
-    INC textY                                   ; Increment Y
-    LDA textY
-    CMP #screenHeight                           ; Check if below bottom of screen
-    BMI L1                                      ; Not so skip
-    LDA #0                                      ; Point to row 0
-    STA textY
-.L1 JMP teletextRefreshPos                      ; refresh textPos to correct address
-}
-
-.teletextUp                                     ; Move up 1 row
-{
-    DEC textY                                   ; Increment Y
-    BPL L1                                      ; Still on screen
-    LDA #24                                     ; Point to bottom row
-    STA textY
-.L1 JMP teletextRefreshPos                      ; refresh textPos to correct address
 }
 
 .oswrchInt                                      ; Write char A at the current position
@@ -291,37 +226,88 @@ defaultColour   = &10                           ; White on Black at start of eac
 
 .D0 JSR teletextBackward                        ; Backspace & delete
     LDA #' '                                    ; Move back 1 char
+    LDY #0
+    STA (textPos),Y                             ; Save char in textRam
     JMP teletextWrchr                           ; erase what's there & exit
 
 .L0 CMP #127
     BEQ D0                                      ; Delete previous char
-    BMI L1                                      ; A between 32 & 126 so render char
 
-    CMP #136                                    ; 128-135 text colour
-    BPL C1                                      ; skip text set colour
+    LDY #0
+    STA (textPos),Y                             ; Save char in textRam
 
-.C0                                             ; Set foreground colour from A
-    AND #&07                                    ; extract colour code
-    TAY
-    LDA teletextColours,Y                       ; get C64 colour
-    AND #&F0                                    ; Use only high nibble for foreground
-    TAY                                         ; Save in Y
-    LDA textCol                                 ; Mask out foreground
-    AND #&0F
-    STA textCol
-    TAY                                         ; Swap back Y
-    ORA textCol                                 ; OR into textCol as theres no OR with Y
-    LDA #&16
-    JSR teletextSetColour                       ; Set colour for this position & rest of the line
-    JMP CE                                      ; Render a space with new colour set
-
-.C1                                             ; TODO add Graphics
+    CMP #127                                    ; Render text char
+    BMI L1
+                                                ; TODO add double/single height check
+                                                ; TODO add Graphics check before colour
+.C0 AND #&08                                    ; Check if colour change
+    BNE CE
+    JSR refreshLineColour                       ; Refresh colours on this line
 
 .CE LDA #' '                                    ; Render as space
 
 .L1 JSR teletextWrchr                           ; Render requested character
-    JMP teletextForward                         ; Move forward 1 char
+}                                               ; Run into teletextForward to move forward 1 char
+
+.teletextForward                                ; Move forward 1 char
+                                                ; Unlike the other directions, this one is
+                                                ; called the most so we do more work here
+{                                               ; rather than recalculate the position every time
+    INC textX                                   ; Increment X
+
+    LDA textX                                   ; check still on current line
+    CMP #40
+    BPL L2                                      ; Move to next line
+
+    CLC                                         ; As on same line just increment the pointers
+    LDA screenPos                                 ; Add 8 to screenPos to move right 1 char
+    ADC #8
+    STA screenPos
+    LDA screenPos+1
+    ADC #0
+    STA screenPos+1
+
+    CLC                                         ; Increment textPos to next character
+    LDA textPos
+    ADC #1
+    STA textPos
+    LDA textPos+1
+    ADC #0
+    STA textPos+1
+
+.L1 RTS
+
+.L2 LDA #0                                      ; Move to start of next line
+    STA textX                                   ; run into teletextDown
+
+.*teletextDown                                  ; Move down 1 row
+    INC textY                                   ; Increment Y
+    LDA textY
+    CMP #25                                     ; Check if below bottom of screen
+    BMI L3                                      ; Not so just recalc pointers
+    LDA #0                                      ; Point to row 0
+    STA textY
+.L3 JMP teletextRefreshPos                      ; refresh screenPos to correct address
 }
+
+.teletextBackward                               ; Move forward 1 char
+{
+    DEC textX                                   ; Decrement X
+    BPL L1                                      ; Same line so just recalc pointers
+    LDA #39                                     ; Move to end of prev line
+    STA textX
+.*teletextUp                                    ; Move up 1 row
+    DEC textY
+    BPL L1
+    LDA #24                                     ; Move to bottom row & refresh pos
+    STA textY
+.L1 JMP teletextRefreshPos
+}
+
+.teletextStartLine                              ; Start new line, aka CR
+    LDA #0                                      ; Set start of line
+    STA textX
+    JMP teletextRefreshPos                      ; refresh screenPos
 
 ; teletextWrchr     Write char in A to current text pos
 .teletextWrchr
@@ -354,32 +340,10 @@ defaultColour   = &10                           ; White on Black at start of eac
 
     LDY #7                                      ; Copy character to screen
 .L2 LDA (tempAddr),Y
-    STA (textPos),Y
+    STA (screenPos),Y
     DEY
     BPL L2
     RTS
-}
-
-.teletextSetColour                              ; Update line from textX with colour in A
-{
-    STA textCol                                 ; Save colour
-
-    LDA textY                                   ; Add textY * 40
-    ASL A
-    TAY
-    LDA m40,Y
-    STA tempAddr
-    LDA m40+1,Y
-    STA tempAddr+1
-
-    LDY textX                                   ; Now loop setting the colour until we hit the
-    LDA textCol                                 ; end of the current line
-.L1 STA (tempAddr),Y
-    INY
-    CPY #40
-    BMI L1
-    RTS
-
 }
 
 .refreshLineColour                              ; Refresh the current line's colours based on control chars
@@ -387,17 +351,27 @@ defaultColour   = &10                           ; White on Black at start of eac
     PHA                                         ; Preserve A
     TYA                                         ; Preserve Y
     PHA
+    LDA tA                                      ; Preserve tA
+    PHA
 
-    LDY textY                                   ; Get current line
+    LDA textY                                   ; Get current line
+    ASL A
+    TAY
 
-    LDA r40,Y                                   ; Get textRam address
+    CLC
+    LDA m40,Y                                   ; Get textRam address for start of line
+    ADC #<textRam
     STA tempAddr
-    LDA r40+1,Y
+    LDA m40+1,Y
+    ADC #>textRam
     STA tempAddr+1
 
-    LDA m40,Y                                   ; Get screenRam address
+    CLC
+    LDA m40,Y                                   ; Get colourRam address
+    ADC #<colourRam
     STA tempAddr2
     LDA m40+1,Y
+    ADC #>colourRam
     STA tempAddr2+1
 
     LDA #defaultColour                          ; Reset colour
@@ -432,7 +406,7 @@ defaultColour   = &10                           ; White on Black at start of eac
     CMP #&08                                    ; Ignore >=8 as not a valid colour
     BPL L2
     ASL A                                       ; A<<1
-    STA tempAddr3                               ; Save colour offset
+    STA textPos                                 ; Save colour offset
 
     LDA textCol                                 ; Clear upper nibble of textCol
     AND #&0F
@@ -440,22 +414,23 @@ defaultColour   = &10                           ; White on Black at start of eac
 
     TYA                                         ; Save Y
     PHA
-    LDY tempAddr3                               ; Get offset to transalation table
+    LDY textPos                                 ; Get offset to translation table
     LDA teletextColours,Y                       ; Colour conversion to VIC-II
     AND #&F0                                    ; we want upper nibble
     ORA textCol                                 ; Merge with TextCol
     STA textCol
-
     PLA                                         ; Restore Y
     TAY
 
 .L2 LDA textCol                                 ; Get current colour
-    ;STA (tempAddr2),Y                           ; Update screen
+    STA (tempAddr2),Y                           ; Update colourRam
     INY                                         ; next character
     DEX
     BNE L1                                      ; Loop back for next colour
 
-.E0 PLA                                         ; Restore Y
+.E0 PLA                                         ; restore tA
+    STA tA
+    PLA                                         ; Restore Y
     TAY
     PLA                                         ; Restore A
     RTS
@@ -519,21 +494,24 @@ defaultColour   = &10                           ; White on Black at start of eac
     ; 9E 158    hold graphics
     ; 9F 159    release graphics
 
-; Address lookup of start of each line in textRam
-.r40
-    EQUW textRam + &0000, textRam + &0028, textRam + &0050, textRam + &0078, textRam + &00a0
-    EQUW textRam + &00c8, textRam + &00f0, textRam + &0118, textRam + &0140, textRam + &0168
-    EQUW textRam + &0190, textRam + &01b8, textRam + &01e0, textRam + &0208, textRam + &0230
-    EQUW textRam + &0258, textRam + &0280, textRam + &02a8, textRam + &02d0, textRam + &02f8
-    EQUW textRam + &0320, textRam + &0348, textRam + &0370, textRam + &0398, textRam + &03c0
+; 8 * table for 0..39
+.m8
+    EQUW &0000, &0008, &0010, &0018, &0020, &0028, &0030, &0038, &0040, &0048
+    EQUW &0050, &0058, &0060, &0068, &0070, &0078, &0080, &0088, &0090, &0098
+    EQUW &00a0, &00a8, &00b0, &00b8, &00c0, &00c8, &00d0, &00d8, &00e0, &00e8
+    EQUW &00f0, &00f8, &0100, &0108, &0110, &0118, &0120, &0128, &0130, &0138
 
-; Address lookup of start of each line in screenRam
+; 40 * table for 0..24
 .m40
-    EQUW screenRam + &0000, screenRam + &0028, screenRam + &0050, screenRam + &0078, screenRam + &00a0
-    EQUW screenRam + &00c8, screenRam + &00f0, screenRam + &0118, screenRam + &0140, screenRam + &0168
-    EQUW screenRam + &0190, screenRam + &01b8, screenRam + &01e0, screenRam + &0208, screenRam + &0230
-    EQUW screenRam + &0258, screenRam + &0280, screenRam + &02a8, screenRam + &02d0, screenRam + &02f8
-    EQUW screenRam + &0320, screenRam + &0348, screenRam + &0370, screenRam + &0398, screenRam + &03c0
+    EQUW &0000, &0028, &0050, &0078, &00a0, &00c8, &00f0, &0118, &0140, &0168
+    EQUW &0190, &01b8, &01e0, &0208, &0230, &0258, &0280, &02a8, &02d0, &02f8
+    EQUW &0320, &0348, &0370, &0398, &03c0
+
+; 360 * table for 0..24
+.m360
+    EQUW &0000, &0140, &0280, &03c0, &0500, &0640, &0780, &08c0, &0a00, &0b40
+    EQUW &0c80, &0dc0, &0f00, &1040, &1180, &12c0, &1400, &1540, &1680, &17c0
+    EQUW &1900, &1a40, &1b80, &1cc0, &1e00
 
 ; VDU command lookup table, either an address or number of additional bytes for the command
 .table

@@ -19,8 +19,10 @@
 ; As we replace the relevant language then we can safely use 02-8F on
 ; both architectures.
 ;
+; On the C64 80-8F is used by the teletext emulation
+;
                 ORG     &02 ; Bytes 0 & 1 are unavailable on the C64 as they are the 6510 processor port
-                GUARD   &90 ; Upper bound limit for zero page
+                GUARD   &80 ; Upper bound limit for zero page. 80-8F used by teletext
 
                             ; Database
 .page           EQUW 0      ; start of database memory
