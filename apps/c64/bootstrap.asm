@@ -26,6 +26,9 @@ start = &7000                   ; Base of bootstrap
     JSR loadFile
     JSR refreshScreen           ; Refresh to show the loaded splash page
 
+                                ; Uncomment this to hold on splash screen when
+;.LL JMP LL                      ; Debug lock on splash screen
+
     LDXY app                    ; Load the application
     JSR loadFile
 

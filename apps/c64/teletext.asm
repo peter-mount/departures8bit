@@ -11,6 +11,7 @@
 ;
                 INCLUDE "kernal.asm"            ; Kernal constants
 
+; Zero page 80-8F
                 ORG &80
                 GUARD &90
 .textX          EQUB 0      ; X pos on screen, 0..39
@@ -25,13 +26,28 @@
 .tempAddr       EQUW 0      ; Scratch address for teletextWrchr & refreshLineColour
 .tempAddr2      EQUW 0      ; Scratch address for refreshLineColour
 
-                ORG     &C000-2                 ; Start of spare 4K ram
-                GUARD   &CC00                   ; Start of colour ram
-                EQUW start                      ; PRG file format header
-.start                                          ; of load address
+textRam         = &0400     ; Original screen memory used for text ram
+
+                            ; Page 7 workspace (After the textScreen work area)
+                            ; 07E8 - 07EF   8 free bytes
+workBuffer      = &07F0     ; Storage of pending oswrch storage
+                            ; 07FA - 07FF   6 free bytes
+colourRam       = &CC00     ; 1K Screen ram for high res VIC-II colour
+screenRam       = &E000     ; Location of VIC-II bitmap behind Kernal rom
+
+defaultColour   = &10       ; White on Black at start of each line
+
+; **********************************************************************
+                ORG     &C000-2     ; Start of spare 4K ram, -2 for prg load address
+                GUARD   colourRam   ; Start of colourRam
+                EQUW    start       ; PRG file format header
+.start                              ; of actual load address
 
 ; **********************************************************************
 ; Public entry points - Addresses of these can't change once defined!
+;
+; They should also be defined in teletext.inc so they can be referenced
+; by user code.
 ; **********************************************************************
 .initScreen     JMP initScreenInt               ; Initialise the screen, shows black
 .refreshScreen  JMP refreshScreenInt            ; Refresh the screen to the buffer state
@@ -45,15 +61,6 @@
 .setPos         JMP setPosInt                   ; Set text cursor location          VDU 31,X,Y
 
 ; **********************************************************************
-
-screenWidth     = 40                            ; Chars wide    40 * 8 = 320
-screenHeight    = 25                            ; Rows high     25 * 8 = 200
-
-textRam         = &0400                         ; Original screen memory used for text ram
-colourRam       = &CC00                         ; 1K Screen ram for high res VIC-II colour
-screenRam       = &E000                         ; Location of VIC-II bitmap behind Kernal rom
-
-defaultColour   = &10                           ; White on Black at start of each line
 
 .initScreenInt
     LDA &DD02                                   ; CIA2 bits 0,1 as output
@@ -402,10 +409,10 @@ defaultColour   = &10                           ; White on Black at start of eac
     STA textCol                                 ; have new background & white text
     JMP L2
 
+                                                ; Translate to new text/graphics colour
 .S2 AND #&0F                                    ; Lower nibble of command
     CMP #&08                                    ; Ignore >=8 as not a valid colour
     BPL L2
-    ASL A                                       ; A<<1
     STA textPos                                 ; Save colour offset
 
     LDA textCol                                 ; Clear upper nibble of textCol
@@ -549,8 +556,6 @@ defaultColour   = &10                           ; White on Black at start of eac
     EQUW 2                  ; 1F US  Move text cursor to x,y
 
     INCLUDE "charset.asm"   ; Include our char definitions
-.workBuffer
-    EQUW 0, 0, 0, 0, 0      ; Storage of pending oswrch storage
 .end
 
     SAVE "teletext", start-2, end
