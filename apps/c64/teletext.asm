@@ -234,8 +234,8 @@ defaultColour   = &10           ; White on Black at start of each line
 .Q0 LDA workBuffer                              ; Check pending task
     CMP #31                                     ; TAB
     BNE Q1                                      ; For now all others are ignored
-    LDX workBufferEnd-1                         ; workBuffer is 31, Y, X as data is in reverse order
-    LDY workBufferEnd-2
+    LDX workBuffer+2                            ; workBuffer is 31, Y, X as data is in reverse order
+    LDY workBuffer+1
     JMP setPos                                  ; Set new text position
 
 .S0 CMP #32                                     ; >= 32 then render the character
