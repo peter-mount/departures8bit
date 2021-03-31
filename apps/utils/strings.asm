@@ -5,7 +5,9 @@
 ; writeOuputBuffer      writes the output buffer to the screen
 .writeOutputBuffer
     LDXY outputBuffer
-
+IF c64
+    JMP writeString                 ; Call routine in teletext module
+ELSE
 ; writeString           writes a null terminated string pointed to by XY
 ;
 ; on entry:
@@ -39,6 +41,7 @@
 	PLA
 	RTS
 }
+ENDIF
 
 ; strlen - length of a null terminated string
 ;

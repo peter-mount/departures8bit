@@ -11,31 +11,31 @@
 ;
                 INCLUDE "kernal.asm"            ; Kernal constants
 
-; Zero page 80-8F
-                ORG &80
+                ORG &80         ; Zero page 80-8F
                 GUARD &90
-.textX          EQUB 0      ; X pos on screen, 0..39
-.textY          EQUB 0      ; Y pos on screen, 0..24
-.screenPos      EQUW 0      ; Position in screenRam
-.textPos        EQUW 0      ; Position in textRam
-.tA             EQUB 0      ; oscli save A,X,Y
+.textX          EQUB 0          ; X pos on screen, 0..39
+.textY          EQUB 0          ; Y pos on screen, 0..24
+.screenPos      EQUW 0          ; Position in screenRam
+.textPos        EQUW 0          ; Position in textRam
+.tA             EQUB 0          ; oscli save A,X,Y
 .tX             EQUB 0
 .tY             EQUB 0
-.textCol        EQUB 0      ; Text colour during refreshLineColour
-.textWorkLen    EQUB 0      ; Number of bytes remaining for sequence
-.tempAddr       EQUW 0      ; Scratch address for teletextWrchr & refreshLineColour
-.tempAddr2      EQUW 0      ; Scratch address for refreshLineColour
+.textCol        EQUB 0          ; Text colour during refreshLineColour
+.textWorkLen    EQUB 0          ; Number of bytes remaining for sequence
+.tempAddr       EQUW 0          ; Scratch address for teletextWrchr & refreshLineColour
+.tempAddr2      EQUW 0          ; Scratch address for refreshLineColour
 
-textRam         = &0400     ; Original screen memory used for text ram
+textRam         = &0400         ; Original screen memory used for text ram
 
-                            ; Page 7 workspace (After the textScreen work area)
-                            ; 07E8 - 07EF   8 free bytes
-workBuffer      = &07F0     ; Storage of pending oswrch storage
-                            ; 07FA - 07FF   6 free bytes
-colourRam       = &CC00     ; 1K Screen ram for high res VIC-II colour
-screenRam       = &E000     ; Location of VIC-II bitmap behind Kernal rom
+                                ; Page 7 workspace (After the textScreen work area)
+workBuffer      = &07E8         ; Storage of pending oswrch storage
+workBufferEnd   = workBuffer+10 ; Position of byte after the 10 byte buffer
+                                ; 07F2 - 07FF  14 free bytes
+colourRam       = &CC00         ; 1K Screen ram for high res VIC-II colour
+                                ; CCE8-CCFF free but reserved for sprites? aka cursor?
+screenRam       = &E000         ; Location of VIC-II bitmap behind Kernal rom
 
-defaultColour   = &10       ; White on Black at start of each line
+defaultColour   = &10           ; White on Black at start of each line
 
 ; **********************************************************************
                 ORG     &C000-2     ; Start of spare 4K ram, -2 for prg load address
@@ -50,6 +50,7 @@ defaultColour   = &10       ; White on Black at start of each line
 ; by user code.
 ; **********************************************************************
 .initScreen     JMP initScreenInt               ; Initialise the screen, shows black
+.writeString    JMP writeStringInt              ; Write null terminated string in XY
 .refreshScreen  JMP refreshScreenInt            ; Refresh the screen to the buffer state
 .osascii        CMP #&0D                        ; write byte expanding CR (0x0D)
                 BNE oswrch                      ; to LF/CR sequence
@@ -184,8 +185,34 @@ defaultColour   = &10       ; White on Black at start of each line
     RTS
 }
 
+.writeStringInt                                 ; Writes string at X,Y terminating at 0
+{                                               ; But this knows about multiple byte characters
+    PHA                                         ; so the 0 only takes effect when no extra characters
+    TXA                                         ; are expected by oswrch.
+    PHA                                         ; eg: 31,10,0 won't terminate the string as 0 is row 0
+    TYA
+    PHA
+    STX tX                                      ; Use tX,tY to hold string address
+    STY tY
+.L1 LDY #0                                      ; Get next character
+    LDA (tX),Y
+    BNE L2                                      ; Not 0 so pass it to oswrchImpl
+    LDY textWorkLen                             ; Check we are not expecting more data
+    BNE L2                                      ; We are expecting more so pass the 0 to oswrchImpl
+    PLA                                         ; We are done so restore A, X & Y & exit
+    TAY
+    PLA
+    TAX
+    PLA
+    RTS
+.L2 JSR oswrchImpl                              ; Write character via oswrchImpl
+    INC tX                                      ; Move to next character
+    BNE L1                                      ; & loop
+    INC tY                                      ; Next page
+    JMP L1
+}
+
 .oswrchInt                                      ; Write char A at the current position
-{
     STA tA                                      ; Save A, X, Y to scratch ram
     STX tX
     STY tY
@@ -195,7 +222,8 @@ defaultColour   = &10       ; White on Black at start of each line
     LDA tA
     RTS
 
-.oswrchImpl
+.oswrchImpl                                     ; Core oswrch used by oswrchInt & writeStringInt
+{
     LDY textWorkLen                             ; Need to store in workBuffer
     BEQ S0                                      ; no so process it now
     STA workBuffer,Y                            ; Store in buffer, in reverse order, so +0 holds action & +1 last value, +2 first value
@@ -206,8 +234,8 @@ defaultColour   = &10       ; White on Black at start of each line
 .Q0 LDA workBuffer                              ; Check pending task
     CMP #31                                     ; TAB
     BNE Q1                                      ; For now all others are ignored
-    LDX workBuffer+2                            ; workBuffer is 31, Y, X as data is in reverse order
-    LDY workBuffer+1
+    LDX workBufferEnd-1                         ; workBuffer is 31, Y, X as data is in reverse order
+    LDY workBufferEnd-2
     JMP setPos                                  ; Set new text position
 
 .S0 CMP #32                                     ; >= 32 then render the character

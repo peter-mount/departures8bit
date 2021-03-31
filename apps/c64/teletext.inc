@@ -2,7 +2,8 @@
 ; Teletext emulator - public entry points
 ; **********************************************************************
 teletextInit    = &C000             ; Initialise emulator
-refreshScreen   = teletextInit + 3  ; Refresh the screen
+writeString     = teletextInit + 3  ; Write null terminated string in XY
+refreshScreen   = writeString + 3   ; Refresh the screen
 osascii         = refreshScreen + 3 ; write byte expanding CR (0x0D)
 osnewl          = osascii + 4       ; Output LF/CR sequence
 oswrch          = osnewl + 7        ; Write char to screen
