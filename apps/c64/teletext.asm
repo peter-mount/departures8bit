@@ -17,6 +17,7 @@
 .textY          EQUB 0          ; Y pos on screen, 0..24
 .screenPos      EQUW 0          ; Position in screenRam
 .textPos        EQUW 0          ; Position in textRam
+.textMode       EQUB 0
 .tA             EQUB 0          ; oscli save A,X,Y
 .tX             EQUB 0
 .tY             EQUB 0
@@ -329,6 +330,9 @@ defaultColour   = &10           ; White on Black at start of each line
 ; teletextWrchr     Write char in A to current text pos
 .teletextWrchr
 {
+    CMP #160                                    ; 160-255 is graphics char
+    BPL G0
+
     CMP #0
     BMI L0                                      ; Skip teletext control char
     SEC                                         ; Subtract 32 for base of charset
@@ -361,6 +365,29 @@ defaultColour   = &10           ; White on Black at start of each line
     DEY
     BPL L2
     RTS
+
+.G0 SEC                                         ; Convert to binary
+    SBC #160
+    LDY #0
+    JSR G1                                      ; Bits 0,1
+    JSR G1                                      ; Bits 2,3, follow through for bits 4,5
+.G1 PHA                                         ; Preserve current value
+    AND #&03                                    ; Bits 0,1
+    TAX                                         ; convert to pixels
+    LDA GR1,X                                   ; Get 2 Sixels
+    STA (screenPos),Y                           ; Store top row
+    INY
+    STA (screenPos),Y                           ; Store row 2
+    INY
+    CPY #8                                      ; Store row 3 except for last sizel
+    BPL G2
+    STA (screenPos),Y
+.G2 INY
+    PLA                                         ; Restore A
+    ROR A                                       ; Rotate right 2
+    ROR A
+    RTS
+
 }
 
 .refreshLineColour                              ; Refresh the current line's colours based on control chars
@@ -419,8 +446,10 @@ defaultColour   = &10           ; White on Black at start of each line
     STA textCol                                 ; have new background & white text
     JMP L2
 
+.S2 CMP #160                                    ; 160..255 are graphics characters
+    BPL L2                                      ; so skip them
                                                 ; Translate to new text/graphics colour
-.S2 AND #&0F                                    ; Lower nibble of command
+    AND #&0F                                    ; Lower nibble of command
     CMP #&08                                    ; Ignore >=8 as not a valid colour
     BPL L2
     STA textPos                                 ; Save colour offset
@@ -564,6 +593,11 @@ defaultColour   = &10           ; White on Black at start of each line
     EQUW 4                  ; 1D GS  Define graphics origin
     EQUW teletextHome       ; 1E RS  Home text cursor to top left
     EQUW 2                  ; 1F US  Move text cursor to x,y
+
+.GR1                        ; Solid graphics
+    EQUB &00, &F0, &0F, &FF
+.GR2                        ; Separated graphics
+    EQUB &00, &E0, &0E, &EE
 
     INCLUDE "charset.asm"   ; Include our char definitions
 .end
