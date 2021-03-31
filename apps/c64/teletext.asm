@@ -90,8 +90,8 @@ defaultColour   = &10           ; White on Black at start of each line
                                                 ; Run into clearScreen
 .clearScreenInt
 {
-    LDY #0                                      ; Reset screen ram to same default colour
-.L3 LDA #defaultColour                          ; Set default colour
+    LDY #0                                      ; Clear colourRam & textRam
+.L3 LDA #defaultColour                          ; Set default colour to colourRam
     STA colourRam,Y
     STA colourRam + &100,Y
     STA colourRam + &200,Y
@@ -121,8 +121,9 @@ defaultColour   = &10           ; White on Black at start of each line
     LDA #0                                      ; Reset screen position
     STA textX                                   ; as A is always 0 reset X & Y
     STA textY
-    STA screenPos
-    STA textPos
+    STA textWorkLen                             ; Reset vdu work buffer
+    STA screenPos                               ; LSB of screenPos
+    STA textPos                                 ; LSB of textPos
     LDA #>screenRam                             ; screenPos = screenRam
     STA screenPos+1
     LDA #>textRam                               ; textPos = textRam
@@ -292,27 +293,8 @@ defaultColour   = &10           ; White on Black at start of each line
 
     LDA textX                                   ; check still on current line
     CMP #40
-    BPL L2                                      ; Move to next line
-
-    CLC                                         ; As on same line just increment the pointers
-    LDA screenPos                                 ; Add 8 to screenPos to move right 1 char
-    ADC #8
-    STA screenPos
-    LDA screenPos+1
-    ADC #0
-    STA screenPos+1
-
-    CLC                                         ; Increment textPos to next character
-    LDA textPos
-    ADC #1
-    STA textPos
-    LDA textPos+1
-    ADC #0
-    STA textPos+1
-
-.L1 RTS
-
-.L2 LDA #0                                      ; Move to start of next line
+    BMI L3                                      ; Stay on current line
+    LDA #0                                      ; Move to start of next line
     STA textX                                   ; run into teletextDown
 
 .*teletextDown                                  ; Move down 1 row

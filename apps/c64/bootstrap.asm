@@ -23,14 +23,14 @@ start = &7000                   ; Base of bootstrap
     JSR writeTeletextBanner     ; Write teletext banner
 
 ;    JSR refreshScreen           ; Refresh to show the loaded splash page
-.LL JMP LL                      ; Debug lock on splash screen
+;.LL JMP LL                      ; Debug lock on splash screen
 
     LDXY splash                 ; Load splash page direct to teletext screen
     JSR loadFile
     JSR refreshScreen           ; Refresh to show the loaded splash page
 
                                 ; Uncomment this to hold on splash screen when
-;.LL JMP LL                      ; Debug lock on splash screen
+.LL JMP LL                      ; Debug lock on splash screen
 
     LDXY app                    ; Load the application
     JSR loadFile
@@ -84,11 +84,15 @@ start = &7000                   ; Base of bootstrap
     LDY #>banner
     JMP writeString
 .banner
-    EQUS 132, "Area51 Teletext", 135, "C64", 129, "1.0", 13, 10, 10
+    EQUS 132, "Area51 Teletext", 135, "C64", 129, "1.0", 13, 10;, 10
+    EQUS 130, "Loading application...", 13, 10
+    EQUB 31,0,14
+    EQUS 132, "Area51 Teletext", 135, "C64", 129, "1.0", 13, 10;, 10
     EQUS 130, "Loading application...", 13, 10
     EQUS 31, 10, 10, "TAB(10,10)"
     EQUS 31,  0, 12, "TAB(0,12)"
     EQUS 31, 20, 20, "TAB(20,20)"
+    EQUS 13, 10, "Test line 3", 13, "Test LINE 4"
     EQUB 0
 }
 
