@@ -286,9 +286,8 @@ defaultColour   = &10           ; White on Black at start of each line
 
     CMP #127                                    ; Render text char
     BMI L1
-                                                ; TODO add double/single height check
-                                                ; TODO add Graphics check before colour
-.C0 AND #&08                                    ; Check if colour change
+
+.C0 CMP #160                                    ; Check if colour change
     BNE CE
     JSR refreshLineColour                       ; Refresh colours on this line
 
@@ -341,17 +340,25 @@ defaultColour   = &10           ; White on Black at start of each line
 ; teletextWrchr     Write char in A to current text pos
 .teletextWrchr
 {
-    CMP #160                                    ; 160-255 is graphics char
+    CMP #128                                    ; Normal text
+    BMI A1
+
+    CMP #224                                    ; 224-255 graphics
     BPL G0
 
-    CMP #0
+    CMP #192                                    ; 192-223 same as 64+
+    BPL A1                                      ; Skip to render text
+
+    CMP #160                                    ; 160-192 graphics
+    BPL G0
+
+.A1 AND #&7F                                    ; Clear bit 8
     BMI L0                                      ; Skip teletext control char
     SEC                                         ; Subtract 32 for base of charset
     SBC #32
     BPL L1                                      ; We have a valid char
 .L0 LDA #0                                      ; Use space for invalid chars
-.L1 AND #&7F                                    ; Limit to 32..127
-    STA tempAddr                                ; Store as 16bit offset
+.L1 STA tempAddr                                ; Store as 16bit offset
     LDA #0
     STA tempAddr+1
 
@@ -376,11 +383,18 @@ defaultColour   = &10           ; White on Black at start of each line
     DEY
     BPL L2
     RTS
-
-;.G0 JMP G3                                     ; Show separated graphics
-.G0 SEC                                         ; Solid graphics
+                                                ; Graphics rendering
+.G0 CMP #224                                    ; If 225-255 then subtract 32
+    BMI A2
+    SEC
+    SBC #32
+.A2 SEC                                         ; Solid graphics
     SBC #160                                    ; Convert to binary
     LDY #0
+
+    ;JMP G3                                     ; Render separated graphics
+
+                                                ; Solid graphics
     JSR G1                                      ; Bits 0,1
     JSR G1                                      ; Bits 2,3, follow through for bits 4,5
 .G1 PHA                                         ; Preserve current value
@@ -400,10 +414,7 @@ defaultColour   = &10           ; White on Black at start of each line
     ROR A
     RTS
 
-.G3 SEC                                         ; Solid graphics
-    SBC #160                                    ; Convert to binary
-    LDY #0
-    JSR G4                                      ; Bits 0,1
+.G3 JSR G4                                      ; Bits 0,1
     JSR G4                                      ; Bits 2,3, follow through for bits 4,5
 .G4 PHA                                         ; Preserve current value
     AND #&03                                    ; Bits 0,1

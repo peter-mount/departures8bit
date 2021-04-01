@@ -38,7 +38,7 @@ start = &7000                   ; Base of bootstrap
 
                                 ; Uncomment this to hold on splash screen when
 ;.LL JMP LL                      ; Debug lock on splash screen
-    JMP LL
+;    JMP LL
 
     LDXY app                    ; Load the application
     JSR loadFile
