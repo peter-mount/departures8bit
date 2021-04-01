@@ -3,6 +3,7 @@
 # ======================================================================
 
 LOADER		= loader
+BANNER		= banner
 BOOTSTRAP	= bootstrap
 DEPART		= depart
 SPLASH		= splash
@@ -12,7 +13,7 @@ DISK		= $(BUILDS)/depart.d64
 all: $(DISK)
 
 clean:
-	$(RM) $(LOADER) $(BOOTSTRAP) $(DEPART) $(TELETEXT) $(SPLASH) $(DISK)
+	$(RM) $(LOADER) $(BOOTSTRAP) $(DEPART) $(TELETEXT) $(SPLASH) $(BANNER) $(DISK)
 
 C64SRC = main.asm \
 	kernal.asm \
@@ -33,6 +34,10 @@ $(BOOTSTRAP): bootstrap.asm
 $(SPLASH): splash.asm
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
 
+# SPLASH - the splash screen
+$(BANNER): banner.asm
+	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
+
 # TELETEXT - the teletext emulator
 $(TELETEXT): $(TELETEXTSRC)
 	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
@@ -43,7 +48,7 @@ $(DEPART): $(C64SRC) $(COMMON6502)
 
 # Build the disk image
 # $(LOADER) needs to be the first entry for LOAD "*",8,1 to work when booting the disk.
-$(DISK): $(LOADER) $(BOOTSTRAP) $(TELETEXT) $(SPLASH) $(DEPART)
+$(DISK): $(LOADER) $(BOOTSTRAP) $(TELETEXT) $(SPLASH) $(BANNER) $(DEPART)
 	$(RM) $@
 	c1541 -format ukdepartures,8 d64 $@
 	$(foreach file, $^, c1541 -attach $@ -write $(file);)

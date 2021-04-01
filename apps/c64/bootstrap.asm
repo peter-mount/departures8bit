@@ -24,13 +24,21 @@ start = &7000                   ; Base of bootstrap
 
 ;    JSR refreshScreen           ; Refresh to show the loaded splash page
 ;.LL JMP LL                      ; Debug lock on splash screen
-
+.LL
     LDXY splash                 ; Load splash page direct to teletext screen
     JSR loadFile
     JSR refreshScreen           ; Refresh to show the loaded splash page
 
                                 ; Uncomment this to hold on splash screen when
-.LL JMP LL                      ; Debug lock on splash screen
+;.LL JMP LL                      ; Debug lock on splash screen
+
+    LDXY banner                 ; Load splash page direct to teletext screen
+    JSR loadFile
+    JSR refreshScreen           ; Refresh to show the loaded splash page
+
+                                ; Uncomment this to hold on splash screen when
+;.LL JMP LL                      ; Debug lock on splash screen
+    JMP LL
 
     LDXY app                    ; Load the application
     JSR loadFile
@@ -91,6 +99,7 @@ start = &7000                   ; Base of bootstrap
 
 .teletext   EQUS "TELETEXT", 0
 .splash     EQUS "SPLASH", 0
+.banner     EQUS "BANNER", 0
 .app        EQUS "DEPART", 0
 
 .end

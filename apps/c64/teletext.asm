@@ -9,6 +9,17 @@
 ; So we can keep Kernal in place, get a HighRes screen and gain 1K of ram
 ; that was the original text screen at &0400
 ;
+; **********************************************************************
+; TODO list
+;
+; Double height text    Needs detecting mode & rendering figured out
+; Speed                 Figure out why adding fails so have to recalc the
+;                       address for every character
+; Separated graphics    Needs detecting & switching but rendering is done
+; All graphics          When in graphics mode, map 20-4F -> A0+
+;                       and 60-7F->E0+ in teletextWrchr
+; **********************************************************************
+;
                 INCLUDE "kernal.asm"            ; Kernal constants
 
                 ORG &80         ; Zero page 80-8F
@@ -366,8 +377,9 @@ defaultColour   = &10           ; White on Black at start of each line
     BPL L2
     RTS
 
-.G0 SEC                                         ; Convert to binary
-    SBC #160
+;.G0 JMP G3                                     ; Show separated graphics
+.G0 SEC                                         ; Solid graphics
+    SBC #160                                    ; Convert to binary
     LDY #0
     JSR G1                                      ; Bits 0,1
     JSR G1                                      ; Bits 2,3, follow through for bits 4,5
@@ -383,6 +395,31 @@ defaultColour   = &10           ; White on Black at start of each line
     BPL G2
     STA (screenPos),Y
 .G2 INY
+    PLA                                         ; Restore A
+    ROR A                                       ; Rotate right 2
+    ROR A
+    RTS
+
+.G3 SEC                                         ; Solid graphics
+    SBC #160                                    ; Convert to binary
+    LDY #0
+    JSR G4                                      ; Bits 0,1
+    JSR G4                                      ; Bits 2,3, follow through for bits 4,5
+.G4 PHA                                         ; Preserve current value
+    AND #&03                                    ; Bits 0,1
+    TAX                                         ; convert to pixels
+    LDA GR2,X                                   ; Get 2 Sixels
+    PHA                                         ; Save A so we have 0 for first row
+    LDA #0
+    STA (screenPos),Y                           ; Store top row
+    INY
+    PLA
+    STA (screenPos),Y                           ; Store row 2
+    INY
+    CPY #8                                      ; Store row 3 except for last sixel
+    BPL G5
+    STA (screenPos),Y
+.G5 INY
     PLA                                         ; Restore A
     ROR A                                       ; Rotate right 2
     ROR A
