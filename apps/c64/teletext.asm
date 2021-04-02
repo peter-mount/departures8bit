@@ -66,16 +66,14 @@ defaultColour   = &10           ; White on Black at start of each line
 ; by user code.
 ; **********************************************************************
 .initScreen     JMP initScreenInt               ; Initialise the screen, shows black
-.writeString    JMP writeStringInt              ; Write null terminated string in XY
-.refreshScreen  JMP refreshScreenInt            ; Refresh the screen to the buffer state
 .osascii        CMP #&0D                        ; write byte expanding CR (0x0D)
                 BNE oswrch                      ; to LF/CR sequence
 .osnewl         LDA #&0A                        ; Output LF/CR sequence
                 JSR oswrch
                 LDA #&0D
 .oswrch         JMP oswrchInt                   ; Write char to screen              VDU A
-.clearScreen    JMP clearScreenInt              ; Clear the screen                  VDU 12
-.setPos         JMP setPosInt                   ; Set text cursor location          VDU 31,X,Y
+.writeString    JMP writeStringInt              ; Write null terminated string in XY
+.refreshScreen  JMP refreshScreenInt            ; Refresh the screen to the buffer state
 
 ; **********************************************************************
 
@@ -117,7 +115,7 @@ defaultColour   = &10           ; White on Black at start of each line
     STA &d021                                   ; Black background
     STA textWorkLen                             ; reset oswrch work queue
                                                 ; Run into clearScreen
-.clearScreenInt                                 ; Clear screen
+.clearScreen                                    ; Clear screen
 {
     LDY #0                                      ; Clear textRam
     LDA #' '                                    ; Set space in textRam
@@ -170,7 +168,7 @@ defaultColour   = &10           ; White on Black at start of each line
     STA textPos+1
     RTS
 
-.setPosInt                                      ; Set cursor to X,Y
+.setPos                                         ; Set cursor to X,Y
     STX textX                                   ; Store X & Y
     STY textY                                   ; then teletextRefreshPos to set screenPos
 

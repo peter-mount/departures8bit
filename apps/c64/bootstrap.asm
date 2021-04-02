@@ -4,10 +4,9 @@
 
     CPU 0
 
-    INCLUDE "../macros.asm"
-    INCLUDE "kernal.asm"
-    INCLUDE "teletext.inc"
-
+    INCLUDE "../macros.asm"         ; Standard macros
+    INCLUDE "kernal.asm"            ; Kernal definitions
+    INCLUDE "teletext.inc"          ; Teletext entry points
 
 tempAddr = &00FB                ; Temp address
 
@@ -15,10 +14,13 @@ start = &7000                   ; Base of bootstrap
     ORG start-2                 ; Start 2 bytes earlier so we can inject the
     EQUW start                  ; load address for the prg file format
 
+    LDA #%00110110              ; Replace basic with ram at A000-BFFF for an extra 8K
+    STA &01
+
     JSR writeKernalBanner       ; Write initial banner to standard screen
 
     LDXY teletext               ; Load teletext driver
-    JSR loadFile
+    JSR loadFileKernal          ; Kernal file loader until we have teletext loaded
     JSR teletextInit            ; Initialise teletext emulator
     JSR writeTeletextBanner     ; Write teletext banner
 
@@ -48,8 +50,38 @@ start = &7000                   ; Base of bootstrap
     JMP &0900                   ; Run the application
 
 .loadFile
+{
     STXY tempAddr               ; Store filename address
-    LDA #8                      ; Logical file number
+
+    LDA #31                     ; Move cursor to 22,0
+    JSR oswrch
+    LDA #22
+    JSR oswrch
+    LDA #0
+    JSR oswrch
+    JSR L0                      ; write filename with padding
+    JMP LF
+
+.L0 LDX #40-22                  ; Max chars to write
+    LDY #0
+.L1 LDA (tempAddr),Y            ; Next char
+    BEQ L2                      ; End of string
+
+    JSR oswrch                  ; Write char
+    INY
+    DEX
+    BNE L1                      ; Loop until we hit max chars
+    RTS
+.L2 LDA #' '                    ; Pad spaces until we run out
+.L3 JSR oswrch
+    DEX
+    BNE L3
+    RTS
+}
+
+.loadFileKernal
+    STXY tempAddr               ; Store filename address
+.LF LDA #8                      ; Logical file number
     LDX #8                      ; Device 8 disk
     LDY #1                      ; Load with address in file
     JSR SETLFS
@@ -94,7 +126,7 @@ start = &7000                   ; Base of bootstrap
     LDY #>banner
     JMP writeString
 .banner
-    EQUS 132, "Area51 Teletext", 135, "C64", 129, "1.0", 13, 10;, 10
+    EQUS 132, "Area51 Teletext", 135, "C64", 129, "1.0", 13, 10, 10
     EQUS 130, "Loading application...", 13, 10
     EQUB 0
 }

@@ -4,7 +4,8 @@
 
 .welcome
 {
-    JSR clearScreen
+    LDA #12
+    JSR oswrch
     JSR showPrompt
 
     JSR outputReset                 ; Clear outputBuffer

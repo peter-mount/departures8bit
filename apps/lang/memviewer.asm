@@ -56,9 +56,12 @@
 ; memViewer Shows first &A0 bytes of dataBase for debugging
 .memViewer
 {
-    LDX #0          ; Move cursor to line 1 on screen
-    LDY #1
-    JSR setPos
+    LDA #31         ; Move cursor to line 1 on screen
+    JSR oswrch
+    LDA #0
+    JSR oswrch
+    LDA #1
+    JSR oswrch
 
     LDA curLine
     STA tempAddr

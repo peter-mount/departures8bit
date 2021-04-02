@@ -45,15 +45,21 @@ statusX = 22
 {
     STXY stringPointer      ; Save text location
 
-    LDX #statusX            ; Move cursor to 0,24
-    LDY #0
-    JSR setPos
+    LDA #31                 ; Move cursor to 0,24
+    JSR oswrch
+    LDA #statusX
+    JSR oswrch
+    LDA #0
+    JSR oswrch
 
     JSR L0
 
-    LDX #0                  ; Move cursor to 0,1
-    LDY #1
-    JMP setPos
+    LDA #31                 ; Move cursor to 0,1
+    JSR oswrch
+    LDA #0
+    JSR oswrch
+    LDA #1
+    JMP oswrch
 
 .L0 LDX #40-statusX         ; Max chars to write
     LDY #0
