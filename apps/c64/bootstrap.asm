@@ -163,7 +163,7 @@ start = &7000                   ; Base of bootstrap
     LDY #>banner
     JMP writeString
 .banner
-    EQUS 30, 134, "departureboards.mobi", 13, 10, 10
+    EQUS 30, 134, "departureboards.mobi", 13, 10
     EQUS 132, 157, 135, 141, "      Live UK Departure Boards      "
     EQUS 132, 157, 135, 141, "      Live UK Departure Boards      "
     EQUS 10, 130, "Please wait whilst loading completes...", 0
@@ -173,8 +173,8 @@ start = &7000                   ; Base of bootstrap
 .files
     EQUS "TELETEXT", 0          ; TELETEXT must be the first file to load
     EQUS "TESTCARD", 0          ; Teletext test card for debugging
-    EQUS "BANNER", 0
-    EQUS "DEPART", 0
+    EQUS "SPLASH", 0            ; Our splash page
+    EQUS "DEPART", 0            ; The main application
     EQUB 0                      ; list terminator
 .end
     ; Save the program, start-2 to include the start address
