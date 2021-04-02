@@ -53,6 +53,7 @@ IF c64
 ENDIF
 
 IF bbc
+.tempAddr3      EQUW 0
 .serialChar     EQUB 0          ; Char being sent/received
 .oswordWork     EQUB 0,0,0,0,0  ; 5 bytes for OSWORD call on BBC
 ENDIF

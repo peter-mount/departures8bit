@@ -29,12 +29,13 @@ proto_blockSize     = proto_blockData + 128     ; Max 128 bytes for payload
     JSR serialWaitUntilSent
     JSR receiveData         ; Get response object
     JSR serialEnd           ; End serial comms
-    JSR clearStatus         ; Clear status line
-    JSR relocateLang        ; relocate received code
-    JSR langExec            ; Run the response
-    LDXY sendCommandComplete
-    JMP showStatus
-.sendCommandComplete EQUS "Complete",0
+    JMP clearStatus         ; Clear status line
+    ;JSR relocateLang        ; relocate received code
+    ;JSR langExec            ; Run the response
+    ;LDXY sendCommandComplete
+    ;JMP showStatus
+;.sendCommandComplete EQUS "Complete",0
+
 ; receiveData       Receives data from the remote server and writes it
 ;                   into dataBase
 .receiveData

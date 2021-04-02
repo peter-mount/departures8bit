@@ -74,3 +74,7 @@ writeString = oswrch + 3
 ;   Y   undefined
 ;
 refreshScreen   = writeString + 3
+
+showPrompt      = refreshScreen + 3
+clearStatus     = showPrompt + 3
+showStatus      = clearStatus + 3

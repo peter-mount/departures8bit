@@ -43,13 +43,21 @@ statusX = 22
 ;   Y   undefined
 .showStatus
 {
-    STXY stringPointer          ; Save text location
+    TXA                         ; Save XY to stack
+    PHA
+    TYA
+    PHA
 
     LDX #<TX                    ; Move cursor to 21,0 & set white text
     LDY #>TX
     JSR writeString
 
-    JSR L0
+    PLA                         ; Restore XY from stack & store in tempAddr3
+    STA tempAddr3+1             ; remembering it's in reverse order
+    PLA
+    STA tempAddr3
+
+     JSR L0
 
     LDX #<TE                    ; Move cursor to 0,1
     LDY #>TE
@@ -57,7 +65,7 @@ statusX = 22
 
 .L0 LDX #40-statusX             ; Max chars to write
     LDY #0
-.L1 LDA (stringPointer),Y           ; Next char
+.L1 LDA (tempAddr3),Y           ; Next char
     BEQ L2                      ; End of string
 
     JSR oswrch                  ; Write char
@@ -65,12 +73,13 @@ statusX = 22
     DEX
     BNE L1                      ; Loop until we hit max chars
     RTS
-.TX EQUB 31,statusX-1,0,135,0   ; TAB(21,0), WhiteText
-.TE EQUB 31,0,1,0               ; TAB(0,1)
 
 .L2 LDA #' '
 .L3 JSR oswrch
     DEX
     BNE L3
     RTS
+
+.TX EQUB 31,21,0,135,0          ; TAB(21,0), WhiteText
+.TE EQUB 31,0,1,0               ; TAB(0,1)
 }

@@ -20,6 +20,7 @@
 ;                       and 60-7F->E0+ in teletextWrchr
 ; **********************************************************************
 ;
+                INCLUDE "../macros.asm"
                 INCLUDE "kernal.asm"            ; Kernal constants
 
                 ORG &80         ; Zero page 80-8F
@@ -74,6 +75,9 @@ defaultColour   = &10           ; White on Black at start of each line
 .oswrch         JMP oswrchInt                   ; Write char to screen              VDU A
 .writeString    JMP writeStringInt              ; Write null terminated string in XY
 .refreshScreen  JMP refreshScreenInt            ; Refresh the screen to the buffer state
+.showPromptV    JMP showPrompt
+.clearStatusV   JMP clearStatus
+.showStatusV    JMP showStatus
 
 ; **********************************************************************
 
@@ -748,6 +752,8 @@ defaultColour   = &10           ; White on Black at start of each line
     EQUB &00, &E0, &0E, &EE
 
     INCLUDE "charset.asm"   ; Include our char definitions
+
+    INCLUDE "../utils/prompt.asm" ; Include prompts
 .end
 
     SAVE "teletext", start-2, end

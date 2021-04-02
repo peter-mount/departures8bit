@@ -3,11 +3,11 @@
 ; **********************************************************************
 
 ; writeOuputBuffer      writes the output buffer to the screen
-.writeOutputBuffer
-    LDXY outputBuffer
 IF c64
     JMP writeString                 ; Call routine in teletext module
 ELSE
+.writeOutputBuffer
+    LDXY outputBuffer
 ; writeString           writes a null terminated string pointed to by XY
 ;
 ; on entry:

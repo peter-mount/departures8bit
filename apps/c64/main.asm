@@ -6,8 +6,7 @@
     INCLUDE "../zeropage.asm"               ; 3rd Zero page allocations
     INCLUDE "kernal.asm"                    ; Kernal constants
     INCLUDE "teletext.inc"                  ; Teletext emulation
-    ;INCLUDE "loader.asm"                    ; Start of the C64
-
+    INCLUDE "network.inc"                   ; Network driver
 
     CPU     0               ; 6502
     GUARD   &A000           ; Guard to upper memory limit, valid only for generated code as we need to load
@@ -48,12 +47,12 @@ start = &0900               ; Base of application
     EQUB 0
 
 ; memTop is start of unusable memory.
-memTop              = &BE00                 ; Upper bound of all free memory
+memTop              = &BA00                 ; Upper bound of all free memory
 
 ; Use old screen memory for buffers
-rs232OutputBuffer   = &BE00                 ; RS232 output buffer, must be page aligned
-rs232InputBuffer    = &BF00                 ; RS232 input buffer, must be page aligned
-outputBuffer        = &0800                 ; Output buffer
+;rs232OutputBuffer   = &BE00                 ; RS232 output buffer, must be page aligned
+;rs232InputBuffer    = &BF00                 ; RS232 input buffer, must be page aligned
+;outputBuffer        = &0800                 ; Output buffer
 
     ; Save the program, start-2 to include the start address &0801
     SAVE "depart", start-2, end

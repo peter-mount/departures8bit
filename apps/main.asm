@@ -4,23 +4,24 @@
 
 ; Include the rest of the application
     INCLUDE "../utils/mathstr.asm"      ; Math string routines
-    INCLUDE "../utils/outputbuffer.asm" ; Output buffer handling
-    INCLUDE "../utils/prompt.asm"       ; Prompts
+    ;INCLUDE "../utils/outputbuffer.asm" ; Output buffer handling
+    ;INCLUDE "../utils/prompt.asm"       ; Prompts
     INCLUDE "../utils/screen.asm"       ; Screen handling
     INCLUDE "../utils/strings.asm"      ; String handling
     INCLUDE "../utils/welcome.asm"      ; Welcome page
-    INCLUDE "../network/serial.asm"     ; RS232 handler
-    INCLUDE "../network/dialer.asm"     ; WiFi Modem dialer
-    INCLUDE "../network/api.asm"        ; Our API
+    ;INCLUDE "../network/serial.asm"     ; RS232 handler
+    ;INCLUDE "../network/dialer.asm"     ; WiFi Modem dialer
+    ;INCLUDE "../network/api.asm"        ; Our API
     INCLUDE "../lang/lang.asm"          ; Our "language"
     INCLUDE "../lang/memviewer.asm"     ; Debug
 
 .entryPoint
 IF bbc
     JSR initScreen          ; Initialise the screen
+ELSE
+    JSR initNetwork         ; Initialise RS232
 ENDIF
     JSR welcome             ; Show the welcome screen
-    JSR serialInit          ; Initialise RS232
     JSR dialServer          ; Connect to API server
 
     ;;JSR debug

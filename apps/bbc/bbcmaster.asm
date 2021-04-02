@@ -17,6 +17,13 @@
     INCLUDE "oscli.asm"                     ; OSCLI handler
     INCLUDE "screen.asm"                    ; BBC Screen handler
     INCLUDE "service.asm"                   ; Service entry point
+
+    INCLUDE "../utils/outputbuffer.asm" ; Output buffer handling
+    INCLUDE "../utils/prompt.asm"
+
+    INCLUDE "../network/serial.asm"     ; RS232 handler
+    INCLUDE "../network/dialer.asm"     ; WiFi Modem dialer
+    INCLUDE "../network/api.asm"        ; Our API
     INCLUDE "../main.asm"                   ; The core application
 
     ; Save the rom

@@ -121,7 +121,7 @@
     BNE l3
 
     JSR outputTerminate
-    WRITESTRING outputBuffer
+    JSR writeOutputBuffer
     JSR osnewl
 
     CLC
