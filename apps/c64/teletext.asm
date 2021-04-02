@@ -118,6 +118,10 @@ defaultColour   = &10           ; White on Black at start of each line
 
 .clearRaster                                    ; Clears just the raster
 {
+    LDA &D011                                   ; Turn off VIC-II output to stop flickering
+    AND #&EF                                    ; whilst we clear 9K of ram, colours first
+    STA &D011                                   ; so the raster goes white for part of a frame
+
     LDY #0                                      ; Clear colourRam & textRam
     LDA #defaultColour                          ; Set default colour to colourRam
 .L1 STA colourRam,Y
@@ -138,6 +142,10 @@ defaultColour   = &10           ; White on Black at start of each line
     INC screenPos+1                             ; Move to next page
     DEX
     BNE L2                                      ; Loop until all done
+
+    LDA &D011                                   ; Turn the VIC-II output back on as we have
+    ORA #&10                                    ; now finished clearing the raster
+    STA &D011
 }                                               ; Run through to home cursor
 
 .teletextHome                                   ; Move char cursor to the home
