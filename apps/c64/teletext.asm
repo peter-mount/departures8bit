@@ -104,33 +104,40 @@ defaultColour   = &10           ; White on Black at start of each line
     STA &d021                                   ; Black background
     STA textWorkLen                             ; reset oswrch work queue
                                                 ; Run into clearScreen
-.clearScreenInt
+.clearScreenInt                                 ; Clear screen
 {
-    LDY #0                                      ; Clear colourRam & textRam
-.L3 LDA #defaultColour                          ; Set default colour to colourRam
-    STA colourRam,Y
-    STA colourRam + &100,Y
-    STA colourRam + &200,Y
-    STA colourRam + &300,Y
+    LDY #0                                      ; Clear textRam
     LDA #' '                                    ; Set space in textRam
-    STA textRam,Y
+.L1 STA textRam,Y
     STA textRam + &100,Y
     STA textRam + &200,Y
     STA textRam + &300,Y
     DEY
-    BNE L3
+    BNE L1
+}                                               ; Run through to clearRaster
+
+.clearRaster                                    ; Clears just the raster
+{
+    LDY #0                                      ; Clear colourRam & textRam
+    LDA #defaultColour                          ; Set default colour to colourRam
+.L1 STA colourRam,Y
+    STA colourRam + &100,Y
+    STA colourRam + &200,Y
+    STA colourRam + &300,Y
+    DEY
+    BNE L1
 
     JSR teletextHome                            ; Reset pointers
 
     LDA #&00                                    ; Clear screen
     LDX #&20                                    ; &2000 bytes to clear
     LDY #0
-.L1 STA (screenPos),Y                           ; Set screen memory
+.L2 STA (screenPos),Y                           ; Set screen memory
     INY
-    BNE L1                                      ; Loop until page cleared
+    BNE L2                                      ; Loop until page cleared
     INC screenPos+1                             ; Move to next page
     DEX
-    BNE L1                                      ; Loop until all done
+    BNE L2                                      ; Loop until all done
 }                                               ; Run through to home cursor
 
 .teletextHome                                   ; Move char cursor to the home
@@ -245,8 +252,9 @@ defaultColour   = &10           ; White on Black at start of each line
     PLA
     RTS
 
-.oswrchImpl                                     ; Core oswrch used by oswrchInt & writeStringInt
+.oswrchImpl                                     ; Core oswrch used by oswrchInt, writeStringInt & refreshScreen
 {
+    STA tA                                      ; Save a in tA
     LDY textWorkLen                             ; Need to store in workBuffer
     BEQ S0                                      ; no so process it now
     STA workBuffer,Y                            ; Store in buffer, in reverse order, so +0 holds action & +1 last value, +2 first value
@@ -289,40 +297,46 @@ defaultColour   = &10           ; White on Black at start of each line
     JMP teletextWrchr                           ; erase what's there & exit
 
 .*checkMode                                     ; Check graphics/text modes
-    LDX textX
-    BEQ CN                                      ; X=0 then reset textMode
     CMP #140                                    ; Normal height
     BEQ CN
     CMP #141
     BEQ CD
-    RTS
-
-.CN LDA #tmNormal                               ; Normal height text mode
-    STA textMode
-    JMP refreshLineColour
+    AND #&68                                    ; If not &80-&87 or &90-&97 then exit otherwise
+    BEQ C0                                      ; refresh line to get colours. &68 mask works as in those
+    RTS                                         ; ranges those bits are clear. Bit 8 is always set.
 
 .CD LDA #tmDouble                               ; Double height
-    STA textMode
-    JMP refreshLineColour
+    BNE C1                                      ; tmDouble !=0 so implicit bra
+.CN LDA #tmNormal                               ; Normal height text mode
+.C1 STA textMode
+.C0 JMP refreshLineColour                       ; Refresh line
 
 .L0 CMP #127
     BEQ D0                                      ; Delete previous char
+}                                               ; follow through to oswrchDir
 
+.oswrchDir                                      ; Entry point without processing VDU codes
+{
+    PHA                                         ; Save A
     LDY #0
-    STA (textPos),Y                             ; Save char in textRam
-
-.*oswrchDir
-    CMP #127                                    ; Render text char
-    BMI L1
+    ORA (textPos),Y                             ; Or with existing char
+    BPL L1                                      ; Skip if both old & new are plain text
+    PLA                                         ; Restore A
+    JSR L2                                      ; Call update
+    JMP refreshLineColour                       ; Finish off with line refresh
+.L1 PLA                                         ; Restore A
+.L2 STA (textPos),Y                             ; Save new char in textRam
+    CMP #128                                    ; Render text char
+    BMI L3
 
     CMP #160                                    ; Check if graphics char
-    BPL L1
+    BPL L3                                      ; Render it
 
     JSR checkMode                               ; Handle mode change
 
 .CE LDA #' '                                    ; Render as space
 
-.L1 JSR teletextWrchr                           ; Render requested character
+.L3 JSR teletextWrchr                           ; Render requested character
 }                                               ; Run into teletextForward to move forward 1 char
 
 .teletextForward                                ; Move forward 1 char
@@ -331,12 +345,30 @@ defaultColour   = &10           ; White on Black at start of each line
 {                                               ; rather than recalculate the position every time
     INC textX                                   ; Increment X
 
+    INC textPos                                 ; Quickly move to next char
+    BNE L1
+    INC textPos+1
+.L1 CLC                                         ; Also on screenPos add 8
+    LDA screenPos
+    ADC #8
+    STA screenPos
+    LDA screenPos+1
+    ADC #0
+    STA screenPos+1
+
     LDA textX                                   ; check still on current line
     CMP #40
-    BMI L3                                      ; Stay on current line
-    LDA #0                                      ; Move to start of next line
+    BPL NL                                      ; Move to start of next line
+.FF RTS
+.NL LDA #0                                      ; Move to start of next line
     STA textX                                   ; run into teletextDown
     STA textMode                                ; Reset textMode as on new line TODO fixme
+
+    INC textY                                   ; Inc Y but textPos/screenPos are already correct
+    LDA textY
+    CMP #25
+    BMI FF                                      ; Still on screen
+    JMP teletextHome                            ; Home cursor
 
 .*teletextDown                                  ; Move down 1 row
     INC textY                                   ; Increment Y
@@ -595,6 +627,7 @@ defaultColour   = &10           ; White on Black at start of each line
     PHA
     LDA textY
     PHA
+    JSR clearRaster                     ; Clear the raster
     LDA #<textRam                       ; Start at text ram start
     STA tempAddr3
     LDA #>textRam
@@ -603,10 +636,8 @@ defaultColour   = &10           ; White on Black at start of each line
 .L1 LDY #0                              ; Get char
     LDA (textPos),Y
     JSR oswrchDir
-    LDA textX                           ; X | Y = 0 then we are back at home so complete
-    BNE L2                              ; Skip if we are in this line
-    JSR refreshLineColour               ; New line so refresh it's colour
-.L2 ORA textY                           ; textX or textY = 0 when we are back at home
+    LDA textX                           ; textX or textY = 0 when we are back at home
+    ORA textY                           ;
     BEQ L3                              ; for which we can exit
     INC tempAddr3                       ; Increment tA to next char
     BNE L1
