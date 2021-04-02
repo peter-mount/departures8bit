@@ -53,4 +53,4 @@ start = &0400               ; Base of Teletext screen
     EQUS "(C) 2021 Peter Mount          Area51.dev"
 .end
 
-    SAVE "splash", start-2, end
+    SAVE "testcard", start-2, end

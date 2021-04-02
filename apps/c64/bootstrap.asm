@@ -172,7 +172,7 @@ start = &7000                   ; Base of bootstrap
 ; List of files to load, terminated with 0
 .files
     EQUS "TELETEXT", 0          ; TELETEXT must be the first file to load
-    EQUS "SPLASH", 0
+    EQUS "TESTCARD", 0          ; Teletext test card for debugging
     EQUS "BANNER", 0
     EQUS "DEPART", 0
     EQUB 0                      ; list terminator
