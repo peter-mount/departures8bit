@@ -79,24 +79,37 @@ defaultColour   = &10           ; White on Black at start of each line
 
 ; **********************************************************************
 
+.screenOn                                       ; Turn on the VIC-II display enabling high resolution mode
+    LDA &D011                                   ; Bit 5 for high resolution mode
+    ORA #&38                                    ; Bit 4 is set to enable the display
+    STA &D011                                   ; Bit 3 for 25 lines
+.waitFrameStart                                 ; Wait until next frame starts
+    CMP &D012
+    BNE waitFrameStart
+    RTS
+
+.screenOff                                      ; Turn off VIC-II output to stop flickering
+    LDA &D011                                   ; by clearing bit 4.
+    AND #&EF                                    ; We do this whilst we clear 9K of ram, colours first
+    STA &D011                                   ; so the raster goes white for part of a frame
+    JMP waitFrameStart                          ; if we do the clear with the display turned on.
+
 .initScreenInt
-    LDA &DD02                                   ; CIA2 bits 0,1 as output
-    ORA #3
+    JSR screenOff                               ; Turn off display, this also enables high res
+
+    LDA &DD02                                   ; CIA2 bits 0,1 as output so we can control which
+    ORA #3                                      ; memory bank the VIC-II uses
     STA &DD02
 
     LDA &DD00                                   ; Set VIC-II to point to upper 16K bank
     AND #&FC                                    ; Bits 0,1 = 0 for Bank 3
     STA &DD00
 
-    LDA #&38                                    ; Screen at 0c00, bitmap at 2000 - from C000 bank
-    STA &D018
+    LDA #&38                                    ; Screen at 0C00, bitmap at 2000 in VIC-II memory map
+    STA &D018                                   ; these are based from C000 bank in the CPU memory map
 
     LDA #&08                                    ; Multicolour off, 40 col, xscroll=0
     STA &D016
-
-    LDA &D011                                   ; Switch to high resolution mode
-    ORA #&38                                    ; Enable bit 5 for high res
-    STA &D011
                                                 ; TODO disable RESTORE key? 0318 & 0328
 
     LDA #COL_BLACK
@@ -118,9 +131,7 @@ defaultColour   = &10           ; White on Black at start of each line
 
 .clearRaster                                    ; Clears just the raster
 {
-    LDA &D011                                   ; Turn off VIC-II output to stop flickering
-    AND #&EF                                    ; whilst we clear 9K of ram, colours first
-    STA &D011                                   ; so the raster goes white for part of a frame
+    JSR screenOff                               ; Turn off VIC-II output to stop flickering
 
     LDY #0                                      ; Clear colourRam & textRam
     LDA #defaultColour                          ; Set default colour to colourRam
@@ -143,9 +154,7 @@ defaultColour   = &10           ; White on Black at start of each line
     DEX
     BNE L2                                      ; Loop until all done
 
-    LDA &D011                                   ; Turn the VIC-II output back on as we have
-    ORA #&10                                    ; now finished clearing the raster
-    STA &D011
+    JSR screenOn
 }                                               ; Run through to home cursor
 
 .teletextHome                                   ; Move char cursor to the home
