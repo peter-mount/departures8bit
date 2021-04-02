@@ -18,8 +18,6 @@
 .entryPoint
 IF bbc
     JSR initScreen          ; Initialise the screen
-ELIF c64
-    JSR teletextInit        ; Initialise teletext
 ENDIF
     JSR welcome             ; Show the welcome screen
     JSR serialInit          ; Initialise RS232

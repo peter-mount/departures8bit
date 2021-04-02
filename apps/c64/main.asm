@@ -20,9 +20,6 @@ start = &0900               ; Base of application
     LDX #&FF                ; Reset the stack as we won't be returning from here
     TXS
 
-    LDA #%00110110          ; Replace basic with ram at A000-BFFF for an extra 8K
-    STA &01
-
     LDA #<memBase           ; Setup PAGE
     STA page
     LDA #>memBase
@@ -35,9 +32,6 @@ start = &0900               ; Base of application
 
     JSR entryPoint          ; call our true entry point
     JSR cleanup             ; call our cleanup code
-
-    LDA #%00110111          ; restore Basic rom
-    STA &01
 
     JMP (&FFFC)             ; exit the program by resetting the C64
 
