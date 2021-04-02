@@ -595,32 +595,28 @@ defaultColour   = &10           ; White on Black at start of each line
     PHA
     LDA textY
     PHA
-    JSR L0
-    PLA                                 ; Restore textX & Y
-    STA textY
-    PLA
-    STA textX
-    JMP teletextRefreshPos              ; Recalc addresses
-
-.L0 LDA #<textRam                       ; Start at text ram start
+    LDA #<textRam                       ; Start at text ram start
     STA tempAddr3
     LDA #>textRam
     STA tempAddr3+1
-
     JSR teletextHome                    ; Home cursor
 .L1 LDY #0                              ; Get char
     LDA (textPos),Y
     JSR oswrchDir
     LDA textX                           ; X | Y = 0 then we are back at home so complete
-    ;BNE L2                              ; Skip if we are in this line
-    ;JSR refreshLineColour               ; New line so refresh it's colour
+    BNE L2                              ; Skip if we are in this line
+    JSR refreshLineColour               ; New line so refresh it's colour
 .L2 ORA textY                           ; textX or textY = 0 when we are back at home
     BEQ L3                              ; for which we can exit
     INC tempAddr3                       ; Increment tA to next char
     BNE L1
     INC tempAddr3+1
     BNE L1                              ; Always the case so implicit BRA
-.L3 RTS
+.L3 PLA                                 ; Restore textX & Y
+    STA textY
+    PLA
+    STA textX
+    JMP teletextRefreshPos              ; Recalc addresses
 }
 
 .teletextColours                                ; Translation table for colours

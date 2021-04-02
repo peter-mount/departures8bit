@@ -23,11 +23,11 @@ start = &0400               ; Base of Teletext screen
     EQUS 135,157,128,"Bk ",156, 129,"Rd",130,"  Gn",131,"  Yl",132,"  Bl",133,"  Mg",134,"  Cn",135,"  Wh"
     EQUS "                                        "
     ; Test setting background colours
-    EQUS 128,157," Bk", 129,157," Rd",130,157," Gn",131,157," Yl",132,157," Bl",133,157," Mg",134,157," Cn",135,157,128,"Wh"
+    EQUS 128,157,135,"Bk", 129,157,134,"Rd",130,157,133,"Gn",131,157,132,"Yl",132,157,131,"Bl",133,157,130,"Mg",134,157,129,"Cn",135,157,128,"Wh"
     EQUS "                                        "
     ; Test 156 Black background after showing a different background colour
     EQUS 132,157," Blue Background  ",156," Black Background  "
-    EQUS "                                       ", 255
+    EQUS "                                        "
     EQUS "    ",129,"2 lines of solid graphics          "
     EQUS "   ", 32, 151
     EQUS 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175

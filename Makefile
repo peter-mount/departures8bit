@@ -31,4 +31,4 @@ clean:
 
 
 testc64: clean all
-	x64sc -verbose ./builds/depart.d64
+	x64sc -verbose -statusbar ./builds/depart.d64
