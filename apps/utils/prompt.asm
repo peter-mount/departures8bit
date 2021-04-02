@@ -43,34 +43,31 @@ statusX = 22
 ;   Y   undefined
 .showStatus
 {
-    STXY stringPointer      ; Save text location
+    STXY stringPointer          ; Save text location
 
-    LDA #31                 ; Move cursor to 0,24
-    JSR oswrch
-    LDA #statusX
-    JSR oswrch
-    LDA #0
-    JSR oswrch
+    LDX #<TX                    ; Move cursor to 21,0 & set white text
+    LDY #>TX
+    JSR writeString
 
     JSR L0
 
-    LDA #31                 ; Move cursor to 0,1
-    JSR oswrch
-    LDA #0
-    JSR oswrch
-    LDA #1
-    JMP oswrch
+    LDX #<TE                    ; Move cursor to 0,1
+    LDY #>TE
+    JMP writeString
 
-.L0 LDX #40-statusX         ; Max chars to write
+.L0 LDX #40-statusX             ; Max chars to write
     LDY #0
-.L1 LDA (stringPointer),Y   ; Next char
-    BEQ L2                  ; End of string
+.L1 LDA (stringPointer),Y           ; Next char
+    BEQ L2                      ; End of string
 
-    JSR oswrch              ; Write char
+    JSR oswrch                  ; Write char
     INY
     DEX
-    BNE L1                  ; Loop until we hit max chars
+    BNE L1                      ; Loop until we hit max chars
     RTS
+.TX EQUB 31,statusX-1,0,135,0   ; TAB(21,0), WhiteText
+.TE EQUB 31,0,1,0               ; TAB(0,1)
+
 .L2 LDA #' '
 .L3 JSR oswrch
     DEX

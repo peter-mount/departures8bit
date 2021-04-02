@@ -42,7 +42,7 @@ start = &7000                   ; Base of bootstrap
 
                                 ; Uncomment this to hold on splash screen when
 ;.LL JMP LL                      ; Debug lock on splash screen
-    JMP LL
+;    JMP LL
 
     LDXY app                    ; Load the application
     JSR loadFile
@@ -52,17 +52,13 @@ start = &7000                   ; Base of bootstrap
 .loadFile
 {
     STXY tempAddr               ; Store filename address
-
-    LDA #31                     ; Move cursor to 22,0
-    JSR oswrch
-    LDA #22
-    JSR oswrch
-    LDA #0
-    JSR oswrch
+    LDX #<TX                    ; Move cursor to 21,0 & set white text
+    LDY #>TX
+    JSR writeString
     JSR L0                      ; write filename with padding
-    JMP LF
+    JMP LF                      ; Load the file
 
-.L0 LDX #40-22                  ; Max chars to write
+.L0 LDX #40-22-8                ; Max chars to write 8=len("Loading ")
     LDY #0
 .L1 LDA (tempAddr),Y            ; Next char
     BEQ L2                      ; End of string
@@ -77,6 +73,8 @@ start = &7000                   ; Base of bootstrap
     DEX
     BNE L3
     RTS
+.TX EQUS 31,21,0,135,"Loading ",0          ; TAB(21,0), WhiteText
+.TE EQUB 31,0,1,0               ; TAB(0,1)
 }
 
 .loadFileKernal
