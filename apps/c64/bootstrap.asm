@@ -4,13 +4,13 @@
 
     CPU 0
 
-    INCLUDE "../macros.asm"         ; Standard macros
-    INCLUDE "kernal.asm"            ; Kernal definitions
-    INCLUDE "teletext.inc"          ; Teletext entry points
+    INCLUDE "../macros.asm"     ; Standard macros
+    INCLUDE "kernal.asm"        ; Kernal definitions
+    INCLUDE "teletext.inc"      ; Teletext entry points
 
 fileCount   = &00FB             ; Current file number
 fileName    = &00FC             ; Current filename
-writeStr    = &00FE             ; text routine to use
+fileExec    = &00FE             ; File execution hook
 
 start = &7000                   ; Base of bootstrap
     ORG start-2                 ; Start 2 bytes earlier so we can inject the
@@ -27,11 +27,6 @@ start = &7000                   ; Base of bootstrap
     LDA #>files
     STA fileName+1
 
-    LDA #<writeKernal           ; Use kernal to write text initially
-    STA writeStr
-    LDA #>writeKernal
-    STA writeStr+1
-
 .L1 LDY #0                      ; Check for file list terminator
     LDA (fileName),Y
     BEQ L4                      ; All done
@@ -39,23 +34,19 @@ start = &7000                   ; Base of bootstrap
     JSR showFilename            ; Display "Loading... file" message
 
     JSR loadFile                ; Load the current file
+
     CPY #&08                    ; If last byte loaded was below &0800 then
     BPL L2                      ; refresh the screen as we just loaded a splash
-    CPY #&00                    ; ensure Y is < 800 ignore &C00 which can still
-    BMI L2                      ; trigger the refresh
-    JSR refreshScreen           ; page
-.L2
+    CPY #&00                    ; page.
+    BMI L2
+    JSR refreshScreen
+    JMP L3                      ; Skip to next file
 
-    LDA fileCount               ; Check if we have loaded the first file
+.L2 LDA fileCount               ; Check if we have loaded the first file
     BNE L3                      ; if not then skip teletext initialisation
 
     JSR teletextInit            ; Initialise teletext emulator
     JSR writeTeletextBanner     ; Write teletext banner
-
-    LDA #<writeTele             ; Switch to teletext code to write loading text
-    STA writeStr
-    LDA #>writeTele
-    STA writeStr+1
 
 .L3 INC fileCount               ; Mark not the first file
     JSR strLen                  ; Get filename length
@@ -72,13 +63,14 @@ start = &7000                   ; Base of bootstrap
 .L4 JMP &0900                   ; Run the application
 }
 
-; As there's no JSR (writeStr)
-.showFilename JMP (writeStr)
-
-.writeKernal                    ; Write Loading before teletext loaded
+.showFilename
 {
+    LDA fileCount               ; First file needs to use the Kernal routine
+    BNE writeTele               ; subsequent ones Teletext's oswrch
+
+                                ; Write Loading before teletext loaded
     LDY #0                      ; Print "LOADING" to Kernal screen
-.L1 LDA banner,Y                ; Standard send text to CHROUT until we hit 0
+.L1 LDA KX,Y                    ; Standard send text to CHROUT until we hit 0
     BEQ L2
     JSR CHROUT
     INY
@@ -90,31 +82,28 @@ start = &7000                   ; Base of bootstrap
     INY
     BNE L3
 .L4 RTS
-.banner
-    EQUS "LOADING ", 0
-}
 
 .writeTele                      ; Write loading on teletext screen
-{
     LDX #<TX                    ; Move cursor to 21,0 & set white text
     LDY #>TX
     JSR writeString
                                 ; Then the filename, padding to EOL
-.L0 LDX #40-22-8                ; Max chars to write 8=len("Loading ")
+.T0 LDX #40-22-8                ; Max chars to write 8=len("Loading ")
     LDY #0
-.L1 LDA (fileName),Y            ; Next char
-    BEQ L2                      ; End of string
+.T1 LDA (fileName),Y            ; Next char
+    BEQ T2                      ; End of string
     JSR oswrch                  ; Write char
     INY
     DEX
-    BNE L1                      ; Loop until we hit max chars
+    BNE T1                      ; Loop until we hit max chars
     RTS
-.L2 LDA #' '                    ; Pad spaces until we run out
-.L3 JSR oswrch
+.T2 LDA #' '                    ; Pad spaces until we run out
+.T3 JSR oswrch
     DEX
-    BNE L3
+    BNE T3
     RTS
-.TX EQUS 31,21,0,135,"Loading ",0          ; TAB(21,0), WhiteText
+.KX EQUS "LOADING ", 0              ; Kernal message
+.TX EQUS 31,21,0,135,"Loading ",0   ; Teletext TAB(21,0), WhiteText
 }
 
 .loadFile
@@ -145,15 +134,21 @@ start = &7000                   ; Base of bootstrap
 ; C64 standard screen message
 .writeKernalBanner
 {
-    LDY #0                      ; Print banner on teletext screen
+    LDY #0                      ; Print "LOADING" to default screen
 .L1 LDA banner,Y                ; Standard send text to CHROUT until we hit 0
     BEQ L2
     JSR CHROUT
     INY
     BNE L1
-.L2 RTS
+.L2 LDY #0                      ; Print filename
+.L3 LDA (fileName),Y            ; Standard send text to CHROUT until we hit 0
+    BEQ L4
+    JSR CHROUT
+    INY
+    BNE L3
+.L4 RTS
 .banner
-    EQUS "LOADING TELETEXT", 13, 0
+    EQUS "LOADING ", 0
 }
 
 ; Teletext screen message
