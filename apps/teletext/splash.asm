@@ -73,4 +73,4 @@ start = &0400               ; Base of Teletext screen
     EQUB &a9, &ac, &f0, &20, &20, &20, &20, &20
 .end
 
-    SAVE "splash", start-2, end
+    SAVE "splash.prg", start-2, end

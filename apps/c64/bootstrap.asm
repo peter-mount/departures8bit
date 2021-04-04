@@ -4,9 +4,9 @@
 
     CPU 0
 
-    INCLUDE "../macros.asm"     ; Standard macros
-    INCLUDE "kernal.asm"        ; Kernal definitions
-    INCLUDE "teletext.inc"      ; Teletext entry points
+    INCLUDE "../macros.asm"                 ; Standard macros
+    INCLUDE "kernal.asm"                    ; Kernal definitions
+    INCLUDE "../teletext/teletext.inc"      ; Teletext entry points
 
 fileCount   = &00FB             ; Current file number
 fileName    = &00FC             ; Current filename
@@ -175,4 +175,4 @@ start = &7000                   ; Base of bootstrap
     EQUB 0                      ; list terminator
 .end
     ; Save the program, start-2 to include the start address
-    SAVE "bootstrap", start-2, end
+    SAVE "bootstrap.prg", start-2, end

@@ -2,20 +2,20 @@
 ; On the C64 we load this as a separate reusable module
 ; ********************************************************************************
 
-                INCLUDE "../zeropage.asm"
-                INCLUDE "../macros.asm"
-                INCLUDE "kernal.asm"            ; Kernal constants
-                INCLUDE "teletext.inc"          ; Teletext module
+        INCLUDE "../zeropage.asm"
+        INCLUDE "../macros.asm"
+        INCLUDE "../c64/kernal.asm"         ; Kernal constants
+        INCLUDE "../teletext/teletext.inc"  ; Teletext module
 
 rs232OutputBuffer   = &BD00                 ; RS232 output buffer, must be page aligned
 rs232InputBuffer    = &BE00                 ; RS232 input buffer, must be page aligned
 outputBuffer        = &BF00                 ; Output buffer
 
 ; **********************************************************************
-                ORG     &BA00-2     ; Start of module -2 for prg load address
-                GUARD   &BD00       ; Start of Teletext module
-                EQUW    start       ; PRG file format header
-.start                              ; of actual load address
+        ORG     &BA00-2     ; Start of module -2 for prg load address
+        GUARD   &BD00       ; Start of Teletext module
+        EQUW    start       ; PRG file format header
+.start                      ; of actual load address
 
 ; **********************************************************************
 ; Public entry points - Addresses of these can't change once defined!
@@ -32,19 +32,15 @@ outputBuffer        = &BF00                 ; Output buffer
 .outputAppendHexV   JMP outputAppendHexChar
 .outputAppendV      JMP outputAppend
 .outputAppendStrV   JMP outputAppendString
-.writeOutputBufferV JMP writeOutputBuffer
-
-    LDXY outputBuffer
-
-                INCLUDE "../network/dialer.asm"
-                INCLUDE "../network/serial.asm"
-                INCLUDE "../network/api.asm"
-                INCLUDE "../utils/outputbuffer.asm"
-
 .writeOutputBuffer
     LDXY outputBuffer
     JMP writeString
 
+    INCLUDE "../network/dialer.asm"
+    INCLUDE "../network/serial.asm"
+    INCLUDE "../network/api.asm"
+    INCLUDE "../utils/outputbuffer.asm"
+
 .end
 
-    SAVE "network", start-2, end
+    SAVE "network.prg", start-2, end

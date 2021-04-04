@@ -1,59 +1,33 @@
 # ======================================================================
 # Commodore 64
 # ======================================================================
+	include ../../Makefile.inc
 
-LOADER		= loader
-BOOTSTRAP	= bootstrap
-DEPART		= depart
-NETWORK		= network
-SPLASH		= splash
-TELETEXT	= teletext
-TESTCARD	= testcard
+LOADER		= loader.prg
+BOOTSTRAP	= bootstrap.prg
+DEPART		= depart.prg
 DISK		= $(BUILDS)/depart.d64
 
 all: $(DISK)
 
 clean:
-	$(RM) $(BOOTSTRAP) $(DEPART) $(LOADER) $(NETWORK) $(SPLASH) $(TELETEXT) $(TESTCARD) $(DISK)
-
-C64SRC = main.asm \
-	kernal.asm \
-	loader.asm \
-	basictokens.asm
-
-TELETEXTSRC = teletext.asm charset.asm
+	$(RM) $(BOOTSTRAP) $(DEPART) $(LOADER) $(NETWORK) $(DISK)
 
 # BOOTSTRAP - the application bootstrap
-$(BOOTSTRAP): bootstrap.asm
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
+$(BOOTSTRAP): bootstrap.asm kernal.asm
 
 # LOADER - the disk bootstrap
-$(LOADER): diskloader.asm basictokens.asm
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
-
-# LOADER - the disk bootstrap
-$(NETWORK): network.asm ../network/api.asm ../network/dialer.asm ../network/serial.asm
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
-
-# SPLASH - the splash screen
-$(SPLASH): splash.asm
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
-
-# TESTCARD - Debugging Teletext test card
-$(TESTCARD): testcard.asm
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
-
-# TELETEXT - the teletext emulator
-$(TELETEXT): $(TELETEXTSRC)
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
+$(LOADER): loader.asm basictokens.asm
 
 # DEPART - the main application
-$(DEPART): $(C64SRC) $(COMMON6502)
-	$(BEEBASM) -w -D bbc=0 -D bbcmaster=0 -D c64=1 -i $<
+$(DEPART): depart.asm kernal.asm
 
 # Build the disk image
 # $(LOADER) needs to be the first entry for LOAD "*",8,1 to work when booting the disk.
-$(DISK): $(LOADER) $(BOOTSTRAP) $(TELETEXT) $(TESTCARD) $(SPLASH) $(NETWORK) $(DEPART)
-	$(RM) $@
-	c1541 -format ukdepartures,8 d64 $@
-	$(foreach file, $^, c1541 -attach $@ -write $(file);)
+$(DISK): $(LOADER) \
+		$(BOOTSTRAP) \
+		$(BUILDS_C64)/teletext.prg \
+		$(BUILDS_C64)/testcard.prg \
+		$(BUILDS_C64)/splash.prg \
+		$(BUILDS_C64)/network.prg \
+		$(DEPART)

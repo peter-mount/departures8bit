@@ -21,7 +21,7 @@
 ; **********************************************************************
 ;
                 INCLUDE "../macros.asm"
-                INCLUDE "kernal.asm"            ; Kernal constants
+                INCLUDE "../c64/kernal.asm"     ; Kernal constants
 
                 ORG &80         ; Zero page 80-8F
                 GUARD &90
@@ -810,4 +810,4 @@ defaultColour   = &10           ; White on Black at start of each line
     INCLUDE "../utils/prompt.asm" ; Include prompts
 .end
 
-    SAVE "teletext", start-2, end
+    SAVE "teletext.prg", start-2, end

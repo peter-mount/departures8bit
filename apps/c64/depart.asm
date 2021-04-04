@@ -5,8 +5,8 @@
     INCLUDE "../macros.asm"                 ; Our macros
     INCLUDE "../zeropage.asm"               ; 3rd Zero page allocations
     INCLUDE "kernal.asm"                    ; Kernal constants
-    INCLUDE "teletext.inc"                  ; Teletext emulation
-    INCLUDE "network.inc"                   ; Network driver
+    INCLUDE "../teletext/teletext.inc"      ; Teletext emulation
+    INCLUDE "../network/network.inc"        ; Network driver
 
     CPU     0               ; 6502
     GUARD   &A000           ; Guard to upper memory limit, valid only for generated code as we need to load
@@ -55,4 +55,4 @@ memTop              = &BA00                 ; Upper bound of all free memory
 ;outputBuffer        = &0800                 ; Output buffer
 
     ; Save the program, start-2 to include the start address &0801
-    SAVE "depart", start-2, end
+    SAVE "depart.prg", start-2, end

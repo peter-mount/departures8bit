@@ -1,8 +1,8 @@
 go_build_main_go
 *.prg
 *.P00
+*rom
 /apps/bbc/copyright.asm
 /apps/bbc/version.asm
-/apps/bbc/m128rom
 /builds/
 /bin/disktool
