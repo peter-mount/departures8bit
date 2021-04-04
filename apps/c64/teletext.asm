@@ -190,9 +190,11 @@ defaultColour   = &10           ; White on Black at start of each line
     LDA m40,Y
     ADC #<textRam
     STA textPos
+    STA tempAddr2                               ; Copy for start of line
     LDA m40+1,Y
     ADC #>textRam
     STA textPos+1
+    STA tempAddr2+1                             ; Copy for start of line
 
     CLC                                         ; Add textX to textPos
     LDA textPos
@@ -222,10 +224,61 @@ defaultColour   = &10           ; White on Black at start of each line
     ADC screenPos+1
     STA screenPos+1
 
+    LDX textX                                   ; Set textMode for char
+    LDY #0
+    STY textMode                                ; reset textMode
+.L1 LDA (tempAddr2),Y                           ; Char from start of line
+    JSR setTextMode                             ; Check text mode
+
+    INY
+    CPY textX
+    BMI L1
+
     PLA                                         ; Restore A & Y
     TAY
     PLA
     RTS
+}
+
+.disableTextMode                                ; Disable textMode flag
+    EOR #&FF                                    ; Invert A
+    AND textMode                                ; AND it with current mode
+    STA textMode                                ; Set new mode
+    RTS
+
+.enableTextMode                                 ; Enable textMode flag
+    ORA textMode
+    STA textMode
+    RTS
+
+.setTextMode                                    ; Set text mode based on char A
+{
+    CMP #140                                    ; Normal height
+    BNE L2
+    LDA #tmDouble
+    JMP disableTextMode
+.L2 CMP #141                                    ; Double height
+    BNE L3
+    LDA #tmDouble
+    JMP enableTextMode
+.L3 CMP #153                                    ; Contiguous graphics
+    BNE L4
+    LDA #tmSepGraphics
+    JMP disableTextMode
+.L4 CMP #154                                    ; Separated graphics
+    BNE L5
+    LDA #tmSepGraphics
+    JMP enableTextMode
+.L5 AND #&F8                                    ; Check for colour change
+    CMP #&80                                    ; Text colour
+    BNE L6
+    LDA #tmGraphics
+    JMP disableTextMode
+.L6 CMP #&90                                    ; Graphics colour
+    BNE LE
+    LDA #tmGraphics
+    JMP enableTextMode
+.LE RTS
 }
 
 .writeStringInt                                 ; Writes string at X,Y terminating at 0
@@ -458,7 +511,7 @@ defaultColour   = &10           ; White on Black at start of each line
     STA tempAddr+1
 
     BIT textMode                                ; Test double height mode
-    ;BVS L3                                      ; bit 6 is set so double height
+    BVS L3                                      ; bit 6 is set so double height
 
     LDY #7                                      ; Copy normal height character to screen
 .L2 LDA (tempAddr),Y
@@ -469,26 +522,27 @@ defaultColour   = &10           ; White on Black at start of each line
 
 .ro EQUB 7, 3                                   ; Table for row offset
 .L3 LDA textY                                   ; Double height mode so even rows are top
-    AND #&01
-    TAY
-    LDA ro,Y                                    ; So get 4 or 8 for odd & even rows
-    STA tempAddr2                               ; tempAddr is offset of half of raster to draw
-
-    LDA #7
-    STA tempAddr2+1                             ; tempAddr2+1 the number of bytes to write
-
-.L4 LDY tempAddr                                ; Get byte to write
-    LDA (tempAddr),Y
-    DEC tempAddr                                ; Dec pointer
-
-    LDY tempAddr2+1                             ; Destination offset
-    STA (screenPos),Y                           ; Write it twice
-    DEY
+    AND #&01                                    ; So using bit 0 set means no change
+    BNE L4
+    CLC                                         ; Add 4 to char data
+    LDA tempAddr
+    ADC #4
+    STA tempAddr
+    LDA tempAddr+1
+    ADC #0
+    STA tempAddr+1
+.L4 LDY #0                                      ; Copy half char
+    LDX #0
+.L5 LDA (tempAddr,X)
     STA (screenPos),Y
-    DEY                                         ; Inc Y 2nd time & store
-    STY tempAddr2+1
-
-    BPL L4
+    INY
+    STA (screenPos),Y
+    INY
+    INC tempAddr
+    BNE L6
+    INC tempAddr+1
+.L6 CPY #8
+    BNE L5
     RTS
 
                                                 ; Graphics rendering
