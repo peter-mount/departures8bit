@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/peter-mount/departures8bit/apps/lang"
+	"github.com/peter-mount/departures8bit/lang"
 	"github.com/peter-mount/go-kernel"
 	"github.com/peter-mount/nre-feeds/darwinref"
 	"log"

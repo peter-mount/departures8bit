@@ -1,7 +1,7 @@
 # ======================================================================
 # boards	Departure boards application
 # ======================================================================
-	include ../../Makefile.inc
+	include ../Makefile.inc
 
 BOARDS_C64		= boards_c64.prg
 

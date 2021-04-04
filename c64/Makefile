@@ -1,7 +1,7 @@
 # ======================================================================
 # Commodore 64
 # ======================================================================
-	include ../../Makefile.inc
+	include ../Makefile.inc
 
 LOADER		= loader.prg
 BOOTSTRAP	= bootstrap.prg

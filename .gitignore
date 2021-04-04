@@ -2,7 +2,7 @@ go_build_main_go
 *.prg
 *.P00
 *rom
-/apps/bbc/copyright.asm
-/apps/bbc/version.asm
+/bbc/copyright.asm
+/bbc/version.asm
 /builds/
 /bin/disktool

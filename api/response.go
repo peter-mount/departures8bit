@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"github.com/peter-mount/departures8bit/apps/network"
+	"github.com/peter-mount/departures8bit/network"
 	"io"
 )
 

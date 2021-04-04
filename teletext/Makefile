@@ -1,7 +1,7 @@
 # ======================================================================
 # Commodore 64 Teletext Emulator
 # ======================================================================
-	include ../../Makefile.inc
+	include ../Makefile.inc
 
 TELETEXT	= teletext.prg		# C64 teletext module
 SPLASH		= splash.prg		# Splash page in PRG format

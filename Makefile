@@ -34,11 +34,19 @@ export COPYRIGHT 		= $(shell date "+%Y")
 # Build everything
 all:
 	$(MKDIR) -pv $(BUILDS) $(BUILDS_C64) $(BUILDS_BBC)
-	@$(MAKE) -C apps
+	@$(MAKE) -C teletext all
+	@$(MAKE) -C network all
+	@$(MAKE) -C boards all
+	@$(MAKE) -C c64 all
+	#@$(MAKE) -C bbc all
 	@$(MAKE) -C api
 
 clean:
-	@$(MAKE) -C apps clean
+	@$(MAKE) -C teletext clean
+	@$(MAKE) -C network clean
+	@$(MAKE) -C boards clean
+	@$(MAKE) -C c64 clean
+	#@$(MAKE) -C bbc clean
 	@$(MAKE) -C api clean
 	$(RM) -r $(BUILDS)
 

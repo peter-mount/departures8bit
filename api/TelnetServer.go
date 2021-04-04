@@ -2,8 +2,8 @@ package api
 
 import (
 	"fmt"
-	"github.com/peter-mount/departures8bit/apps/lang"
-	"github.com/peter-mount/departures8bit/apps/network"
+	"github.com/peter-mount/departures8bit/lang"
+	"github.com/peter-mount/departures8bit/network"
 	refclient "github.com/peter-mount/nre-feeds/darwinref/client"
 	ldbclient "github.com/peter-mount/nre-feeds/ldb/client"
 	"github.com/reiver/go-telnet"
