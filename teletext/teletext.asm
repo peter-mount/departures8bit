@@ -126,9 +126,12 @@ defaultColour   = &10           ; White on Black at start of each line
 .L1 STA textRam,Y
     STA textRam + &100,Y
     STA textRam + &200,Y
-    STA textRam + &300,Y
     DEY
     BNE L1
+    LDY #&E8                                    ; Clear last area but leaving
+.L2 STA textRam + &2FF,Y                        ; 03F8-03FF work area alone
+    DEY
+    BNE L2
 }                                               ; Run through to clearRaster
 
 .clearRaster                                    ; Clears just the raster
@@ -140,21 +143,24 @@ defaultColour   = &10           ; White on Black at start of each line
 .L1 STA colourRam,Y
     STA colourRam + &100,Y
     STA colourRam + &200,Y
-    STA colourRam + &300,Y
     DEY
     BNE L1
+    LDY #&F8                                    ; Erase 0300-03F7 only as we don't
+.L2 STA colourRam + &2FF,Y                      ; want to touch the sprite pointers
+    DEY                                         ; at 03F8-03FF
+    BNE L2
 
     JSR teletextHome                            ; Reset pointers
 
     LDA #&00                                    ; Clear screen
     LDX #&20                                    ; &2000 bytes to clear
     LDY #0
-.L2 STA (screenPos),Y                           ; Set screen memory
+.L3 STA (screenPos),Y                           ; Set screen memory
     INY
-    BNE L2                                      ; Loop until page cleared
+    BNE L3                                      ; Loop until page cleared
     INC screenPos+1                             ; Move to next page
     DEX
-    BNE L2                                      ; Loop until all done
+    BNE L3                                      ; Loop until all done
 
     JSR screenOn
 }                                               ; Run through to home cursor
