@@ -40,7 +40,7 @@
 tmNormal        = &00           ; Normal text
 tmDouble        = &40           ; Double height text
 tmGraphics      = &80           ; Graphics enabled
-tmSepGraphics   = &81           ; Separated graphics enabled
+tmSepGraphics   = &01           ; Separated graphics enabled
 
 textRam         = &0400         ; Original screen memory used for text ram
 
@@ -373,10 +373,18 @@ defaultColour   = &10           ; White on Black at start of each line
     BEQ CN
     CMP #141
     BEQ CD
+    CMP #153                                    ; Contiguous graphics
+    BEQ CG
+    CMP #154                                    ; Separated graphics
+    BEQ CS
     AND #&68                                    ; If not &80-&87 or &90-&97 then exit otherwise
     BEQ C0                                      ; refresh line to get colours. &68 mask works as in those
     RTS                                         ; ranges those bits are clear. Bit 8 is always set.
 
+.CG LDA #tmGraphics
+    BNE C1
+.CS LDA #tmGraphics OR tmSepGraphics
+    BNE C1
 .CD LDA #tmDouble                               ; Double height
     BNE C1                                      ; tmDouble !=0 so implicit bra
 .CN LDA #tmNormal                               ; Normal height text mode
@@ -554,7 +562,11 @@ defaultColour   = &10           ; White on Black at start of each line
     SBC #160                                    ; Convert to binary
     LDY #0
 
-    ;JMP G3                                     ; Render separated graphics
+    PHA                                         ; Determine separated graphics
+    LDA textMode
+    AND #tmSepGraphics
+    BNE G3                                      ; Render separated graphics
+    PLA                                         ; Restore A
 
                                                 ; Solid graphics
     JSR G1                                      ; Bits 0,1
@@ -576,7 +588,8 @@ defaultColour   = &10           ; White on Black at start of each line
     ROR A
     RTS
 
-.G3 JSR G4                                      ; Bits 0,1
+.G3 PLA                                         ; Restore A
+    JSR G4                                      ; Bits 0,1
     JSR G4                                      ; Bits 2,3, follow through for bits 4,5
 .G4 PHA                                         ; Preserve current value
     AND #&03                                    ; Bits 0,1
