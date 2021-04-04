@@ -10,14 +10,16 @@ all:
 	$(MKDIR) $(BUILD_C64) $(BUILDS_BBC)
 	@$(MAKE) -C teletext all
 	@$(MAKE) -C network all
+	@$(MAKE) -C boards all
 	@$(MAKE) -C c64 all
-	@$(MAKE) -C bbc all
+	#@$(MAKE) -C bbc all
 
 clean:
 	@$(MAKE) -C teletext clean
 	@$(MAKE) -C network clean
+	@$(MAKE) -C boards clean
 	@$(MAKE) -C c64 clean
-	@$(MAKE) -C bbc clean
+	#@$(MAKE) -C bbc clean
 
 # ======================================================================
 # Common sources

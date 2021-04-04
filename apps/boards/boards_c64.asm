@@ -4,7 +4,7 @@
 
     INCLUDE "../macros.asm"                 ; Our macros
     INCLUDE "../zeropage.asm"               ; 3rd Zero page allocations
-    INCLUDE "kernal.asm"                    ; Kernal constants
+    INCLUDE "../c64/kernal.asm"             ; Kernal constants
     INCLUDE "../teletext/teletext.inc"      ; Teletext emulation
     INCLUDE "../network/network.inc"        ; Network driver
 
@@ -34,7 +34,7 @@ start = &0900               ; Base of application
 
     JMP (&FFFC)             ; exit the program by resetting the C64
 
-    INCLUDE "../main.asm"                   ; The core application
+    INCLUDE "main.asm"      ; The core application
 
 ; end - the end of the saved program
 .end
@@ -55,4 +55,4 @@ memTop              = &BA00                 ; Upper bound of all free memory
 ;outputBuffer        = &0800                 ; Output buffer
 
     ; Save the program, start-2 to include the start address &0801
-    SAVE "depart.prg", start-2, end
+    SAVE "boards_c64.prg", start-2, end

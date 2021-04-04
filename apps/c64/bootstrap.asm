@@ -171,7 +171,7 @@ start = &7000                   ; Base of bootstrap
     EQUS "TESTCARD", 0          ; Teletext test card for debugging
     ;EQUS "SPLASH", 0            ; Our splash page
     EQUS "NETWORK", 0           ; Network driver
-    EQUS "DEPART", 0            ; The main application
+    EQUS "BOARDS", 0            ; The main application
     EQUB 0                      ; list terminator
 .end
     ; Save the program, start-2 to include the start address
