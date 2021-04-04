@@ -132,26 +132,6 @@ start = &7000                   ; Base of bootstrap
 .L2 RTS
 }
 
-; C64 standard screen message
-.writeKernalBanner
-{
-    LDY #0                      ; Print "LOADING" to default screen
-.L1 LDA banner,Y                ; Standard send text to CHROUT until we hit 0
-    BEQ L2
-    JSR CHROUT
-    INY
-    BNE L1
-.L2 LDY #0                      ; Print filename
-.L3 LDA (fileName),Y            ; Standard send text to CHROUT until we hit 0
-    BEQ L4
-    JSR CHROUT
-    INY
-    BNE L3
-.L4 RTS
-.banner
-    EQUS "LOADING ", 0
-}
-
 ; Teletext screen message
 .writeTeletextBanner
 {
