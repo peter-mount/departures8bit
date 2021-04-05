@@ -8,6 +8,9 @@ BOOTSTRAP	= bootstrap.prg
 BOARDS		= $(BUILDS_C64)/boards_c64.prg
 DISK		= $(BUILDS)/depart.d64
 
+# Teletext build artifacts are part of the submodule so need to be sourced from there
+TELETEXTBASE= ../teletext
+
 all: $(DISK)
 
 clean:
@@ -23,8 +26,8 @@ $(LOADER): loader.asm basictokens.asm
 # $(LOADER) needs to be the first entry for LOAD "*",8,1 to work when booting the disk.
 $(DISK): $(LOADER) \
 		$(BOOTSTRAP) \
-		$(BUILDS_C64)/teletext.prg \
-		$(BUILDS_C64)/testcard.prg \
-		$(BUILDS_C64)/splash.prg \
+		$(TELETEXTBASE)/teletext.prg \
+		$(TELETEXTBASE)/testcard.prg \
+		$(TELETEXTBASE)/splash.prg \
 		$(BUILDS_C64)/network.prg \
 		$(BOARDS)

@@ -1,5 +1,6 @@
 go_build_main_go
 *.prg
+*.d64
 *.P00
 *rom
 /bbc/copyright.asm
