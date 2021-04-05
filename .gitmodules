@@ -1,0 +1,3 @@
+[submodule "teletext"]
+	path = teletext
+	url = git@github.com:peter-mount/teletextc64.git
