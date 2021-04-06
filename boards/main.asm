@@ -53,3 +53,19 @@ ENDIF
 .test
     EQUS "depart mde", 10, 0
 .run EQUS "Running...", 0
+
+
+; showPrompt        Show our prompt text at the top left of the screen
+;
+; on exit:
+;   A   undefined
+;   X   undefined
+;   Y   undefined
+.showPrompt
+{
+    LDX #<prompt
+    LDY #>prompt
+    JMP writeString
+.prompt
+    EQUS 30, 134, "departureboards.mobi", 135, 0
+}
