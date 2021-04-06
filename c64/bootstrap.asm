@@ -60,8 +60,9 @@ start = &7000                   ; Base of bootstrap
     STA fileName+1
     BNE L1                      ; BRA to L1
 
-;.L4 JMP L4
-.L4 JMP &0900                   ; Run the application
+.L4
+    JMP L4
+;    JMP &0900                   ; Run the application
 }
 
 .showFilename
@@ -148,10 +149,12 @@ start = &7000                   ; Base of bootstrap
 ; List of files to load, terminated with 0
 .files
     EQUS "TELETEXT", 0          ; TELETEXT must be the first file to load
-    ;EQUS "TESTCARD", 0          ; Teletext test card for debugging
-    EQUS "SPLASH", 0            ; Our splash page
-    EQUS "NETWORK", 0           ; Network driver
-    EQUS "BOARDS", 0            ; The main application
+    EQUS "TESTCARD", 0          ; Teletext test card for debugging
+    EQUS "ASCIICARD", 0         ; Teletext ASCII chart Text mode for debugging
+    EQUS "GRAPHICSCARD", 0      ; Teletext ASCII chart Graphics mode for debugging
+    ;EQUS "SPLASH", 0            ; Our splash page
+    ;EQUS "NETWORK", 0           ; Network driver
+    ;EQUS "BOARDS", 0            ; The main application
     EQUB 0                      ; list terminator
 .end
     ; Save the program, start-2 to include the start address

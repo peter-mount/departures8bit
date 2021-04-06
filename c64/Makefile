@@ -28,6 +28,8 @@ $(DISK): $(LOADER) \
 		$(BOOTSTRAP) \
 		$(TELETEXTBASE)/teletext.prg \
 		$(TELETEXTBASE)/testcard.prg \
+		$(TELETEXTBASE)/asciicard.prg \
+		$(TELETEXTBASE)/graphicscard.prg \
 		$(TELETEXTBASE)/splash.prg \
 		$(BUILDS_C64)/network.prg \
 		$(BOARDS)
