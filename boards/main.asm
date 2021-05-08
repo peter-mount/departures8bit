@@ -61,11 +61,11 @@ ENDIF
 ;   A   undefined
 ;   X   undefined
 ;   Y   undefined
-;.showPrompt
-;{
-;    LDX #<prompt
-;    LDY #>prompt
-;    JMP writeString
-;.prompt
-;    EQUS 30, 134, "departureboards.mobi", 135, 0
-;}
+.showPrompt
+{
+    LDX #<prompt
+    LDY #>prompt
+    JMP writeString
+.prompt
+    EQUS 30, 134, "departureboards.mobi", 135, 0
+}

@@ -7,7 +7,9 @@
 
 BOARDS	= boards.z80
 
-all: spectape.tap
+all: spectape.tap teletext.tap
 
 clean:
 	$(RM) *.lst *.tap
+
+teletext.tap: teletext.z80 ../teletext/charset1.asm
