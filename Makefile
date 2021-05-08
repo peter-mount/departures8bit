@@ -39,6 +39,7 @@ all:
 	@$(MAKE) -C boards all
 	@$(MAKE) -C c64 all
 	#@$(MAKE) -C bbc all
+	$(GO) mod download
 	@$(MAKE) -C api
 
 clean:

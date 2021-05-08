@@ -76,13 +76,13 @@ start = &7000                   ; Base of bootstrap
     BEQ L2
     JSR CHROUT
     INY
-    BNE L1
+    BNE L1                      ; BRA L1 as Y will always be >0
 .L2 LDY #0                      ; Print filename
 .L3 LDA (fileName),Y
     BEQ L4
     JSR CHROUT
     INY
-    BNE L3
+    BNE L3                      ; BRA L3 as Y will always be >0
 .L4 RTS
 
 .writeTele                      ; Write loading on teletext screen

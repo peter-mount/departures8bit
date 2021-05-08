@@ -17,6 +17,5 @@ $(BOARDS_C64):	boards_c64.asm \
 				../macros.asm \
 				../zeropage.asm \
 				../c64/kernal.asm \
-				../../teletextc64/teletext.inc \
 				../network/network.inc \
 				main.asm
