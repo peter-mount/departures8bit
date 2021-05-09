@@ -57,5 +57,10 @@ clean:
 	@$(MAKE) -C api clean
 	$(RM) -r $(BUILDS)
 
+# Requires Vice to run in an emulator
 testc64: clean all
 	x64sc -verbose -statusbar ./builds/depart.d64
+
+# Requires fuse-emulator, runs the built tap file
+testspectrum: all
+	fuse -m plus3 -g 2x --no-confirm-actions --tape spectrum/teletext.tap

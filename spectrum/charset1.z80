@@ -1,0 +1,898 @@
+; **********************************************************************
+; Character set for ascii codes 32-127
+;
+; This is formed of 8 bytes per character.
+;
+; This layout is based on Fig. 11 of the SAA5050 datasheet which contains
+; 5x9 layout
+;
+; Note these are correct for values &20-&7F.
+;
+; When bit 8 is set then currently we handle them the same but in Mode 7
+; the following changes appear when in text mode:
+;
+; Hex Normal Bit 8 set
+; &23    #       £
+; &5F    _       #
+; &60    £       _
+;
+; Right now we show graphics characters for all values A0-BF & E0-FF
+;
+;  Copyright 2021 Peter Mount
+;
+;  Licensed under the Apache License, Version 2.0 (the "License");
+;  you may not use this file except in compliance with the License.
+;  You may obtain a copy of the License at
+;
+;     http://www.apache.org/licenses/LICENSE-2.0
+;
+;  Unless required by applicable law or agreed to in writing, software
+;  distributed under the License is distributed on an "AS IS" BASIS,
+;  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;  See the License for the specific language governing permissions and
+;  limitations under the License.
+; **********************************************************************
+charset:
+    defb %000000 ;    &20  32 - ' '
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+
+    defb %000100 ;    &21  33 - '!'
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000000
+    defb %000100
+    defb %000000
+
+    defb %001010 ;    &22  34 - '"'
+    defb %001010
+    defb %001010
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+
+    defb %001010 ;    &23  35 - '#'
+    defb %001010
+    defb %011111
+    defb %001010
+    defb %011111
+    defb %001010
+    defb %001010
+    defb %000000
+
+    defb %0001110 ;    &24  36 - '$'
+    defb %0010101
+    defb %0010100
+    defb %0001110
+    defb %0000101
+    defb %0010101
+    defb %0001110
+    defb %0000000
+
+    defb %011000 ;    &25  37 - '%'
+    defb %011001
+    defb %000010
+    defb %000100
+    defb %001000
+    defb %010011
+    defb %000011
+    defb %000000
+
+    defb %001000 ;    &26  38 - '&'
+    defb %010100
+    defb %010100
+    defb %001000
+    defb %010101
+    defb %010010
+    defb %001101
+    defb %000000
+
+    defb %000100 ;    &27  39 - '''
+    defb %000100
+    defb %000100
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+
+    defb %000010 ;    &28  40 - '('
+    defb %000100
+    defb %001000
+    defb %001000
+    defb %001000
+    defb %000100
+    defb %000010
+    defb %000000
+
+    defb %000100 ;    &29  41 - ')'
+    defb %000010
+    defb %000001
+    defb %000001
+    defb %000001
+    defb %000010
+    defb %000100
+    defb %000000
+
+    defb %000100 ;    &2A  42 - '*'
+    defb %010101
+    defb %001110
+    defb %000100
+    defb %001110
+    defb %010101
+    defb %000100
+    defb %000000
+
+    defb %000000 ;    &2B  43 - '+'
+    defb %000100
+    defb %000100
+    defb %011111
+    defb %000100
+    defb %000100
+    defb %000000
+    defb %000000
+
+    defb %000000 ;    &2C  44 - ','
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000100
+    defb %000100
+    defb %001000
+
+    defb %000000 ;    &2D  45 - '-'
+    defb %000000
+    defb %000000
+    defb %001110
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+
+    defb %000000 ;    &2E  46 - '.'
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000100
+    defb %000000
+
+    defb %000000 ;    &2F  47 - '/'
+    defb %000001
+    defb %000010
+    defb %000100
+    defb %001000
+    defb %010000
+    defb %000000
+    defb %000000
+
+    defb %000100 ;    &30  48 - '0'
+    defb %001010
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %001010
+    defb %000100
+    defb %000000
+
+    defb %000100 ;    &31  49 - '1'
+    defb %001100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %001110
+    defb %000000
+
+    defb %001110 ;    &32  50 - '2'
+    defb %010001
+    defb %000001
+    defb %000110
+    defb %001000
+    defb %010000
+    defb %011111
+    defb %000000
+
+    defb %011111 ;    &33  51 - '3'
+    defb %000001
+    defb %000010
+    defb %000110
+    defb %000001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %000010 ;    &34  52 - '4'
+    defb %000110
+    defb %001010
+    defb %010010
+    defb %011111
+    defb %000010
+    defb %000010
+    defb %000000
+
+    defb %011111 ;    &35  53 - '5'
+    defb %010000
+    defb %011110
+    defb %000001
+    defb %000001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %000111 ;    &36  54 - '6'
+    defb %001000
+    defb %010000
+    defb %011110
+    defb %010001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %011111 ;    &37  55 - '7'
+    defb %000001
+    defb %000010
+    defb %000100
+    defb %001000
+    defb %001000
+    defb %001000
+    defb %000000
+
+    defb %001110 ;    &38  56 - '8'
+    defb %010001
+    defb %010001
+    defb %001110
+    defb %010001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %001110 ;    &39  57 - '9'
+    defb %010001
+    defb %010001
+    defb %001111
+    defb %000001
+    defb %000010
+    defb %001100
+    defb %000000
+
+    defb %000000 ;    &3A  58 - ':'
+    defb %000000
+    defb %000100
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000100
+    defb %000000
+
+    defb %000000 ;    &3B  59 - ';'
+    defb %000000
+    defb %000100
+    defb %000000
+    defb %000000
+    defb %000100
+    defb %000100
+    defb %001000
+
+    defb %000010 ;    &3C  60 - '<'
+    defb %000100
+    defb %001000
+    defb %010000
+    defb %001000
+    defb %000100
+    defb %000010
+    defb %000000
+
+    defb %000000 ;    &3D  61 - '='
+    defb %000000
+    defb %011111
+    defb %000000
+    defb %011111
+    defb %000000
+    defb %000000
+    defb %000000
+
+    defb %001000 ;    &3E  62 - '>'
+    defb %000100
+    defb %000010
+    defb %000001
+    defb %000010
+    defb %000100
+    defb %001000
+    defb %000000
+
+    defb %001110 ;    &3F  63 - '?'
+    defb %010001
+    defb %000010
+    defb %000100
+    defb %000100
+    defb %000000
+    defb %000100
+    defb %000000
+
+    defb %001110 ;    &40  64 - '@'
+    defb %010001
+    defb %010111
+    defb %010101
+    defb %010111
+    defb %010000
+    defb %001110
+    defb %000000
+
+    defb %000100 ;    &41  65 - 'A'
+    defb %001010
+    defb %010001
+    defb %010001
+    defb %011111
+    defb %010001
+    defb %010001
+    defb %000000
+
+    defb %011110 ;    &42  66 - 'B'
+    defb %010001
+    defb %010001
+    defb %011110
+    defb %010001
+    defb %010001
+    defb %011110
+    defb %000000
+
+    defb %001110 ;    &43  67 - 'C'
+    defb %010001
+    defb %010000
+    defb %010000
+    defb %010000
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %011110 ;    &44  68 - 'D'
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %011110
+    defb %000000
+
+    defb %011111 ;    &45  69 - 'E'
+    defb %010000
+    defb %010000
+    defb %011110
+    defb %010000
+    defb %010000
+    defb %011111
+    defb %000000
+
+    defb %011111 ;    &46  70 - 'F'
+    defb %010000
+    defb %010000
+    defb %011110
+    defb %010000
+    defb %010000
+    defb %010000
+    defb %000000
+
+    defb %001110 ;    &47  71 - 'G'
+    defb %010001
+    defb %010000
+    defb %010000
+    defb %010011
+    defb %010001
+    defb %001111
+    defb %000000
+
+    defb %010001 ;    &48  72 - 'H'
+    defb %010001
+    defb %010001
+    defb %011111
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %000000
+
+    defb %001110 ;    &49  73 - 'I'
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %001110
+    defb %000000
+
+    defb %000001 ;    &4A  74 - 'J'
+    defb %000001
+    defb %000001
+    defb %000001
+    defb %000001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %010001 ;    &4B  75 - 'K'
+    defb %010010
+    defb %010100
+    defb %011000
+    defb %010100
+    defb %010010
+    defb %010001
+    defb %000000
+
+    defb %010000 ;    &4C  76 - 'L'
+    defb %010000
+    defb %010000
+    defb %010000
+    defb %010000
+    defb %010000
+    defb %011111
+    defb %000000
+
+    defb %010001 ;    &4D  77 - 'M'
+    defb %011011
+    defb %010101
+    defb %010101
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %000000
+
+    defb %010001 ;    &4E  78 - 'N'
+    defb %010001
+    defb %011001
+    defb %010101
+    defb %010011
+    defb %010001
+    defb %010001
+    defb %000000
+
+    defb %001110 ;    &4F  79 - 'O'
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %011110 ;    &50  80 - 'P'
+    defb %010001
+    defb %010001
+    defb %011110
+    defb %010000
+    defb %010000
+    defb %010000
+    defb %000000
+
+    defb %001110 ;    &51  81 - 'Q'
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010101
+    defb %010010
+    defb %001101
+    defb %000000
+
+    defb %011110 ;    &52  82 - 'R'
+    defb %010001
+    defb %010001
+    defb %011110
+    defb %010100
+    defb %010010
+    defb %010001
+    defb %000000
+
+    defb %001110 ;    &53  83 - 'S'
+    defb %010001
+    defb %010000
+    defb %001110
+    defb %000001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %011111 ;    &54  84 - 'T'
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000000
+
+    defb %010001 ;    &55  85 - 'U'
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %010001 ;    &56  86 - 'V'
+    defb %010001
+    defb %010001
+    defb %001010
+    defb %001010
+    defb %000100
+    defb %000100
+    defb %000000
+
+    defb %010001 ;    &57  87 - 'W'
+    defb %010001
+    defb %010001
+    defb %010101
+    defb %010101
+    defb %010101
+    defb %001010
+    defb %000000
+
+    defb %010001 ;    &58  88 - 'X'
+    defb %010001
+    defb %001010
+    defb %000100
+    defb %001010
+    defb %010001
+    defb %010001
+    defb %000000
+
+    defb %010001 ;    &59  89 - 'Y'
+    defb %010001
+    defb %001010
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000000
+
+    defb %011111 ;    &5A  90 - 'Z'
+    defb %000001
+    defb %000010
+    defb %000100
+    defb %001000
+    defb %010000
+    defb %011111
+    defb %000000
+
+    defb %000000 ;    &5B  91 - '[' <- in teletext
+    defb %000100
+    defb %001000
+    defb %011111
+    defb %001000
+    defb %000100
+    defb %000000
+    defb %000000
+
+    defb %010000 ;    &5C  92 - '\' 1/2 in teletext
+    defb %010000
+    defb %010110
+    defb %010001
+    defb %010010
+    defb %000100
+    defb %000111
+    defb %000000
+
+    defb %000000 ;    &5D  93 - ']' -> in teletext
+    defb %000100
+    defb %000010
+    defb %011111
+    defb %000010
+    defb %000100
+    defb %000000
+    defb %000000
+
+    defb %000000 ;    &5E  94 - '^' Up arrow in teletext
+    defb %000100
+    defb %001110
+    defb %010101
+    defb %000100
+    defb %000100
+    defb %000000
+    defb %000000
+
+    defb %000000 ;    &5F  95 - '_'
+    defb %000000
+    defb %000000
+    defb %011111
+    defb %000000
+    defb %000000
+    defb %000000
+    defb %000000
+
+    defb %000110 ;    &60  96 - '`'  £ in teletext & BBC
+    defb %001001
+    defb %001000
+    defb %011100
+    defb %001000
+    defb %001000
+    defb %011111
+    defb %000000
+
+    defb %000000 ;    &61  97 - 'a'
+    defb %000000
+    defb %001110
+    defb %000001
+    defb %001111
+    defb %010001
+    defb %001111
+    defb %000000
+
+    defb %010000 ;    &62  98 - 'b'
+    defb %010000
+    defb %011110
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %011110
+    defb %000000
+
+    defb %000000 ;    &63  99 - 'c'
+    defb %000000
+    defb %001111
+    defb %010000
+    defb %010000
+    defb %010000
+    defb %001111
+    defb %000000
+
+    defb %000001 ;    &64  100 - 'd'
+    defb %000001
+    defb %001111
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %001111
+    defb %000000
+
+    defb %000000 ;    &65  101 - 'e'
+    defb %000000
+    defb %001110
+    defb %010001
+    defb %011111
+    defb %010000
+    defb %001110
+    defb %000000
+
+    defb %000010 ;    &66  102 - 'f'
+    defb %000100
+    defb %000100
+    defb %001110
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000000
+
+    defb %000000 ;    &67  103 - 'g'
+    defb %000000
+    defb %001111
+    defb %010001
+    defb %010001
+    defb %001111
+    defb %000001
+    defb %001110
+
+    defb %010000 ;    &68  104 - 'h'
+    defb %010000
+    defb %011110
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %000000
+
+    defb %000100 ;    &69  105 - 'i'
+    defb %000000
+    defb %001100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %001110
+    defb %000000
+
+    defb %000100 ;    &6A  106 - 'j'
+    defb %000000
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %001000
+
+    defb %001000 ;    &6B  107 - 'k'
+    defb %001000
+    defb %001001
+    defb %001010
+    defb %001100
+    defb %001010
+    defb %001001
+    defb %000000
+
+    defb %001100 ;    &6C  108 - 'l'
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %001110
+    defb %000000
+
+    defb %000000 ;    &6D  109 - 'm'
+    defb %000000
+    defb %011010
+    defb %010101
+    defb %010101
+    defb %010101
+    defb %010101
+    defb %000000
+
+    defb %000000 ;    &6E  110 - 'n'
+    defb %000000
+    defb %011110
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %000000
+
+    defb %000000 ;    &6F  111 - 'o'
+    defb %000000
+    defb %001110
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %001110
+    defb %000000
+
+    defb %000000 ;    &70  112 - 'p'
+    defb %000000
+    defb %011110
+    defb %010001
+    defb %010001
+    defb %011110
+    defb %010000
+    defb %010000
+
+    defb %000000 ;    &71  113 - 'q'
+    defb %000000
+    defb %001111
+    defb %010001
+    defb %010001
+    defb %001111
+    defb %000001
+    defb %000001
+
+    defb %000000 ;    &72  114 - 'r'
+    defb %000000
+    defb %001011
+    defb %001100
+    defb %001000
+    defb %001000
+    defb %001000
+    defb %000000
+
+    defb %000000 ;    &73  115 - 's'
+    defb %000000
+    defb %001111
+    defb %010000
+    defb %001110
+    defb %000001
+    defb %011110
+    defb %000000
+
+    defb %000100 ;    &74  116 - 't'
+    defb %000100
+    defb %001110
+    defb %000100
+    defb %000100
+    defb %000100
+    defb %000010
+    defb %000000
+
+    defb %000000 ;    &75  117 - 'u'
+    defb %000000
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %001111
+    defb %000000
+
+    defb %000000 ;    &76  118 - 'v'
+    defb %000000
+    defb %010001
+    defb %010001
+    defb %001010
+    defb %001010
+    defb %000100
+    defb %000000
+
+    defb %000000 ;    &77  119 - 'w'
+    defb %000000
+    defb %010001
+    defb %010001
+    defb %010101
+    defb %010101
+    defb %001010
+    defb %000000
+
+    defb %000000 ;    &78  120 - 'x'
+    defb %000000
+    defb %010001
+    defb %001010
+    defb %000100
+    defb %001010
+    defb %010001
+    defb %000000
+
+    defb %000000 ;    &79  121 - 'y'
+    defb %000000
+    defb %010001
+    defb %010001
+    defb %010001
+    defb %001111
+    defb %000001
+    defb %001110
+
+    defb %000000 ;    &7A  122 - 'z'
+    defb %000000
+    defb %011111
+    defb %000010
+    defb %000100
+    defb %001000
+    defb %011111
+    defb %000000
+
+    defb %010000 ;    &7B  123 - '{' 1/4 in teletext
+    defb %010000
+    defb %010001
+    defb %010011
+    defb %000101
+    defb %000111
+    defb %000001
+    defb %000000
+
+    defb %001010 ;    &7C  124 - '|'
+    defb %001010
+    defb %001010
+    defb %001010
+    defb %001010
+    defb %001010
+    defb %001010
+    defb %000000
+
+    defb %110000 ;    &7D  125 - '}' 3/4 in teletext
+    defb %001000
+    defb %110001
+    defb %001011
+    defb %110101
+    defb %000111
+    defb %000001
+    defb %000000
+
+    defb %000000  ;   &7E  126 - '~' division symbol
+    defb %000100
+    defb %000000
+    defb %011111
+    defb %000000
+    defb %000100
+    defb %000000
+    defb %000000
+
+    defb %011111 ;    &7F  127 - DEL
+    defb %011111
+    defb %011111
+    defb %011111
+    defb %011111
+    defb %011111
+    defb %011111
+    defb %000000
