@@ -31,25 +31,37 @@ setPos:                         ; Set cursor to bc (row, col)
     ld      (vCharPos),bc       ; Store in vCharPos
     ret
 
-updatePos:                      ; Get Spectrum char pos into HL
-    ld      a, (vCharPosY)      ; get row
-    push    af                  ; save a copy
-
+; Calculates the actual bitmap address for a character in BC (row,col) into HL.
+;
+; Although the memory map for the spectrum screen seems weird with it's layout,
+; it's actually pretty logical. You can tell this weirdness is down to how the ULA works internally.
+;
+; Address format:
+;           H       L
+;       010rrnnn rrrccccc       where r=row, c=column & n is the byte of the character definition.
+;
+; So, to calculate the address of a character
+;       High byte = &40 or (row and &18)
+;       Low byte  = (row<<5) or column
+;
+; That would then be the top byte of the character. To get the next byte just increment the high byte
+; (e.g. n=1) & so on.
+;
+getSpectrumCharPos:             ; Get Spectrum char pos (bc) into HL for physical screen address
+    ld      a, b                ; first calculate high byte - get row
     and     &18                 ; Mask bits 4 & 5 from row
     or      &40                 ; set bit 6, this gives us the upper memory address
     ld      h, a                ; Set H
 
-    pop     af                  ; get copy of row
+    ld      a, b                ; get row
     sla     a                   ; Shift left 5 to form low address
     sla     a
     sla     a
     sla     a
-    sla     a
-    ld      l, a                ; Set L so HL is now the address of the start of line
+    sla     a                   ; HA is now the address of the start of line
 
-    ld      a, (vCharPosX)      ; Add x
-    or      l
-    ld      l, a                ; L now to top of char
+    or      c                   ; Add column value
+    ld      l, a                ; HL now address of top row of character
 
     ret
 
@@ -85,8 +97,12 @@ oswrch:
     push    bc
     call    getCharDef          ; get char def for char in a
     ld      de, hl              ; set de to char pos
-    call    updatePos           ; hl = screen pos
+
+    ld      bc,(vCharPos)       ; bc = vCharPos (row,col) in spectrum coordinates
+    call    getSpectrumCharPos  ; returns hl = screen address
+
     call    PR_ALL              ; 8x8 print
+
     ld      bc, (vCharPos)      ; inc x
     inc     c
     ld      a, 32
