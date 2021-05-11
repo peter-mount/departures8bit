@@ -12,4 +12,4 @@ all: spectape.tap teletext.tap
 clean:
 	$(RM) *.lst *.tap
 
-teletext.tap: teletext.z80 screen.z80 charset1.z80
+teletext.tap: teletext.z80 main.z80 screen.z80 charset1.z80

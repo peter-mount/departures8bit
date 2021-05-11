@@ -96,26 +96,6 @@ variables_end:
 
 #code CODE_DATA, code_start,*,dataflag
 
-; Z80 assembler code and data
-        call clearScreen
-        call testChars                  ; write char set in 8x8 chars at top
-        call testText                   ; write char set in 8x6 chars in middle
-loop:   jr loop
-
-; set print channel to Screen:
-        ld      a,2
-        call    $1601
-
-; print a message:
-        ld      hl,msg
-1$      ld      a,(hl)
-        and     a
-        ret     z
-        inc     hl
-        rst     2
-        jr      1$
-
-msg:    dm      13, "Hello World!", 13, 0
-
+#include "main.z80"
 #include "screen.z80"
 code_end:

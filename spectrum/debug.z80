@@ -1,0 +1,62 @@
+
+; debug, writes chars 32..127 inclusive
+testText:
+    ld      bc, &0400           ; Start at 8,0
+    call    setPos
+    ld      a, 32               ; Set A to 32 (space)
+testText1:
+    call    oswrch              ; write char
+    inc     a
+    bit     7,a
+    jr      z, testText1        ; Loop until we hit 128
+    ret
+
+; Write all chars 32-127 inclusive to screen as 8x8 characters
+testChars:
+    ld hl, &4000        ; Screen location
+    ld de, charset      ; '0' in charset
+    ld a, 128-32        ; Number of chars to output
+l1:
+    push af             ; Save A
+    call PR_ALL         ; Write character
+    pop af              ; Restore a
+    dec a               ; dec & loop until we hit 0
+    jr nz, l1
+    ret
+
+; ----------------------------------
+; THE 'PRINT ALL CHARACTERS' ROUTINE
+; ----------------------------------
+;   This entry point entered from above to print ASCII and UDGs but also from
+;   earlier to print mosaic characters.
+;   HL=destination
+;   DE=character source
+;   BC=line/column
+
+PR_ALL: PUSH    HL              ; and destination
+        LD      A,$08           ; prepare to count 8 bytes
+        EX      DE,HL           ; now HL=source, DE=destination
+PRALL1: EX      AF,AF'          ; save byte count
+        ;LD      A,(DE)          ; fetch existing destination byte
+        ;AND     B               ; consider OVER
+        ;XOR     (HL)            ; now XOR with source
+        ;XOR     C               ; now with INVERSE MASK
+        LD      A,(HL)
+        LD      (DE),A          ; update screen/printer
+        EX      AF,AF'          ; restore byte count
+
+        INC     D               ; gives next pixel line down screen
+
+        INC     HL              ; address next character byte
+        DEC     A               ; the byte count is decremented
+        JR      NZ,PRALL1       ; loop until all 8 bytes completed
+
+        EX      DE,HL           ; destination to HL
+        DEC     H               ; bring back to last updated screen position
+        ;BIT     1,(IY+$01)      ; test FLAGS  - is printer in use ?
+        ;CALL    Z,L0BDB         ; if not, call routine PO-ATTR to update
+                                ; corresponding colour attribute.
+        POP     HL              ; restore original screen/printer position
+        INC     HL              ; increase screen/printer position
+        RET                     ; return and continue into PO-STORE
+                                ; within PO-ABLE

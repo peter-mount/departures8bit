@@ -5,11 +5,10 @@
 vCharPos:                       ; row, col coordinates in our 40x24 screen
 vCharPosX:  defb 0              ; column
 vCharPosY:  defb 0              ; row
-
-vCharAddr:  defw 0          ; address of vCharPos
-vCharTemp:  defw 0,0,0,0    ; Workspace of 3 8 byte characters
-            defw 0,0,0,0
-            defw 0,0,0,0
+vCharTemp:  defw 0,0,0,0        ; 8 bytes to hold generated characters, e.g. graphics or double height
+vduBuffCmd: defb 0              ; Byte invoking vduBuffer
+vduBuffPos: defb 0              ; Position in vduBuffer, 0=empty
+vduBuffer:  defw 0,0,0,0,0      ; 10 byte buffer for vdu sequences
 
 clearScreen:
     ld      hl,&4000            ; Start of screen memory
@@ -28,7 +27,10 @@ clearScreen:
     ld      (&5C48),a           ; set OS copy of colour
     out     (&fe),a             ; set hardware colour
 
-homeCursor:                     ; Home cursor to 0,0
+    ld      a,0                 ; reset state
+    ld      (vduBuffPos),a
+
+teletextHome:                   ; Home cursor to 0,0
     ld      bc, 0
 
 setPos:                         ; Set cursor to bc (row, col)
@@ -199,106 +201,177 @@ wrchr31:
     djnz    wrchr31
     ret
 
-testText:
-    ld      bc, &0400           ; Start at 8,0
-    call    setPos
-    ld      a, 32               ; Set A to 32 (space)
-testText1:
-    call    oswrch              ; write char
-    inc     a
-    bit     7,a
-    jr      z, testText1        ; Loop until we hit 128
-    ret
-
 oswrch:
     push    af
     push    de
     push    hl
     push    bc
-    call    getCharDef          ; get char def for char in a
-    ld      de, hl              ; set de to char pos
-
-    ;ld      bc,(vCharPos)       ; bc = vCharPos (row,col) in spectrum coordinates
-    ;call    getSpectrumCharPos  ; returns hl = screen address
-    call    wrchr
-
-    ;call    PR_ALL              ; 8x8 print
-
-    ld      bc, (vCharPos)      ; inc x
-    inc     c
-    ld      a, 40
-    cp      c
-    jr      nz, oswrch0         ; stop if not 32
-    ld      c, 0
-    inc     b
-    ld      a, 24
-    cp      b
-    jr      nz, oswrch0         ; still on screen
-    ld      bc, 0               ; home cursor
-oswrch0:
-    ld      (vCharPos), bc      ; Store new pos
-oswrch1:
+    call    oswrch0
     pop     bc
     pop     hl
     pop     de
     pop     af
     ret
 
-; Write all chars 32-127 inclusive to screen as 8x8 characters
-testChars:
-    ld hl, &4000        ; Screen location
-    ld de, charset      ; '0' in charset
-    ld a, 128-32        ; Number of chars to output
-l1:
-    push af             ; Save A
-    call PR_ALL         ; Write character
-    pop af              ; Restore a
-    dec a               ; dec & loop until we hit 0
-    jr nz, l1
+oswrch0:
+    push    af                  ; save a
+    ld      a,(vduBuffPos)      ; Check queue size
+    cp      0
+    jr      nz, oswrch01        ; queue char if still waiting
+    pop     af                  ; restore a
+
+    cp      32
+    jr      nc, oswrch1
+
+    ld      (vduBuffCmd),a      ; store command
+    sla     a                   ; Get address from vduTable
+    ld      h,0
+    ld      l,a
+    ld      de,vduTable
+    add     hl, de
+
+    ld      a,(hl)              ; emulate ld hl,(hl)
+    inc     hl
+    ld      h,(hl)
+    ld      l,a
+
+    ld      a,h                 ; Check for h=0
+    cp      0
+    jr      z, oswrch00         ; jump to enqueue
+    jp      (hl)                ; Call handler
+
+oswrch00:                       ; we have bytes to store
+    ld      a,l                 ; so store L in vduBuffPos
+    ld      (vduBuffPos),a      ; then next L bytes will be stored in the buffer
     ret
 
-; ----------------------------------
-; THE 'PRINT ALL CHARACTERS' ROUTINE
-; ----------------------------------
-;   This entry point entered from above to print ASCII and UDGs but also from
-;   earlier to print mosaic characters.
-;   HL=destination
-;   DE=character source
-;   BC=line/column
+oswrch01:
+    dec     a                   ; decrement a
+    ld      (vduBuffPos),a
+    ld      h,0                 ; queue char in buffer at position a
+    ld      l,a
+    ld      de,vduBuffer
+    add     hl,de
+    pop     af                  ; restore char being written
+    ld      (hl),a              ; store char
 
-PR_ALL: PUSH    HL              ; and destination
-        LD      A,$08           ; prepare to count 8 bytes
-        EX      DE,HL           ; now HL=source, DE=destination
-PRALL1: EX      AF,AF'          ; save byte count
-        ;LD      A,(DE)          ; fetch existing destination byte
-        ;AND     B               ; consider OVER
-        ;XOR     (HL)            ; now XOR with source
-        ;XOR     C               ; now with INVERSE MASK
-        LD      A,(HL)
-        LD      (DE),A          ; update screen/printer
-        EX      AF,AF'          ; restore byte count
+    ld      a,(vduBuffPos)      ; check buffer complete
+    cp      0
+    ret     nz                  ; buffer not complete
 
-        INC     D               ; gives next pixel line down screen
+    ld      a,(vduBuffCmd)      ; check command
+    cp      31                  ; We actually only implement 31
+    ret     nz                  ; all others do nothing in Mode7
+    ld      bc, (vduBuffer)     ; Fetch address
+    ld      a,c                 ; The buffer is in reverse so we need
+    ld      c,b                 ; to swap b & c to get the correct values
+    ld      b,a                 ; for row & column
+    jp      setPos              ; Set cursor position
 
-        INC     HL              ; address next character byte
-        DEC     A               ; the byte count is decremented
-        JR      NZ,PRALL1       ; loop until all 8 bytes completed
+oswrch1:
+    bit     7,a                 ; teletext control char
+    jr      z,oswrch2           ; valid ascii
+    ld      a,32                ; replace with space
+oswrch2:
+    call    getCharDef          ; get char def for char in a
+    ld      de, hl              ; set de to char pos
+    call    wrchr               ; write char to current position
 
-        EX      DE,HL           ; destination to HL
-        DEC     H               ; bring back to last updated screen position
-        ;BIT     1,(IY+$01)      ; test FLAGS  - is printer in use ?
-        ;CALL    Z,L0BDB         ; if not, call routine PO-ATTR to update
-                                ; corresponding colour attribute.
-        POP     HL              ; restore original screen/printer position
-        INC     HL              ; increase screen/printer position
-        RET                     ; return and continue into PO-STORE
-                                ; within PO-ABLE
+; move cursor right 1 char handling wrapping
+teletextForward:
+    ld      bc, (vCharPos)
+    inc     c
+    ld      a, 40
+    cp      c
+    jr      nz, teletextForward0    ; stop if not 32
+    ld      c, 0                    ; Start new line
+    jr      teletextDown0
 
-testChars1:
-    ld hl,charset
-    ld de,&4000
-    ld bc, 768
-    ldir
+; move cursor down 1 line, handling wrapping to top
+teletextDown:
+    ld      bc, (vCharPos)
+teletextDown0:
+    inc     b
+    ld      a, 24
+    cp      b
+    jr      nz, teletextForward0    ; still on screen
+    ld      bc, 0                   ; home cursor
+teletextForward0:
+    ld      (vCharPos), bc          ; Store new pos
+nop:                                ; used in vdu table
     ret
+
+teletextStartLine:
+    ld      a,0                     ; Set column to 0, start of current line
+    ld      (vCharPosX),a
+    ret
+
+; move cursor left 1 character, handling wrapping to prev line
+teletextBackward:
+    ld      bc, (vCharPos)
+    dec     c                       ; up 1 line
+    jp      p, teletextForward0     ; Positive so store & exit
+    ld      c, 39                   ; Wrap to end of prev line
+    jr      teletextUp
+
+; move cursor up 1 line, handling wrapping to bottom
+teletextUp:
+    ld      bc, (vCharPos)
+teletextUp0:
+    dec     b
+    jp      p, teletextForward0     ; Positive so store & exit
+    ld      b, 23                   ; move to bottom line
+    jr      teletextForward0        ; store & exit
+
+; writeString writes the string at hl to the screen.
+; The string is terminated by a 0 but if we have a vdu sequence then 0 is valid
+; inside that sequence
+writeString:
+    ld      a, (hl)                 ; Get char
+    cp      0
+    jr      nz, writeString0        ; Not null so do nothing
+    ld      a, (vduBuffPos)         ; Check queue size
+    cp      0
+    ret     z                       ; queue is empty so exit
+    ld      a, 0                    ; we want the null in the stream
+writeString0:
+    call    oswrch                  ; write character
+    inc     hl                      ; next char
+    jr      writeString             ; loop
+
+vduTable:
+    defw nop                ; 00 NUL does nothing
+    defw 1                  ; 01 SOH Send next char to printer only
+    defw nop                ; 02 STX Start print job
+    defw nop                ; 03 ETX End print job
+    defw nop                ; 04 EOT Write text at text cursor
+    defw nop                ; 05 ENQ Write text at graphics cursor
+    defw nop                ; 06 ACK Enable VDU drivers
+    defw nop                ; 07 BEL Make a short beep
+    defw teletextBackward   ; 08 BS  Backspace cursor one character
+    defw teletextForward    ; 09 HT  Advance cursor one character
+    defw teletextDown       ; 0A LF  Move cursor down one line
+    defw teletextUp         ; 0B VT  Move cursor up one line
+    defw clearScreen        ; 0C FF  Clear text area
+    defw teletextStartLine  ; 0D CR  Move cursor to start of current line
+    defw nop                ; 0E SO  Page mode on
+    defw nop                ; 0F SI  Page mode off
+    defw nop                ; 10 DLE Clear graphics area
+    defw 1                  ; 11 DC1 Define text colour
+    defw 2                  ; 12 DC2 Define graphics colour
+    defw 5                  ; 13 DC3 Define logical colour
+    defw nop                ; 14 DC4 Restore default logical colours
+    defw nop                ; 15 NAK Disable VDU drivers or delete current line
+    defw 1                  ; 16 SYN Select screen mode
+    defw 9                  ; 17 ETB Define display character & other commands
+    defw 8                  ; 18 CAN Define graphics window
+    defw 5                  ; 19 EM  Plot K,x,y
+    defw nop                ; 1A SUB Restore default windows
+    defw nop                ; 1B ESC Does nothing
+    defw 4                  ; 1C FS  Define text window
+    defw 4                  ; 1D GS  Define graphics origin
+    defw teletextHome       ; 1E RS  Home text cursor to top left
+    defw 2                  ; 1F US  Move text cursor to x,y
 
 #include "charset1.z80"
+;#include "debug.z80"
