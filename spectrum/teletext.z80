@@ -97,7 +97,11 @@ variables_end:
 #code CODE_DATA, code_start,*,dataflag
 
 ; Z80 assembler code and data
-    call clearScreen
+        call clearScreen
+        call testChars                  ; write char set in 8x8 chars at top
+        call testText                   ; write char set in 8x6 chars in middle
+loop:   jr loop
+
 ; set print channel to Screen:
         ld      a,2
         call    $1601

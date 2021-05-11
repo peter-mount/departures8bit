@@ -2,13 +2,110 @@
 ; Screen manipulation routines for the Spectrum
 ; ----------------------------------------------------------------------
 
+vCharPos:                       ; row, col coordinates in our 40x24 screen
+vCharPosX:  defb 0              ; column
+vCharPosY:  defb 0              ; row
+
+vCharAddr:  defw 0          ; address of vCharPos
+vCharTemp:  defw 0,0,0,0    ; Workspace of 3 8 byte characters
+            defw 0,0,0,0
+            defw 0,0,0,0
+
 clearScreen:
-    ld      hl,&4000
-    ld      (HL),&00
-    ld      de,&4001
-    ld      bc, 32*24*8
-;    ldir
-;    ret
+    ld      hl,&4000            ; Start of screen memory
+    ld      (hl),&00            ; Set first byte to 0
+    ld      de,&4001            ; Destination as next byte
+    ld      bc, 32*24*8-1       ; Number of bytes to copy
+    ldir                        ; Copy from hl to de bc times
+
+    ld      hl,&5800            ; Reset screen attributes
+    ld      (hl),&07            ; White text black Background
+    ld      de,&5801
+    ld      bc, 32*24-1         ; Bytes to copy
+    ldir
+
+homeCursor:                     ; Home cursor to 0,0
+    ld      bc, 0
+
+setPos:                         ; Set cursor to bc (row, col)
+    ld      (vCharPos),bc       ; Store in vCharPos
+    ret
+
+updatePos:                      ; Get Spectrum char pos into HL
+    ld      a, (vCharPosY)      ; get row
+    push    af                  ; save a copy
+
+    and     &18                 ; Mask bits 4 & 5 from row
+    or      &40                 ; set bit 6, this gives us the upper memory address
+    ld      h, a                ; Set H
+
+    pop     af                  ; get copy of row
+    sla     a                   ; Shift left 5 to form low address
+    sla     a
+    sla     a
+    sla     a
+    sla     a
+    ld      l, a                ; Set L so HL is now the address of the start of line
+
+    ld      a, (vCharPosX)      ; Add x
+    or      l
+    ld      l, a                ; L now to top of char
+
+    ret
+
+testText:
+    ld      bc, &0A00            ; Start at 8,0
+    call    setPos
+    ld      a, 32               ; Set A to 32 (space)
+testText1:
+    call    oswrch              ; write char
+    inc     a
+    cp      128
+    jr      nz, testText1       ; Loop until we hit 128
+    ret
+
+getCharDef:                 ; Set's HL to be the character definition in A
+    sub     32              ; char set starts with space
+    ld      l,a             ; Set L to A
+    ld      h,0             ; Clear H
+    sla     l               ; Shift left 3 times so hl = a*8
+    rl      h
+    sla     l
+    rl      h
+    sla     l
+    rl      h
+    ld      bc, charset     ; Add charset base
+    add     hl, bc
+    ret
+
+oswrch:
+    push    af
+    push    de
+    push    hl
+    push    bc
+    call    getCharDef          ; get char def for char in a
+    ld      de, hl              ; set de to char pos
+    call    updatePos           ; hl = screen pos
+    call    PR_ALL              ; 8x8 print
+    ld      bc, (vCharPos)      ; inc x
+    inc     c
+    ld      a, 32
+    cp      c
+    jr      nz, oswrch0         ; stop if not 32
+    ld      c, 0
+    inc     b
+    ld      a, 24
+    cp      b
+    jr      nz, oswrch0         ; still on screen
+    ld      bc, 0               ; home cursor
+oswrch0:
+    ld      (vCharPos), bc      ; Store new pos
+oswrch1:
+    pop     bc
+    pop     hl
+    pop     de
+    pop     af
+    ret
 
 ; Write all chars 32-127 inclusive to screen as 8x8 characters
 testChars:
@@ -33,29 +130,27 @@ l1:
 ;   BC=line/column
 
 PR_ALL: PUSH    HL              ; and destination
-        LD      A,($5C91)       ; fetch P_FLAG to accumulator
         LD      A,$08           ; prepare to count 8 bytes
         EX      DE,HL           ; now HL=source, DE=destination
-PRALL1: EX      AF,AF'          ; save printer/screen flag
+PRALL1: EX      AF,AF'          ; save byte count
         ;LD      A,(DE)          ; fetch existing destination byte
         ;AND     B               ; consider OVER
         ;XOR     (HL)            ; now XOR with source
         ;XOR     C               ; now with INVERSE MASK
         LD      A,(HL)
         LD      (DE),A          ; update screen/printer
-        EX      AF,AF'          ; restore flag
+        EX      AF,AF'          ; restore byte count
 
         INC     D               ; gives next pixel line down screen
 
-;; PR-ALL-5
         INC     HL              ; address next character byte
         DEC     A               ; the byte count is decremented
         JR      NZ,PRALL1       ; loop until all 8 bytes completed
 
         EX      DE,HL           ; destination to HL
         DEC     H               ; bring back to last updated screen position
-;        BIT     1,(IY+$01)      ; test FLAGS  - is printer in use ?
-;;        CALL    Z,L0BDB         ; if not, call routine PO-ATTR to update
+        ;BIT     1,(IY+$01)      ; test FLAGS  - is printer in use ?
+        ;CALL    Z,L0BDB         ; if not, call routine PO-ATTR to update
                                 ; corresponding colour attribute.
         POP     HL              ; restore original screen/printer position
         INC     HL              ; increase screen/printer position
