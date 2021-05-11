@@ -65,17 +65,7 @@ getSpectrumCharPos:             ; Get Spectrum char pos (bc) into HL for physica
 
     ret
 
-testText:
-    ld      bc, &0A00            ; Start at 8,0
-    call    setPos
-    ld      a, 32               ; Set A to 32 (space)
-testText1:
-    call    oswrch              ; write char
-    inc     a
-    cp      128
-    jr      nz, testText1       ; Loop until we hit 128
-    ret
-
+; Given an ascii char 32..127 in A return the address of the bitmap definition for that character in HL
 getCharDef:                 ; Set's HL to be the character definition in A
     sub     32              ; char set starts with space
     ld      l,a             ; Set L to A
@@ -90,6 +80,132 @@ getCharDef:                 ; Set's HL to be the character definition in A
     add     hl, bc
     ret
 
+; With a character definition in DE, write the character at position vCharPos (40x24)
+; handling any conversion to the Spectrum's 32x24 screen
+wrchr:
+    ld      bc, (vCharPos)      ; Get char position in 40x24 coordinates
+    srl     c                   ; Divide column by 4
+    srl     c
+    ld      a,c                 ; A=c
+    add     a,c
+    add     a,c                 ; A = 3 * c
+    ld      c,a                 ; C is now int(c*3/4) so points to start of the 3 char block
+    call    getSpectrumCharPos  ; convert BC (now in 32x24 coords) into HL
+
+    ld      b, 8                ; Set b as counter of 8 bytes to copy
+
+    ld      a, (vCharPosX)      ; Now work out which char we are working on
+    bit     1,a
+    jr      nz, wrchr23         ; Chars 2 or 3
+    bit     0,a                 ; Test we are char 0 or 1
+    jr      nz, wrchr1          ; Char 1
+
+wrchr0:                         ; Write char 0 in the block
+    ld      a,(hl)              ; char is split across 2 bytes so byte 0
+    and     &03                 ; mask out space for new char
+    ld      c,a                 ; save in c
+    ld      a, (de)             ; Get char definition
+    sla     a                   ; Shift left 2
+    sla     a
+    or      c                   ; bring in next char in bottom 2 bits
+    ld      (hl),a              ; store on screen
+    inc     h                   ; next pixel line down
+    inc     de
+    djnz    wrchr0
+    ret
+
+wrchr1:                         ; write char 1 in the block
+    ld      a,(hl)              ; first byte bottom 2 bits are high 2 bits of char
+    and     &fc                 ; mask out those bits
+    ld      c,a
+    ld      a, (de)             ; char definition
+    srl     a                   ; shift right 4 so we have just the top 2 bits
+    srl     a
+    srl     a
+    srl     a
+    or      c
+    ld      (hl),a              ; Update screen
+
+    inc     l                   ; now for byte 1
+    ld      a,(hl)
+    and     &0f                 ; mask out space for new char
+    ld      c,a                 ; save in c
+    ld      a, (de)             ; Get char definition
+    sla     a                   ; Shift left 4
+    sla     a
+    sla     a
+    sla     a
+    or      c                   ; bring in next char in bottom 4 bits
+    ld      (hl),a              ; store on screen
+    dec     l                   ; restore l for next row
+
+    inc     h
+    inc     de
+    djnz    wrchr1
+    ret
+
+wrchr23:                        ; See if we are char 2 or 3
+    bit     0,a
+    jr      nz, wrchr3          ; Char 3
+
+wrchr2:                         ; write char 2 in the block
+    inc     l                   ; Starts in byte 1
+wrchr21:
+    ld      a,(hl)              ; second byte bottom 4 bits are high 4 bits of char
+    and     &f0                 ; mask out those bits
+    ld      c,a
+    ld      a, (de)             ; char definition
+    srl     a                   ; shift right 2 so we have just the top 4 bits
+    srl     a
+    or      c
+    ld      (hl),a              ; Update screen
+
+    inc     l                   ; now for byte 1
+    ld      a,(hl)
+    and     &3f                 ; mask out space for new char
+    ld      c,a                 ; save in c
+    ld      a, (de)             ; Get char definition
+    sla     a                   ; Shift left 6
+    sla     a
+    sla     a
+    sla     a
+    sla     a
+    sla     a
+    or      c                   ; bring in next char in bottom 4 bits
+    ld      (hl),a              ; store on screen
+    dec     l                   ; restore l for next row
+
+    inc     h
+    inc     de
+    djnz    wrchr21
+    ret
+
+wrchr3:                         ; Write char 3 in the block
+    inc     l                   ; Work on byte 2 only
+    inc     l
+wrchr31:
+    ld      a, (hl)
+    and     &c0                 ; mask out space for new char
+    ld      c,a                 ; save in c
+    ld      a, (de)             ; char definition
+    or      c                   ; bring in prev char in top 2 bits
+    ld      (hl),a              ; store on screen
+    inc     h                   ; next pixel line down
+    inc     de
+    djnz    wrchr31
+    ret
+
+testText:
+    ld      bc, &0400           ; Start at 8,0
+    call    setPos
+    ld      a, 32               ; Set A to 32 (space)
+testText1:
+    call    oswrch              ; write char
+    inc     a
+    bit     7,a
+    jr      z, testText1        ; Loop until we hit 128
+    ret
+
 oswrch:
     push    af
     push    de
@@ -98,14 +214,15 @@ oswrch:
     call    getCharDef          ; get char def for char in a
     ld      de, hl              ; set de to char pos
 
-    ld      bc,(vCharPos)       ; bc = vCharPos (row,col) in spectrum coordinates
-    call    getSpectrumCharPos  ; returns hl = screen address
+    ;ld      bc,(vCharPos)       ; bc = vCharPos (row,col) in spectrum coordinates
+    ;call    getSpectrumCharPos  ; returns hl = screen address
+    call    wrchr
 
-    call    PR_ALL              ; 8x8 print
+    ;call    PR_ALL              ; 8x8 print
 
     ld      bc, (vCharPos)      ; inc x
     inc     c
-    ld      a, 32
+    ld      a, 40
     cp      c
     jr      nz, oswrch0         ; stop if not 32
     ld      c, 0
