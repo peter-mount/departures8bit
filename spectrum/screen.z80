@@ -24,6 +24,10 @@ clearScreen:
     ld      bc, 32*24-1         ; Bytes to copy
     ldir
 
+    ld      a,0                 ; Set border to black
+    ld      (&5C48),a           ; set OS copy of colour
+    out     (&fe),a             ; set hardware colour
+
 homeCursor:                     ; Home cursor to 0,0
     ld      bc, 0
 
