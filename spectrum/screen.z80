@@ -11,8 +11,10 @@ vCharTemp:      defw 0,0,0,0        ; 8 bytes to hold generated characters
 vCharDouble:    defw 0,0,0,0        ; 8 bytes to hold double height
 vduBuffCmd:     defb 0              ; Byte invoking vduBuffer
 vduBuffPos:     defb 0              ; Position in vduBuffer, 0=empty
-vduBuffer:      defw 0,0,0,0,0      ; 10 byte buffer for vdu sequences
+vduBuffer:      defw 0,0,0,0        ; 9 byte buffer for vdu sequences
+                defb 0              ; 9 is the max possible sequence
 tempCol:        defb 0              ; colour in refreshLineColour
+
 vStatus:        defb 0              ; Status register
 sDoubleHeight   equ 0               ; bit 0 true if double height text, false normal text
 sGraphics       equ 1               ; bit 1 true if graphics mode, false text
@@ -33,11 +35,10 @@ clearScreen:
     ld      bc, 32*24-1         ; Bytes to copy
     ldir
 
-    ld      a,0                 ; Set border to black
+    sub     a                   ; Set border to black       sub a = ld a,0 but 1 byte shorter
     ld      (&5C48),a           ; set OS copy of colour
     out     (&fe),a             ; set hardware colour
 
-    ld      a,0                 ; reset state
     ld      (vduBuffPos),a      ; vdu buffer empty
     ld      (vStatus),a         ; status
 
@@ -47,6 +48,8 @@ clearScreen:
     ld      bc, 40*24-1
     ldir
 
+; Sets the cursor to home at 0,0
+; Used by vduTable for VDU 30
 teletextHome:                   ; Home cursor to 0,0
     ld      bc, 0
 
@@ -90,7 +93,7 @@ getTextScreenPos:
 ;   BC      B=0, C unchanged
 calcLineStartAddr:                  ; BC=pos, HL=start addr, DE=row size
     ld      a,b                     ; check we are not on top row
-    cp      0
+    or      a                       ; faster than: cp 0
     ret     z                       ; HL is already correct for row 0
 calcLineStartAddr1:
     add     hl,de
@@ -290,12 +293,9 @@ getCharDef:                 ; Set's HL to be the character definition in A
     sub     32              ; char set starts with space
     ld      l,a             ; Set L to A
     ld      h,0             ; Clear H
-    sla     l               ; Shift left 3 times so hl = a*8
-    rl      h
-    sla     l
-    rl      h
-    sla     l
-    rl      h
+    add     hl,hl           ; Shift left 3 times so hl = a*8
+    add     hl,hl           ; this is 15 t-states faster & 9 bytes shorter than using
+    add     hl,hl           ; sla l; rl h
     ld      bc, charset     ; Add charset base
     add     hl, bc
     ret
@@ -497,7 +497,7 @@ oswrch:
 oswrch0:
     push    af                  ; save a
     ld      a,(vduBuffPos)      ; Check buffer size
-    cp      0
+    or      a                   ; faster than: cp 0
     jr      nz, oswrch01        ; queue char if still waiting for content
     pop     af                  ; restore a
 
@@ -520,7 +520,7 @@ oswrch0:
     ld      l,a
 
     ld      a,h                 ; Check for h=0 which indicates a length
-    cp      0                   ; & not a handler address
+    or      a                   ; & not a handler address = cp 0 but faster
     jr      z, oswrch00         ; jump to enqueue
     jp      (hl)                ; Call handler
 
@@ -541,7 +541,7 @@ oswrch01:                       ; we need to store the data in the vdu buffer
     ld      (hl),a              ; store char in buffer
 
     ld      a,(vduBuffPos)      ; check buffer complete
-    cp      0
+    or      a                   ; faster than: cp 0
     ret     nz                  ; buffer not complete
 
     ld      a,(vduBuffCmd)      ; check command
@@ -569,8 +569,8 @@ setPosState:                    ; entry point to set vCharPos to BC & update vSt
     ld      (vStatus),a         ; reset state before
 
     ld      a, (vCharPosX)      ; Position in line
-    cp      0                   ; At start of line then nothing more to do
-    ret     z
+    or      a                   ; faster than: cp 0
+    ret     z                   ; At start of line then nothing more to do
 
     push    af                  ; save pos in line
     call    getTextScreenPos    ; HL = textScreenPos for start of line
@@ -655,10 +655,10 @@ teletextUp0:
 ; inside that sequence
 writeString:
     ld      a, (hl)             ; Get char
-    cp      0
+    or      a                   ; faster than: cp 0
     jr      nz, writeString0    ; Not null so do nothing
     ld      a, (vduBuffPos)     ; Check queue size
-    cp      0
+    or      a                   ; faster than: cp 0
     ret     z                   ; queue is empty so exit
     ld      a, 0                ; we want the null in the stream
 writeString0:
