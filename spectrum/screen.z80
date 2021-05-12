@@ -5,10 +5,14 @@
 vCharPos:                       ; row, col coordinates in our 40x24 screen
 vCharPosX:  defb 0              ; column
 vCharPosY:  defb 0              ; row
+vTextPos:   defw 0              ; position of vCharPos in textScreen
+vAttrPos:   defw 0              ; position of vCharPos in attr_start
 vCharTemp:  defw 0,0,0,0        ; 8 bytes to hold generated characters, e.g. graphics or double height
 vduBuffCmd: defb 0              ; Byte invoking vduBuffer
 vduBuffPos: defb 0              ; Position in vduBuffer, 0=empty
 vduBuffer:  defw 0,0,0,0,0      ; 10 byte buffer for vdu sequences
+tempCol:    defb 0              ; colour in refreshLineColour
+textScreen  equ  &ba00          ; 1K for text screen
 
 clearScreen:
     ld      hl,&4000            ; Start of screen memory
@@ -30,11 +34,110 @@ clearScreen:
     ld      a,0                 ; reset state
     ld      (vduBuffPos),a
 
+    ld      hl, textScreen      ; Clear text screen
+    ld      (hl), 32            ; with spaces
+    ld      de, textScreen+1
+    ld      bc, 40*24-1
+    ldir
+
 teletextHome:                   ; Home cursor to 0,0
     ld      bc, 0
 
-setPos:                         ; Set cursor to bc (row, col)
-    ld      (vCharPos),bc       ; Store in vCharPos
+setPos:                             ; Set cursor to bc (row, col)
+    ld      (vCharPos),bc           ; Store in vCharPos
+    call    getTextScreenPos0
+    add     hl,bc                   ; b is 0 now so just add c to get column
+    ld      (vTextPos),hl           ; Store hl
+    ret
+
+; Set HL to be the address in attr_start of the start of the current line.
+getVattrPos:
+    ld      bc,(vCharPos)           ; Get text pos
+    ld      hl, attr_start          ; Calculate pos on screen
+    ld      de, 32                  ; row size
+    jr      calcLineStartAddr       ; Calculate line start
+
+; Set HL to be the address in textScreen of the start of the current line.
+getTextScreenPos:
+    ld      bc,(vCharPos)           ; Get text pos
+getTextScreenPos0:                  ; entry point for setPos as bc already set
+    ld      hl, textScreen          ; Calculate pos on screen
+    ld      de, 40                  ; row size
+; Calculate line start address
+; Entry:
+;   BC      position of char B=row, C=column (unused)
+;   HL      screen start address
+;   DE      row length
+; Exit:
+;   HL      address of start of line
+;   DE      unchanged
+;   BC      B=0, C unchanged
+calcLineStartAddr:                  ; BC=pos, HL=start addr, DE=row size
+    ld      b,a                     ; check we are not on top row
+    cp      0
+    ret     z                       ; skip rows
+calcLineStartAddr1:
+    add     hl,de
+    djnz    calcLineStartAddr1      ; add 40 for each row
+    ret
+
+attrOffsets:    ; offsets of attribute for each 40x char in a 32x array
+    ; for i in $(seq 0 39);do printf "%d," $((i*3/4));done
+    defb    0,0,1,2,3,3,4,5,6,6,7,8,9,9
+    defb    10,11,12,12,13,14,15,15,16
+    defb    17,18,18,19,20,21,21,22,23
+    defb    24,24,25,26,27,27,28,29
+; Refreshes the colours for the current line
+refreshLineColour:
+    call    getVattrPos             ; HL = start of line in attributes
+    ld      (vAttrPos),hl           ; set vAttrPos
+
+    call    getTextScreenPos        ; HL = textScreenPos for start of line
+
+    ld      a, &07                  ; default colour
+    ld      (tempCol),a
+
+    ld      b,40                    ; 40 chars to scan
+    ld      c,0                     ; column in line
+rlc1:
+    ld      a,(hl)                  ; Char to check
+    cp      128
+    jr      nc, rlc2
+    ;bit     7,a
+    ;jr      nz, rlc2
+    cp      160                     ; 160+ are graphics
+    jr      nc, rlc2                ; so skip
+    and     &0f                     ; lower nibble of command
+    cp      8                       ; >=8 ignore
+    jr      nc, rlc2
+    ld      a,d                     ; save
+    ld      a,(tempCol)
+    and     &f8                     ; mask out text colour
+    or      d                       ; mask in new colour
+    ld      (tempCol),a              ; set new colour
+
+rlc2:
+    push    hl                      ; Save HL & BC
+    push    bc
+
+    ld      b,0                     ; HL = attrOffsets + C
+    ld      hl,attrOffsets
+    add     hl,bc
+
+    ld      a,(hl)                  ; Get true byte offset of attribute
+    ld      c,a
+
+    ld      hl,(vAttrPos)           ; HL = attr at start of line
+    add     hl,bc                   ; Add offset
+    ld      a,(tempCol)             ; set colour
+    ld      (hl),a
+
+    pop     bc                      ; restore bc & hl
+    pop     hl
+
+    inc     hl                      ; next char
+    inc     c
+    djnz    rlc1                    ; loop until end of line
     ret
 
 ; Calculates the actual bitmap address for a character in BC (row,col) into HL.
@@ -53,6 +156,11 @@ setPos:                         ; Set cursor to bc (row, col)
 ; That would then be the top byte of the character. To get the next byte just increment the high byte
 ; (e.g. n=1) & so on.
 ;
+; Entry:
+;   BC      b=row, c=col in Spectrum 32x24 characters
+; Exit:
+;   HL      address of top row if character definition in screen
+;   BC      unchanged
 getSpectrumCharPos:             ; Get Spectrum char pos (bc) into HL for physical screen address
     ld      a, b                ; first calculate high byte - get row
     and     &18                 ; Mask bits 4 & 5 from row
@@ -72,6 +180,13 @@ getSpectrumCharPos:             ; Get Spectrum char pos (bc) into HL for physica
     ret
 
 ; Given an ascii char 32..127 in A return the address of the bitmap definition for that character in HL
+;
+; Entry:
+;   A   Ascii char to retrieve, in range 32..127 inclusive
+; Exit:
+;   HL  Address of char definition
+;   A   undefined
+;   BC  undefined
 getCharDef:                 ; Set's HL to be the character definition in A
     sub     32              ; char set starts with space
     ld      l,a             ; Set L to A
@@ -86,9 +201,38 @@ getCharDef:                 ; Set's HL to be the character definition in A
     add     hl, bc
     ret
 
+; move cursor back 1 character & delete it
+teletextDelete:
+    call    teletextBackward        ; move back 1 char
+    ld      a,32                    ; replace char under cursor with space
+    ld      hl,(vTextPos)           ; in the textScreen
+    ld      (hl),a                  ; fall through to wrcharA
+
+; With a ascii character in A, write the character at position vCharPos (40x24)
+; handling any conversion to the Spectrum's 32x24 screen
+;
+; Entry:
+;   A       Ascii char to write, in range 32..127 inclusive
+; Exit:
+;   A       undefined
+;   BC      undefined
+;   DE      undefined
+;   HL      undefined
+wrcharA:
+    call    getCharDef          ; get char def for char in a
+    ld      de, hl              ; set de to char pos
+
 ; With a character definition in DE, write the character at position vCharPos (40x24)
 ; handling any conversion to the Spectrum's 32x24 screen
-wrchr:
+;
+; Entry:
+;   DE      char definition to write
+; Exit:
+;   A       undefined
+;   BC      undefined
+;   DE      undefined
+;   HL      undefined
+wrchrDE:
     ld      bc, (vCharPos)      ; Get char position in 40x24 coordinates
     srl     c                   ; Divide column by 4
     srl     c
@@ -201,6 +345,15 @@ wrchr31:
     djnz    wrchr31
     ret
 
+; Write character to screen at current pos, advancing cursor as required & handling BBC VDU sequences
+;
+; Entry:
+;   A       Character to write
+; Exit:
+;   A       Unchanged
+;   BC      Unchanged
+;   DE      Unchanged
+;   HL      Unchanged
 oswrch:
     push    af
     push    de
@@ -215,13 +368,13 @@ oswrch:
 
 oswrch0:
     push    af                  ; save a
-    ld      a,(vduBuffPos)      ; Check queue size
+    ld      a,(vduBuffPos)      ; Check buffer size
     cp      0
-    jr      nz, oswrch01        ; queue char if still waiting
+    jr      nz, oswrch01        ; queue char if still waiting for content
     pop     af                  ; restore a
 
-    cp      32
-    jr      nc, oswrch1
+    cp      32                  ; Check for control codes 0..31
+    jr      nc, oswrch1         ; no then treat as text
 
     ld      (vduBuffCmd),a      ; store command
     sla     a                   ; Get address from vduTable
@@ -235,25 +388,26 @@ oswrch0:
     ld      h,(hl)
     ld      l,a
 
-    ld      a,h                 ; Check for h=0
-    cp      0
+    ld      a,h                 ; Check for h=0 which indicates a length
+    cp      0                   ; & not a handler address
     jr      z, oswrch00         ; jump to enqueue
     jp      (hl)                ; Call handler
 
 oswrch00:                       ; we have bytes to store
     ld      a,l                 ; so store L in vduBuffPos
     ld      (vduBuffPos),a      ; then next L bytes will be stored in the buffer
+nop:                            ; used in vduTable for a NOP
     ret
 
-oswrch01:
-    dec     a                   ; decrement a
-    ld      (vduBuffPos),a
+oswrch01:                       ; we need to store the data in the vdu buffer
+    dec     a                   ; decrement a which is already set to the buffer size
+    ld      (vduBuffPos),a      ; store new position
     ld      h,0                 ; queue char in buffer at position a
     ld      l,a
     ld      de,vduBuffer
     add     hl,de
     pop     af                  ; restore char being written
-    ld      (hl),a              ; store char
+    ld      (hl),a              ; store char in buffer
 
     ld      a,(vduBuffPos)      ; check buffer complete
     cp      0
@@ -261,21 +415,26 @@ oswrch01:
 
     ld      a,(vduBuffCmd)      ; check command
     cp      31                  ; We actually only implement 31
-    ret     nz                  ; all others do nothing in Mode7
+    ret     nz                  ; all others do nothing in BBC Mode7
     ld      bc, (vduBuffer)     ; Fetch address
     ld      a,c                 ; The buffer is in reverse so we need
     ld      c,b                 ; to swap b & c to get the correct values
     ld      b,a                 ; for row & column
     jp      setPos              ; Set cursor position
 
-oswrch1:
+oswrch1:                        ; Handle text codes
+    cp      127                 ; Check for delete
+    jp      z, teletextDelete
+
+    ld      hl,(vTextPos)       ; store char in textScreen
+    ld      (hl),a
+
     bit     7,a                 ; teletext control char
     jr      z,oswrch2           ; valid ascii
-    ld      a,32                ; replace with space
+    call    refreshLineColour   ; refresh colours on this line
+    ld      a,32                ; replace with space for rendering
 oswrch2:
-    call    getCharDef          ; get char def for char in a
-    ld      de, hl              ; set de to char pos
-    call    wrchr               ; write char to current position
+    call    wrcharA             ; write char to current position
 
 ; move cursor right 1 char handling wrapping
 teletextForward:
@@ -283,7 +442,7 @@ teletextForward:
     inc     c
     ld      a, 40
     cp      c
-    jr      nz, teletextForward0    ; stop if not 32
+    jp      nz, setPos              ; stop if not 32
     ld      c, 0                    ; Start new line
     jr      teletextDown0
 
@@ -294,34 +453,30 @@ teletextDown0:
     inc     b
     ld      a, 24
     cp      b
-    jr      nz, teletextForward0    ; still on screen
-    ld      bc, 0                   ; home cursor
-teletextForward0:
-    ld      (vCharPos), bc          ; Store new pos
-nop:                                ; used in vdu table
-    ret
+    jp      nz, setPos              ; still on screen
+    jp      teletextHome            ; home cursor
 
 teletextStartLine:
-    ld      a,0                     ; Set column to 0, start of current line
-    ld      (vCharPosX),a
-    ret
+    ld      bc,(vCharPos)           ; Set column to 0, start of current line
+    ld      c,0
+    jp      setPos
 
 ; move cursor left 1 character, handling wrapping to prev line
 teletextBackward:
     ld      bc, (vCharPos)
     dec     c                       ; up 1 line
-    jp      p, teletextForward0     ; Positive so store & exit
+    jp      p, setPos               ; Positive so store & exit
     ld      c, 39                   ; Wrap to end of prev line
-    jr      teletextUp
+    jr      teletextUp0
 
 ; move cursor up 1 line, handling wrapping to bottom
 teletextUp:
     ld      bc, (vCharPos)
 teletextUp0:
     dec     b
-    jp      p, teletextForward0     ; Positive so store & exit
+    jp      p, setPos               ; Positive so store & exit
     ld      b, 23                   ; move to bottom line
-    jr      teletextForward0        ; store & exit
+    jp      setPos                  ; store & exit
 
 ; writeString writes the string at hl to the screen.
 ; The string is terminated by a 0 but if we have a vdu sequence then 0 is valid
@@ -339,6 +494,10 @@ writeString0:
     inc     hl                      ; next char
     jr      writeString             ; loop
 
+; Lookup table for handling BBC VDU codes.
+; Each entry represents a control character between 0 & 31.
+; It's either the address of a routine to handle it, or the number of
+; additional characters required before handling that sequence.
 vduTable:
     defw nop                ; 00 NUL does nothing
     defw 1                  ; 01 SOH Send next char to printer only
