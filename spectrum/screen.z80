@@ -45,7 +45,7 @@ teletextHome:                   ; Home cursor to 0,0
 
 setPos:                             ; Set cursor to bc (row, col)
     ld      (vCharPos),bc           ; Store in vCharPos
-    call    getTextScreenPos0
+    call    getTextScreenPos        ; HL = address of start of line
     add     hl,bc                   ; b is 0 now so just add c to get column
     ld      (vTextPos),hl           ; Store hl
     ret
@@ -60,7 +60,6 @@ getVattrPos:
 ; Set HL to be the address in textScreen of the start of the current line.
 getTextScreenPos:
     ld      bc,(vCharPos)           ; Get text pos
-getTextScreenPos0:                  ; entry point for setPos as bc already set
     ld      hl, textScreen          ; Calculate pos on screen
     ld      de, 40                  ; row size
 ; Calculate line start address
@@ -73,9 +72,9 @@ getTextScreenPos0:                  ; entry point for setPos as bc already set
 ;   DE      unchanged
 ;   BC      B=0, C unchanged
 calcLineStartAddr:                  ; BC=pos, HL=start addr, DE=row size
-    ld      b,a                     ; check we are not on top row
+    ld      a,b                     ; check we are not on top row
     cp      0
-    ret     z                       ; skip rows
+    ret     z                       ; HL is already correct for row 0
 calcLineStartAddr1:
     add     hl,de
     djnz    calcLineStartAddr1      ; add 40 for each row
@@ -101,21 +100,50 @@ refreshLineColour:
     ld      c,0                     ; column in line
 rlc1:
     ld      a,(hl)                  ; Char to check
-    cp      128
-    jr      nc, rlc2
-    ;bit     7,a
-    ;jr      nz, rlc2
+    bit     7,a
+    jr      z, rlc2                 ; skip as plain text
+
     cp      160                     ; 160+ are graphics
-    jr      nc, rlc2                ; so skip
+    jp      p, rlc2                 ; so skip
+
+    cp      156                     ; 156 Black background
+    jr      nz, rlc1bb
+    ld      a, (tempCol)
+    and     &07                     ; mask text col, clearing background
+    jr      rlc1setcol
+
+rlc1bb:
+    cp      157                     ; New background
+    jr      nz, rlc1nb
+    ld      a, (tempCol)
+    and     &07                     ; mask text col
+    sla     a                       ; shift left 3
+    sla     a
+    sla     a
+    or      &07                     ; white text TODO check if ok
+    jr      rlc1setcol
+
+rlc1nb:
+
     and     &0f                     ; lower nibble of command
-    cp      8                       ; >=8 ignore
-    jr      nc, rlc2
-    ld      a,d                     ; save
+    cp      8                       ; >=8 ignore as colours are 0..7 only rest commands
+    jp      p, rlc2
+
+                                    ; convert BBC colour to spectrum colour. Easy as bits 210 -> 102
+    sla     a                       ; shift left 1 bit
+    bit     3,a                     ; new bit 2
+    jr      z,rlc1nb1               ; not set so bit 0 is correct
+    set     0,a                     ; set bit 0
+rlc1nb1:
+    res     3,a                     ; clear bit 3 as invalid
+
+    ld      d,a                     ; save in d
     ld      a,(tempCol)
     and     &f8                     ; mask out text colour
     or      d                       ; mask in new colour
-    ld      (tempCol),a              ; set new colour
 
+rlc1setcol:
+    ld      (tempCol),a             ; set new colour
 rlc2:
     push    hl                      ; Save HL & BC
     push    bc
@@ -373,8 +401,11 @@ oswrch0:
     jr      nz, oswrch01        ; queue char if still waiting for content
     pop     af                  ; restore a
 
+    bit     7,a
+    jp      nz, oswrchGraphic    ; graphics commands
+
     cp      32                  ; Check for control codes 0..31
-    jr      nc, oswrch1         ; no then treat as text
+    jp      nc, oswrch1         ; no then treat as text
 
     ld      (vduBuffCmd),a      ; store command
     sla     a                   ; Get address from vduTable
@@ -422,17 +453,21 @@ oswrch01:                       ; we need to store the data in the vdu buffer
     ld      b,a                 ; for row & column
     jp      setPos              ; Set cursor position
 
+oswrchGraphic:
+    ld      hl,(vTextPos)       ; store char in textScreen
+    ld      (hl),a
+
+    call    refreshLineColour   ; refresh colours on this line
+
+    ld      a, 32               ; replace with space for rendering
+    jr      oswrch2             ; render as a space
+
 oswrch1:                        ; Handle text codes
     cp      127                 ; Check for delete
     jp      z, teletextDelete
 
     ld      hl,(vTextPos)       ; store char in textScreen
     ld      (hl),a
-
-    bit     7,a                 ; teletext control char
-    jr      z,oswrch2           ; valid ascii
-    call    refreshLineColour   ; refresh colours on this line
-    ld      a,32                ; replace with space for rendering
 oswrch2:
     call    wrcharA             ; write char to current position
 

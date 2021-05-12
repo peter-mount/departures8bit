@@ -8,7 +8,7 @@ loop:   jr loop
 
 banner:
     defb 12, 30, 134, "departureboards.mobi", 13, 10
-    defb 132, 157, 135, 141, "      Live UK Departure Boards", 13, 10
-    defb 132, 157, 135, 141, "      Live UK Departure Boards"
+    defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
+    defb 132, 157, 135, 141, "     Live UK Departure Boards"
     defb 31, 0, 20
     defb 130, "Please wait whilst loading completes...", 0
