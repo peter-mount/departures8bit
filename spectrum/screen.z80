@@ -50,6 +50,16 @@ clearScreen:
 teletextHome:                   ; Home cursor to 0,0
     ld      bc, 0
 
+; Set cursor position to BC (row, col).
+; Note you should use oswrch with 31, col, row sequence instead, but if calling directly is
+; needed then in most cases setPosState is best as it updates vStatus as well.
+;
+; Entry:
+;   BC  New cursor position, B=row, C=column
+; Exit:
+;   BC  unchanged
+;   HL  undefined
+;
 setPos:                             ; Set cursor to bc (row, col)
     ld      (vCharPos),bc           ; Store in vCharPos
     call    getTextScreenPos        ; HL = address of start of line
@@ -174,9 +184,6 @@ rlc2:
     inc     c
     djnz    rlc1                    ; loop until end of line
     ret
-
-; Configures vState to be the state at the current character
-setupLineState:
 
 ; Updates state based on the current character
 ;
@@ -540,11 +547,44 @@ oswrch01:                       ; we need to store the data in the vdu buffer
     ld      a,(vduBuffCmd)      ; check command
     cp      31                  ; We actually only implement 31
     ret     nz                  ; all others do nothing in BBC Mode7
+
     ld      bc, (vduBuffer)     ; Fetch address
     ld      a,c                 ; The buffer is in reverse so we need
     ld      c,b                 ; to swap b & c to get the correct values
     ld      b,a                 ; for row & column
-    jp      setPos              ; Set cursor position
+
+; Set cursor position to BC (row, col) and update vState to that applicable for the new position.
+; Note you should use oswrch with 31, col, row sequence instead as that calls this routine internally.
+;
+; Entry:
+;   BC  New cursor position, B=row, C=column
+; Exit:
+;   BC  undefined
+;   HL  undefined
+;
+setPosState:                    ; entry point to set vCharPos to BC & update vState
+    call    setPos              ; Set cursor position
+
+    ld      a, 0                ; Refreshes vStatus to the new cursor position
+    ld      (vStatus),a         ; reset state before
+
+    ld      a, (vCharPosX)      ; Position in line
+    cp      0                   ; At start of line then nothing more to do
+    ret     z
+
+    push    af                  ; save pos in line
+    call    getTextScreenPos    ; HL = textScreenPos for start of line
+    pop     af
+    ld      b,a                 ; B = position in line
+
+oswrch011:
+    ld      a,(hl)              ; read char at position
+    push    bc                  ; save b
+    call    updateState         ; update state to that char
+    pop     bc
+    inc     hl                  ; next char
+    djnz    oswrch011           ; Loop until we hit current position
+    ret
 
 oswrchGraphic:                  ; Teletext control characters
     ld      hl,(vTextPos)       ; store char in textScreen
@@ -572,8 +612,8 @@ teletextForward:
     inc     c
     ld      a, 40
     cp      c
-    jp      nz, setPos              ; stop if not 32
-    ld      c, 0                    ; Start new line
+    jp      nz, setPos          ; stop if not end of line. Note setPos not setPosState as state is unchanged
+    ld      c, 0                ; Start new line
     jr      teletextDown0
 
 ; move cursor down 1 line, handling wrapping to top
@@ -583,22 +623,22 @@ teletextDown0:
     inc     b
     ld      a, 24
     cp      b
-    jp      nz, setPos              ; still on screen
-    jp      teletextHome            ; home cursor
+    jp      nz, setPosState     ; still on screen
+    jp      teletextHome        ; home cursor
 
 teletextStartLine:
     ld      a,0                 ; reset state as new line
     ld      (vStatus),a
     ld      bc,(vCharPos)       ; Set column to 0, start of current line
     ld      c,a
-    jp      setPos
+    jp      setPosState
 
 ; move cursor left 1 character, handling wrapping to prev line
 teletextBackward:
     ld      bc, (vCharPos)
-    dec     c                       ; up 1 line
-    jp      p, setPos               ; Positive so store & exit
-    ld      c, 39                   ; Wrap to end of prev line
+    dec     c                   ; up 1 line
+    jp      p, setPosState      ; Positive so store & exit
+    ld      c, 39               ; Wrap to end of prev line
     jr      teletextUp0
 
 ; move cursor up 1 line, handling wrapping to bottom
@@ -606,25 +646,25 @@ teletextUp:
     ld      bc, (vCharPos)
 teletextUp0:
     dec     b
-    jp      p, setPos               ; Positive so store & exit
-    ld      b, 23                   ; move to bottom line
-    jp      setPos                  ; store & exit
+    jp      p, setPosState      ; Positive so store & exit
+    ld      b, 23               ; move to bottom line
+    jp      setPosState         ; store & exit
 
 ; writeString writes the string at hl to the screen.
 ; The string is terminated by a 0 but if we have a vdu sequence then 0 is valid
 ; inside that sequence
 writeString:
-    ld      a, (hl)                 ; Get char
+    ld      a, (hl)             ; Get char
     cp      0
-    jr      nz, writeString0        ; Not null so do nothing
-    ld      a, (vduBuffPos)         ; Check queue size
+    jr      nz, writeString0    ; Not null so do nothing
+    ld      a, (vduBuffPos)     ; Check queue size
     cp      0
-    ret     z                       ; queue is empty so exit
-    ld      a, 0                    ; we want the null in the stream
+    ret     z                   ; queue is empty so exit
+    ld      a, 0                ; we want the null in the stream
 writeString0:
-    call    oswrch                  ; write character
-    inc     hl                      ; next char
-    jr      writeString             ; loop
+    call    oswrch              ; write character
+    inc     hl                  ; next char
+    jr      writeString         ; loop
 
 ; Lookup table for handling BBC VDU codes.
 ; Each entry represents a control character between 0 & 31.
