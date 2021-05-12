@@ -2,17 +2,23 @@
 ; Screen manipulation routines for the Spectrum
 ; ----------------------------------------------------------------------
 
-vCharPos:                       ; row, col coordinates in our 40x24 screen
-vCharPosX:  defb 0              ; column
-vCharPosY:  defb 0              ; row
-vTextPos:   defw 0              ; position of vCharPos in textScreen
-vAttrPos:   defw 0              ; position of vCharPos in attr_start
-vCharTemp:  defw 0,0,0,0        ; 8 bytes to hold generated characters, e.g. graphics or double height
-vduBuffCmd: defb 0              ; Byte invoking vduBuffer
-vduBuffPos: defb 0              ; Position in vduBuffer, 0=empty
-vduBuffer:  defw 0,0,0,0,0      ; 10 byte buffer for vdu sequences
-tempCol:    defb 0              ; colour in refreshLineColour
-textScreen  equ  &ba00          ; 1K for text screen
+vCharPos:                           ; row, col coordinates in our 40x24 screen
+vCharPosX:      defb 0              ; column
+vCharPosY:      defb 0              ; row
+vTextPos:       defw 0              ; position of vCharPos in textScreen
+vAttrPos:       defw 0              ; position of vCharPos in attr_start
+vCharTemp:      defw 0,0,0,0        ; 8 bytes to hold generated characters
+vCharDouble:    defw 0,0,0,0        ; 8 bytes to hold double height
+vduBuffCmd:     defb 0              ; Byte invoking vduBuffer
+vduBuffPos:     defb 0              ; Position in vduBuffer, 0=empty
+vduBuffer:      defw 0,0,0,0,0      ; 10 byte buffer for vdu sequences
+tempCol:        defb 0              ; colour in refreshLineColour
+vStatus:        defb 0              ; Status register
+sDoubleHeight   equ 0               ; bit 0 true if double height text, false normal text
+sGraphics       equ 1               ; bit 1 true if graphics mode, false text
+sSepGraphics    equ 2               ; bit 2 true if separated, false contiguous graphics
+
+textScreen      equ  code_end       ; 1K for text screen
 
 clearScreen:
     ld      hl,&4000            ; Start of screen memory
@@ -32,7 +38,8 @@ clearScreen:
     out     (&fe),a             ; set hardware colour
 
     ld      a,0                 ; reset state
-    ld      (vduBuffPos),a
+    ld      (vduBuffPos),a      ; vdu buffer empty
+    ld      (vStatus),a         ; status
 
     ld      hl, textScreen      ; Clear text screen
     ld      (hl), 32            ; with spaces
@@ -168,6 +175,63 @@ rlc2:
     djnz    rlc1                    ; loop until end of line
     ret
 
+; Configures vState to be the state at the current character
+setupLineState:
+
+; Updates state based on the current character
+;
+; Entry:
+;   A   Character
+updateState:
+    bit     7, a                        ; Do nothing for chars < 128
+    ret     z
+    cp      160                         ; Also ignore >160
+    ret     p
+
+    push    af                          ; Save af & bc during call
+    push    bc
+
+    ld      c,a                         ; Save a in c
+    ld      a, (vStatus)                ; ld b, (vStatus)
+    ld      b, a
+    ld      a,c                         ; restore a
+
+    cp      140                         ; Normal height
+    jr      nz, updateState0
+    res     sDoubleHeight, b
+    jr      updateStateChanged
+updateState0:
+    cp      141                         ; Double height
+    jr      nz, updateState1
+    set     sDoubleHeight, b
+    jr      updateStateChanged
+updateState1:
+    cp      153                         ; contiguous graphics
+    jr      nz, updateState2
+    res     sSepGraphics, b
+    jr      updateStateChanged
+updateState2:
+    cp      154                         ; separated graphics
+    jr      nz, updateState3
+    set     sSepGraphics, b
+    jr      updateStateChanged
+updateState3:                           ; colour codes define text or graphics mode
+    bit     3, a                        ; colours are 0..7 only in lower nibble
+    jr      z, updateStateUnchanged
+    bit     4, a                        ; we are a colour so bit 4 is graphics or text
+    jr      z, updateState4
+    set     sGraphics, b                ; enable graphics
+    jr      updateStateChanged
+updateState4:
+    res     sGraphics, b                ; enable text
+updateStateChanged:                     ; entry point when state changed
+    ld      a,b                         ; ld (vStatus),b
+    ld      (vStatus),a
+updateStateUnchanged:                   ; entry point for state unchanged
+    pop     bc                          ; restore af & bc
+    pop     af
+    ret
+
 ; Calculates the actual bitmap address for a character in BC (row,col) into HL.
 ;
 ; Although the memory map for the spectrum screen seems weird with it's layout,
@@ -261,6 +325,35 @@ wrcharA:
 ;   DE      undefined
 ;   HL      undefined
 wrchrDE:
+    ld      a, (vStatus)        ; Check for double height
+    bit     sDoubleHeight,a
+    jr      z, wrchrDE0         ; normal height so straight into wrchrDE
+
+    ld      hl, vCharDouble     ; Point to temp buffer
+
+    ld      a, (vCharPosY)      ; Determine if top (odd rows) or bottom (even rows)
+    bit     0, a                ; this isn't accurate for Teletext/Mode7 but suffices
+    jr      nz, wrchrDE1        ; & matches what I use in Teletext64
+
+    ld      bc, 4               ; Lower so add 4 bytes to de
+    ex      de, hl
+    add     hl, bc
+    ex      de, hl
+
+wrchrDE1:
+    ld      b, 4                ; 4 bytes to copy, total is 8 when doubled
+wrchrDE2:
+    ld      a,(de)              ; read byte
+    ld      (hl),a              ; store in buffer
+    inc     hl
+    ld      (hl),a              ; store in buffer
+    inc     hl
+    inc     de
+    djnz    wrchrDE2
+
+    ld      de, vCharDouble     ; Point de to vCharDouble & use it to render
+
+wrchrDE0:
     ld      bc, (vCharPos)      ; Get char position in 40x24 coordinates
     srl     c                   ; Divide column by 4
     srl     c
@@ -453,10 +546,11 @@ oswrch01:                       ; we need to store the data in the vdu buffer
     ld      b,a                 ; for row & column
     jp      setPos              ; Set cursor position
 
-oswrchGraphic:
+oswrchGraphic:                  ; Teletext control characters
     ld      hl,(vTextPos)       ; store char in textScreen
     ld      (hl),a
 
+    call    updateState         ; Update the line state to this char
     call    refreshLineColour   ; refresh colours on this line
 
     ld      a, 32               ; replace with space for rendering
@@ -468,7 +562,8 @@ oswrch1:                        ; Handle text codes
 
     ld      hl,(vTextPos)       ; store char in textScreen
     ld      (hl),a
-oswrch2:
+
+oswrch2:                        ; Render character
     call    wrcharA             ; write char to current position
 
 ; move cursor right 1 char handling wrapping
@@ -492,8 +587,10 @@ teletextDown0:
     jp      teletextHome            ; home cursor
 
 teletextStartLine:
-    ld      bc,(vCharPos)           ; Set column to 0, start of current line
-    ld      c,0
+    ld      a,0                 ; reset state as new line
+    ld      (vStatus),a
+    ld      bc,(vCharPos)       ; Set column to 0, start of current line
+    ld      c,a
     jp      setPos
 
 ; move cursor left 1 character, handling wrapping to prev line
