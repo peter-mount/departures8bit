@@ -605,10 +605,8 @@ oswrchGraphic:                  ; Teletext control characters
     ld      a, 32               ; replace with space for rendering
     jr      oswrch2             ; render as a space
 
-osGraphTab1:
+osGraphTab:
     defb    &00, &38, &07, &3F
-osGraphTab2:
-    defb    &00, &30, &06, &36
 
 osGraph1:
     sub     32                  ; remove 32 so graphics one continuous block
@@ -616,7 +614,7 @@ osGraph2:
     sub     160                 ; remove 160 so we have 64 possible options
     ld      c,a                 ; Save code in C
     ld      b,3                 ; counter for loop
-    ld      de, osGraphTab1     ; use contiguous set
+    ld      de, osGraphTab      ; use contiguous set
     ld      hl, vCharTemp       ; use temp buffer
     push    hl                  ; save for later
 
