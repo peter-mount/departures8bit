@@ -590,12 +590,82 @@ oswrchGraphic:                  ; Teletext control characters
     ld      hl,(vTextPos)       ; store char in textScreen
     ld      (hl),a
 
+    cp      224                 ; 224-255 graphics
+    jr      nc, osGraph1
+
+    cp      192                 ; 192-223 is upper case
+    jr      nc, oswrch1a
+
+    cp      160                 ; 160-191 graphics
+    jr      nc, osGraph2
+
     call    updateState         ; Update the line state to this char
     call    refreshLineColour   ; refresh colours on this line
 
     ld      a, 32               ; replace with space for rendering
     jr      oswrch2             ; render as a space
 
+osGraphTab1:
+    defb    &00, &38, &07, &3F
+osGraphTab2:
+    defb    &00, &30, &06, &36
+
+osGraph1:
+    sub     32                  ; remove 32 so graphics one continuous block
+osGraph2:
+    sub     160                 ; remove 160 so we have 64 possible options
+    ld      c,a                 ; Save code in C
+    ld      b,3                 ; counter for loop
+    ld      de, osGraphTab1     ; use contiguous set
+    ld      hl, vCharTemp       ; use temp buffer
+    push    hl                  ; save for later
+
+osGraph3:
+    push    hl                  ; form pixel data
+    ld      a,c
+    and     &03
+    ld      l,a
+    ld      h,0
+    add     hl,de
+    ld      a,(hl)
+    pop     hl
+
+    ld      (hl),a              ; copy bytes
+    inc     hl
+    ld      (hl),a
+    inc     hl
+    ld      (hl),a
+    inc     hl
+
+    rr      c                   ; next 2 bits
+    rr      c
+    djnz osGraph3
+
+    ld      a,(vStatus)         ; Check for separated graphics
+    bit     sSepGraphics,a
+    jr      z, osGraph5         ; Skip to render as contiguous
+
+    sub     a                   ; ld a,0
+    ld      (vCharTemp+2),a     ; clear horizontal blocks
+    ld      (vCharTemp+5),a
+    ld      (vCharTemp+7),a
+    pop     hl                  ; get copy of vCharTemp
+    push    hl
+    ld      b, 7                ; and 7 bytes (8th is already 0)
+osGraph4:
+    ld      a,(hl)
+    and     &36                 ; Mask out bits 0 & 3
+    ld      (hl),a
+    inc     hl
+    djnz    osGraph4
+
+osGraph5:
+    pop     de                  ; get vCharTemp into de
+    call    wrchrDE             ; render it
+    jr      teletextForward     ; move cursor forward
+
+oswrch1a:                       ; called for A between 192..223 inclusive
+    and     &7f                 ; clear bit 8 & treat as normal uppercase text
 oswrch1:                        ; Handle text codes
     cp      127                 ; Check for delete
     jp      z, teletextDelete

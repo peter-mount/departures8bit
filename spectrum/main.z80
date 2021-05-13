@@ -4,6 +4,10 @@
         ;call    clearScreen         ; clear screen to black
         ld      hl, banner          ; banner text
         call    writeString
+
+        ld      hl, testCard
+        call    writeString
+
 loop:   jr loop
 
 banner:
@@ -12,3 +16,53 @@ banner:
     defb 132, 157, 135, 141, "     Live UK Departure Boards"
     defb 31, 0, 20
     defb 130, "Please wait whilst loading completes...", 0
+    
+    
+testCard:
+    defb 12
+    ; Each line must be 40 bytes long
+    ; A usual thing in teletext, a status line & double height text as a banner
+    defb 134, "Project Area51",31,34,0,130,"v0.01"
+    defb 132, 157, 135, 141, 31,10,1,"Teletext ZX Spectrum",13,10
+    defb 132, 157, 135, 141, 31,10,2,"Teletext ZX Spectrum",13,10
+    defb 10
+    ; Text colour control codes for reference
+    defb "  128  129  130  131  132  133  134  135"
+    defb "   80   81   82   83   84   85   86   87"
+    defb 10
+    ; Test setting text colours
+    defb 135,157,128,"Bk  ",156, 129," Rd",130," Gn ",131," Yl ",132," Bl ",133," Mg ",134," Cn ",135,"Wh"
+    defb 10
+    ; Test setting background colours
+    defb 129,157,134,"Rd ",130,157,133,"Gn ",131,157,132,"Yl",132,157,131,"Bl ",133,157,130,"Mg",134,157,129,"Cn ",135,157,128,"Wh "
+    defb 10
+    ; Test 156 Black background after showing a different background colour
+    defb 132,157," Blue Background  ",156," Black Background  "
+    defb 10
+    defb "    ",129,"2 lines of solid graphics          "
+    defb "   ", 32, 151
+    defb 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175
+    defb 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 13,10
+    defb "  ", 32, 151, 234 ; 1 line strike through text
+    defb 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207
+    defb 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 181, 13,10
+    defb "   ", 32, 151
+    defb 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239
+    defb 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 13,10
+    defb 10
+    defb "    ",129,"2 lines of separated graphics      "
+    defb "  ", 32, 151, 154
+    defb 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175
+    defb 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 13,10
+    defb " ", 32, 151, 154, 234 ; 1 line strike through text
+    defb 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207
+    defb 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 181, 13,10
+    defb "  ", 32, 151, 154
+    defb 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239
+    defb 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 13,10
+    defb 10
+    ;defb "                                        "
+    ; Bottom "status" line, used for fast text nav etc.
+    ; Here a (C) on bottom left & url on right to test we
+    ; show the bottom of the screen correctly
+    defb "(C) 2021 Peter Mount          Area51.dev"
