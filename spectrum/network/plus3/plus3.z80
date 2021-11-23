@@ -1,0 +1,13 @@
+; ----------------------------------------------------------------------
+; Plus 3 RS232 routines
+; ----------------------------------------------------------------------
+
+BAUD        defw 54     ; Default speed: 2400 baud
+SERFL       defw 0      ; flag + data byte about an eventual 2nd character already transmitted
+
+; Temp hooks until implemented
+p3Init:     ret
+p3Close:    ret
+p3Put:      ret
+
+#include "get.z80"

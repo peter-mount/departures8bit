@@ -39,6 +39,7 @@ export COPYRIGHT 		= $(shell date "+%Y")
 all:
 	$(MKDIR) -pv $(BUILDS) $(BUILDS_C64) $(BUILDS_BBC)
 	@$(MAKE) -C teletext all
+	@$(MAKE) -C teletextspectrum all
 	@$(MAKE) -C network all
 	@$(MAKE) -C boards all
 	@$(MAKE) -C c64 all
@@ -49,6 +50,7 @@ all:
 
 clean:
 	@$(MAKE) -C teletext clean
+	@$(MAKE) -C teletextspectrum clean
 	@$(MAKE) -C network clean
 	@$(MAKE) -C boards clean
 	@$(MAKE) -C c64 clean
@@ -63,4 +65,6 @@ testc64: clean all
 
 # Requires fuse-emulator, runs the built tap file
 testspectrum: all
-	fuse -m plus3 -g 2x --no-confirm-actions --tape spectrum/teletext.tap
+	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus3 -t spectrum/departures.tzx
+
+#fuse -m plus3 -g 2x --no-confirm-actions --tape spectrum/teletext.tap

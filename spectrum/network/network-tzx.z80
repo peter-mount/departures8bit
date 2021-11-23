@@ -1,0 +1,13 @@
+; tzx tape loader
+#target tzx
+
+; loader.z80 containing the unified loader
+#code network,0,17,0
+        defb    3                       ; Indicates binary data
+        defb    "Networking"            ; the block name, 10 bytes long
+        defw    networkend-0xF000         ; length of data block which follows
+        defw    init                    ; default location for the data
+        defw    0                       ; unused
+#code networkdata, 0xF000,*,0xff
+#include "network.z80"
+networkend:

@@ -1,0 +1,12 @@
+#target tzx
+
+#code splash,0,17,0
+        defb    3                       ; Indicates binary data
+        defb    "Splash Scr"            ; the block name, 10 bytes long
+        defw    splashend-0xFB00        ; length of data block which follows
+        defw    0xFB00                  ; default location for the data
+        defw    0                       ; unused
+
+#code splashdata, 0xFB00,*,0xff
+#include "splash.z80"
+splashend:

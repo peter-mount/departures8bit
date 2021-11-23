@@ -1,0 +1,27 @@
+; ----------------------------------------------------------------------
+; Manifest
+;
+; Create this file on your own disk and each filename contained inside
+; it will be loaded from disk in sequence
+;
+; Each file is terminated with 0xFF. An empty file name (or 0xFFFF)
+; terminates the list.
+;
+; For each file loaded:
+;
+; if it's load address is below 0x5D00 then nothing will be done post
+; load - e.g. it's a screenshot.
+;
+; If it's 0xFB00 then the teletextRefresh method is called as it's
+; a static page that needs rendering.
+;
+; All other files will be invoked at their start address
+;
+; ----------------------------------------------------------------------
+
+    ORG     0x6200
+    defb    "TELETEXT", 0xFF    ; Must be first
+    defb    "splash", 0xFF      ; Example splash screen
+    defb    "network", 0xFF     ; Loads the networking
+    defb    "main", 0xFF        ; The main application
+    defb    0xFF                ; Terminate list

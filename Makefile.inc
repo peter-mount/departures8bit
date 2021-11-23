@@ -15,6 +15,16 @@
 	@$(C1541) -format $(shell basename $@),8 d64 $@
 	@$(foreach file, $^, $(C1541) -attach $@ -write $(file) $(shell basename $(file) .prg|cut -f1 -d'_');)
 
+# Spectrum rules
+# ROM - just the code
+%.rom: %.z80
+	$(ZASM) $<
+
 # Spectrum TAP tape format
 %.tap: %.z80
 	$(ZASM) $<
+
+# Spectrum TAP tape format
+%.tzx: %.z80
+	$(ZASM) $<
+

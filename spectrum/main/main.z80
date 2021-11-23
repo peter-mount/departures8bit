@@ -1,0 +1,21 @@
+; ----------------------------------------------------------------------
+; The main application
+; ----------------------------------------------------------------------
+
+#include "../../teletextspectrum/teletext.inc"
+
+        ORG     0x7000
+
+main:   LD      HL, banner          ; banner text
+        CALL    writeString
+
+l1:     JR      l1
+
+banner: defb 12, 30, 134, "departureboards.mobi", 13, 10
+        defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
+        defb 132, 157, 135, 141, "     Live UK Departure Boards"
+        defb 31, 0, 4, 135, "C  ", 130, "Connect to network"
+        defb 13, 10, 135, "S  ", 130, "Search for Station"
+        defb 13, 10, 135, "D  ", 130, "Display departures for station"
+        defb 0
+

@@ -1,0 +1,39 @@
+; ----------------------------------------------------------------------
+; Network module for ZX Spectrum
+;
+; This handles the RS232 communications
+; ----------------------------------------------------------------------
+
+; 0xF000-0xF3FF available
+            org     0xF000
+
+machineType     = 0xFF00    ; Loader sets this to the machine type
+
+; Vector table
+            jp init             ; network module startup
+                                ; 128K/plus3 vectors, default
+vtp3:       jp p3Close
+            jp p3Get
+            jp p3Put
+init1:      jp p3Init           ; Internal init vectir for +3 or IF1
+
+                                ; Interface1 vectors
+vt48:       jp if1Close         ; 48k matches layout of vtp3, will get
+            jp if1Get           ; copied over vtp3 on start to switch the
+            jp if1Put           ; code to use Interface 1
+            jp if1Init
+
+; ----------------------------------------------------------------------
+; Init Network module
+; ----------------------------------------------------------------------
+init:       ld      a, (machineType)    ; Check machine type
+            and     a
+            jr      nz, init1           ; init the 128K port
+            ld      hl, vt48            ; Copy interface 1 vectors over
+            ld      de, vtp3            ; the +3 ones so they are active
+            ld      bc, vt48-vtp3
+            ldir
+            jr      init1               ; init the IF1 port
+
+#include "plus3/plus3.z80"
+#include "if1/if1.z80"
