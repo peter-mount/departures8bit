@@ -28,6 +28,9 @@ manifest.rom: manifest.z80
 departures: network splash.rom manifest.rom main
 	cp ../teletextspectrum/teletext.dsk departures.dsk
 	specfile -dsk departures.dsk manifest.rom 0x6200 splash.rom 0xFB00 network/network.rom 0xF000 main/main.rom 0x7000
+	specfile -tzx departures1.tzx -tap departures1.tap splash.rom 0xFB00 network/network.rom 0xF000 main/main.rom 0x7000
+	cat ../teletextspectrum/tape/loader-tzx.tzx ../teletextspectrum/teletext-tzx.tzx departures1.tzx >departures.tzx
+	#cat ../teletextspectrum/tape/loader-tap.tap ../teletextspectrum/teletext-tap.tap departures1.tap >departures.tap
 
 #departures.tzx: network-tzx.tzx splash-tzx.tzx
 #	cat ../teletextspectrum/loader-tzx.tzx ../teletextspectrum/teletext-tzx.tzx splash-tzx.tzx network-tzx.tzx >departures.tzx

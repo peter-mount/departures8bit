@@ -64,7 +64,8 @@ testc64: clean all
 	x64sc -verbose -statusbar ./builds/depart.d64
 
 # Requires fuse-emulator, runs the built tap file
-testspectrum: all
-	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus3 -t spectrum/departures.tzx
+testspectrumtape: all
+	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus2 -t spectrum/departures.tzx
 
-#fuse -m plus3 -g 2x --no-confirm-actions --tape spectrum/teletext.tap
+testspectrumdisk: all
+	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus3 -t spectrum/departures.dsk
