@@ -58,6 +58,7 @@ clean:
 	@$(MAKE) -C spectrum clean
 	@$(MAKE) -C api clean
 	$(RM) -r $(BUILDS)
+	$(RM) fuse.rx fuse.tx
 
 # Requires Vice to run in an emulator
 testc64: clean all
@@ -69,3 +70,8 @@ testspectrumtape: all
 
 testspectrumdisk: all
 	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus3 -t spectrum/departures.dsk
+
+testspectrumif1: all
+	mkfifo fuse.tx
+	mkfifo fuse.rx
+	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m 48  --interface1 --rs232-tx fuse.tx --rs232-rx fuse.rx --no-rs232-handshake -t spectrum/departures.tzx

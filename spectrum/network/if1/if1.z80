@@ -3,7 +3,9 @@
 ; ----------------------------------------------------------------------
 
 ; stubs until written
-if1Init:
 if1Close:
-if1Get:
-if1Put:     ret
+
+#include "init.z80"
+#include "get.z80"
+#include "put.z80"
+
