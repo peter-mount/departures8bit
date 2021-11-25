@@ -1,15 +1,17 @@
 package api
 
 import (
-	"github.com/peter-mount/departures8bit/lang"
+	"context"
+	"github.com/peter-mount/departures8bit/api/command"
+	"github.com/peter-mount/departures8bit/api/record"
 	"github.com/peter-mount/go-kernel"
-	"github.com/peter-mount/nre-feeds/darwinref"
 	"log"
 	"strings"
 )
 
 type Boards struct {
-	server *TelnetServer
+	api    *ApiCore
+	server *command.Server
 }
 
 func (h *Boards) Name() string {
@@ -17,56 +19,70 @@ func (h *Boards) Name() string {
 }
 
 func (h *Boards) Init(k *kernel.Kernel) error {
-	svce, err := k.AddService(&TelnetServer{})
+	svce, err := k.AddService(&command.Server{})
 	if err != nil {
 		return err
 	}
-	h.server = (svce).(*TelnetServer)
+	h.server = (svce).(*command.Server)
+
+	svce, err = k.AddService(&ApiCore{})
+	if err != nil {
+		return err
+	}
+	h.api = (svce).(*ApiCore)
+
 	return nil
 }
 
 func (h *Boards) PostInit() error {
-	return h.server.Register("depart", h)
+	return h.server.Register("depart", h.Handle)
 }
 
-func (h *Boards) Handle(prog *lang.Block, args ...string) error {
+func (h *Boards) Handle(ctx context.Context) error {
+	resp := command.GetResponse(ctx)
 
+	args := command.GetArgs(ctx)
 	if len(args) != 1 {
-		prog.Error("depart crs")
+		resp.Errorf("depart crs")
 		return nil
 	}
-	crs := strings.ToUpper(args[0])
+	station := record.Station{CRS: strings.ToUpper(args[0])}
 
-	log.Println("DEPART " + crs)
-	sr, err := h.server.ldbClient.GetSchedule(crs)
+	log.Println("DEPART " + station.CRS)
+
+	sr, err := h.api.ldbClient.GetSchedule(station.CRS)
 	if err != nil {
 		return err
 	}
 
-	//var stationTiploc string
 	if len(sr.Station) == 0 {
-		prog.Error("Unknown station %s", crs)
+		resp.Errorf("Unknown station %s", station.CRS)
 		return nil
 	}
 
-	//stationTiploc = sr.Station[0]
-	//stationName := stationTiploc
-	//if d, ok := sr.Tiplocs.Get(stationTiploc); ok {
-	//	stationName = d.Name
-	//}
+	// Create our lookup map by tiploc
+	tMap := record.NewTiplocMap(sr.Tiplocs)
 
-	//prog.Append(lang.NewStation(crs, stationTiploc, stationName))
-
-	tiplocs := lang.NewLookupTable(lang.TokenTiploc)
-	prog.Append(tiplocs)
-	if sr.Tiplocs != nil {
-		sr.Tiplocs.ForEach(func(location *darwinref.Location) {
-			tiplocs.Add(location.Tiploc, lang.NullString(location.Name))
-		})
+	stationTiploc := sr.Station[0]
+	station.Name = stationTiploc
+	if d := tMap.Get(stationTiploc); d != nil {
+		station.Name = d.Loc.Name
+		station.Tiploc = d.Index
 	}
 
-	//prog.AppendTiplocs(sr.Tiplocs)
-	//prog.NewMessage(sr.Messages)
+	resp.Record(station)
+	tMap.Append(resp)
+
+	for _, msg := range sr.Messages {
+		resp.Record(&record.Message{Msg: msg})
+	}
+
+	for i, service := range sr.Services {
+		if i < 100 {
+			s := record.NewService(i, service, tMap)
+			s.Append(resp)
+		}
+	}
 
 	return nil
 }

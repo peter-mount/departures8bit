@@ -1,13 +1,14 @@
 package api
 
 import (
+	"context"
+	"github.com/peter-mount/departures8bit/api/command"
 	"github.com/peter-mount/go-kernel"
-	"io"
 	"strings"
 )
 
 type Helo struct {
-	server *TelnetServer
+	server *command.Server
 }
 
 func (h *Helo) Name() string {
@@ -15,20 +16,19 @@ func (h *Helo) Name() string {
 }
 
 func (h *Helo) Init(k *kernel.Kernel) error {
-	svce, err := k.AddService(&TelnetServer{})
+	svce, err := k.AddService(&command.Server{})
 	if err != nil {
 		return err
 	}
-	h.server = (svce).(*TelnetServer)
+	h.server = (svce).(*command.Server)
 	return nil
 }
 
 func (h *Helo) PostInit() error {
-	return nil //h.server.RegisterHandlerFunc("helo", h.Handler)
+	return h.server.Register("helo", h.Handler)
 }
 
-func (h *Helo) Handler(stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser, args ...string) error {
-	return NewResponse(stdin, stdout).
-		Append("INF%s", strings.Join(args, " ")).
-		Send()
+func (h *Helo) Handler(ctx context.Context) error {
+	command.GetResponse(ctx).Inf("Hello %s", strings.Join(command.GetArgs(ctx), " "))
+	return nil
 }
