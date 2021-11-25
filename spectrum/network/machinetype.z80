@@ -1,0 +1,102 @@
+; ***************************************************************************
+; Determine which model of ZX Spectrum the code is running on.
+;
+; Author: Peter Mount, Area51.dev & Contributors
+; URL: https://area51.dev/sinclair/asm/machinetype/
+; ***************************************************************************
+
+; The model's to detect
+machine_48      = 0                 ; Spectrum 48k
+machine_128     = 1                 ; Spectrum 128K UK
+machine_128es   = 2                 ; Spectrum 128K Spanish
+machine_plus2   = 3                 ; Spectrum +2
+machine_plus3   = 4                 ; Spectrum +2A/+3
+
+;
+; detectMachine         Detect the type of machine running this code
+;
+; Exit:
+;   A       Model type
+;   Z       Set for a 16K/48K machine, Reset for any 128K machine
+;
+detectMachine:
+            PUSH    BC                  ; Save registers as BC is needed for ROM selection
+            PUSH    DE                  ; and D for passing the result back
+            CALL    detectMachine1      ; Call detection routine
+            LD      A, D                ; Copy result into A
+            POP     DE                  ; Restore registers
+            POP     BC
+            AND     A                   ; CP 0 so Z is true for a 48K and NZ for any 128K machine
+            RET
+
+detectMachine1:
+            LD      A, (0x5B5C)         ; Switch rom
+            PUSH    AF                  ; Save current rom
+            AND     &EF                 ; to ensure non-48k rom is selected, bit 4 is 0
+            CALL    romSel1             ; change rom1, will do nothing on a 48K
+            CALL    detectMachine2      ; run tests
+            POP     AF                  ; Restore rom
+
+; romSel1   Update rom selection port on 128K and later machines
+;
+; Entry:
+;   A       New value of port, based on current value in 0x5BFC
+;
+; Exit:
+;   A       undefined
+;   BC      undefined
+;
+romSel1:    LD      BC, 0x7FFD          ; Select rom on 128K and later
+            DI                          ; Switch the port between DI/EI
+            LD      (0x5B5C), A
+            OUT     (C), A
+            EI
+            RET
+
+detectMachine2:
+            LD      D, machine_48       ; Test for a 48K
+            LD      A, (0x153B)         ; Address of 1 in (C)1982 in spectrum 48k rom
+            CP      '1'
+            RET     Z
+
+            LD      A, (0x5B67)         ; Switch rom on +3
+            PUSH    AF                  ; Save current rom
+            AND     &FB                 ; This time bit 2 is 0 on second port, does nothing on 128/+2
+            CALL    romSel2
+            CALL    detectMachine3      ; run tests
+            POP     AF                  ; restoring old rom
+
+; romSel2   Update rom selection port on +2A and +3 machines
+;
+; Entry:
+;   A       New value of port, based on current value in 0x5B67
+;
+; Exit:
+;   A       undefined
+;   BC      undefined
+;
+romSel2:    LD      BC, 0x1FFD          ; Select rom on +2A/+3
+            DI                          ; Switch the port between DI/EI
+            LD      (0x5B67), A
+            OUT     (C), A
+            EI
+            RET
+
+detectMachine3:
+            LD      D, machine_plus3    ; Test for +3
+            LD      A, (0x168e)         ; Address of "SPECTRUM" in +3 rom 0
+            CP      'S'
+            RET     Z
+
+            LD      D, machine_plus2    ; Test for +2
+            LD      A, (0x0562)         ; See if we are a +2
+            CP      '1'                 ; This is 1 in "(C)1982 Amstrad"
+            RET     Z
+
+            LD      D, machine_128es    ; See if Spanish 128K
+            LD      A, (0x0508)
+            CP      '1'                 ; This is 1 in "(C) 1985 Sinclair"
+            RET     Z
+
+            LD      D, machine_128      ; We must be a 128K if we got here
+            RET

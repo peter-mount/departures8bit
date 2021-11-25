@@ -72,6 +72,7 @@ testspectrumdisk: all
 	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus3 -t spectrum/departures.dsk
 
 testspectrumif1: all
-	#mkfifo fuse.tx
-	#mkfifo fuse.rx
 	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m 48  --interface1 --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t spectrum/departures.tzx
+
+testspectrump3: all
+	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus3  --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t spectrum/departures.dsk
