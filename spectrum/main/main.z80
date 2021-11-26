@@ -10,8 +10,24 @@ main:   ;LD      HL, banner          ; banner text
         ;CALL    writeString
         LD      HL, homeMenu
         CALL    showMenu
+        CALL    err
+l1:     JR      main
 
-l1:     JR      l1
+err:        PUSH AF
+            RR A
+            RR A
+            RR A
+            RR A
+            call phex
+            POP AF
+phex:       AND 0x0f
+            cp 10
+            JP NC, phex2
+            ADD '0'
+            JR phex3
+phex2:      ADD 'A'-10
+phex3:      CALL oswrch
+            RET
 
 banner: defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
         defb 132, 157, 135, 141, "     Live UK Departure Boards", 0

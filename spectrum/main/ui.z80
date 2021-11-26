@@ -32,6 +32,9 @@ cls::       LD      HL, clsTxt
 ;
 ; Exit:
 ;   HL      Byte after title text null
+;   A       Corrupt
+;   BC      Corrupt
+;   DE      Corrupt
 ;
 header::    PUSH    HL                  ; copy for lower title line
             PUSH    HL                  ; copy for upper title line
@@ -61,16 +64,76 @@ header::    PUSH    HL                  ; copy for lower title line
             CALL    writeString
 
 ; New line
+;
+; Exit:
+;   A       Corrupt
+;
 newline::   LD      A, 13
             CALL    oswrch
             LD      A, 10
             JP      oswrch
 
 ; Back and down one char
+;
+; Exit:
+;   A       Corrupt
+;
 backdown1:: LD      A, 8
             CALL    oswrch
             LD      A, 10
             JP      oswrch
+
+; Get next key press
+;
+; Interrupts must be enabled as this relies on the system
+; doing the decoding of the keyboard.
+;
+; Exit:
+;   A       Key read if not a break
+;   Carry   set if A has character, reset if break pressed & A corrupt
+;   Z       reset
+;   HL      corrupt
+;
+getKey::    LD      HL, 23560       ; LAST_K system variable
+            LD      (HL), 0         ; Reset variable
+getKey1:    CALL    testBreak       ; Test for break key
+            RET     NC              ; exit as we have break
+            LD      A, (HL)         ; Get value
+            OR      A
+            JR      Z, getKey1      ; Loop as no character
+            SCF                     ; Mark as valid key found
+            RET
+
+; Test for break key
+;
+; Exit:
+;   Carry   reset if break, set if no-break
+;   A       Corrupt
+;
+testBreak:: LD      A, 0x7F         ; Test for Break key, first space
+            IN      A, (0xFE)
+            RRA
+            RET     C               ; Space not pressed
+            LD      A, 0xFE         ; Test for Break key, first space
+            IN      A, (0xFE)
+            RRA
+            RET
+
+; Convert A into upper case
+;
+; Entry:
+;   A       ASCII value to convert
+;
+; Exit:
+;   A       Unchanged unless 'a'..'z' then returns 'A'..'Z'
+;
+toUpper::   CP      'a'
+            RET     C
+            CP      'z'+1
+            RET     NC
+            XOR     32
+            RET
+
 ; cls
 clsTxt:     defb    12, 134, "departureboards.mobi", 13, 10, 0
 

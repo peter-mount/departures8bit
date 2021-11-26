@@ -7,6 +7,22 @@
 #local
 currentMenu:    defw    0               ; Address of menu being displayed
 
+; Display a menu and wait for user to make a selection
+;
+; The menu definition is:
+;       0 terminated title of menu
+;       byte containing number of entries (n)
+;       n bytes for the keys, in Upper case if letters
+;       n 0 terminated strings for each option
+;
+; Entry:
+;   HL      Address of menu definition
+;
+; Exit:
+;   A       Key pressed
+;   B       Index in menu of selected option
+;   Carry   true if valid, false if break
+;
 showMenu::  CALL    header              ; Clear screen & show header
             LD      (currentMenu), HL   ; Save start of actual menu
 
@@ -43,6 +59,18 @@ l2:         PUSH    BC                  ; Save B
             INC     C                   ; next index
             DJNZ    l2                  ; Loop back
 
-            RET
+l3:         CALL    getKey              ; Key next key
+            RET     NC                  ; exit if BREAK
+            CALL    toUpper             ; to upper case
+
+            LD      HL, (currentMenu)
+            LD      B, (HL)
+l4:         INC     HL
+            LD      C, (HL)
+            CP      C
+            SCF                         ; Mark carry set incase match
+            RET     Z                   ; Exit as key found
+            DJNZ    l4                  ; Loop for next potential match
+            JP      l3                  ; Not found so loop for next key press
 
 #endlocal
