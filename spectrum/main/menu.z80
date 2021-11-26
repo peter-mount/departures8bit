@@ -1,0 +1,42 @@
+; ----------------------------------------------------------------------
+; Handles a simple menu
+; ----------------------------------------------------------------------
+
+#include "../../teletextspectrum/teletext.inc"
+
+#local
+currentMenu:    defw    0               ; Address of menu being displayed
+
+showMenu::      PUSH    HL                  ; Save HL
+                CALL    header              ; Clear screen
+                POP     HL
+                PUSH    HL
+                CALL    strLen              ; Title length
+                LD      A, 40
+                SUB     B
+                SRA     A                   ;
+                LD      C, A                ; C = (40-b)/2
+                LD      B, 1
+                CALL    teletextSetPos
+                POP     HL
+                PUSH    HL
+                CALL    writeString
+                INC     B
+                POP     HL
+                CALL    writeString
+                LD      (currentMenu), HL   ; Save start of actual menu
+                RET
+
+strLen::    LD  B, 0                    ; Get string length in B
+strLen1:    LD  A,(HL)
+            INC HL
+            AND A
+            RET Z
+            INC B
+            JR strLen1
+
+menuSetup:      defb 31,0,1,132,157,135,141 ; Blue double height text
+                defb 13,10,132,157,135,141
+                defb 0
+
+#endlocal

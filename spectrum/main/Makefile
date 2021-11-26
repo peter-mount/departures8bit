@@ -8,4 +8,4 @@ all: main.rom
 clean:
 	$(RM) *.lst *.rom *.tzx
 
-main.rom: main.z80
+main.rom: main.z80 menu.z80

@@ -6,16 +6,37 @@
 
         ORG     0x7000
 
-main:   LD      HL, banner          ; banner text
-        CALL    writeString
+main:   ;LD      HL, banner          ; banner text
+        ;CALL    writeString
+        LD      HL, homeMenu
+        CALL    showMenu
 
 l1:     JR      l1
 
-banner: defb 12, 30, 134, "departureboards.mobi", 13, 10
-        defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
-        defb 132, 157, 135, 141, "     Live UK Departure Boards"
+header: CALL    cls
+        LD      HL, hdrTxt
+        JP      writeString
+cls:    LD      HL, clsTxt          ; Simple clear screen with our top
+        JP      writeString         ; text
+clsTxt: defb 12, 30, 134, "departureboards.mobi", 13, 10, 0
+hdrTxt: defb 31,0,1,132,157,135,141 ; Blue double height text
+        defb 13,10,132,157,135,141
+        defb 0
+
+banner: defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
+        defb 132, 157, 135, 141, "     Live UK Departure Boards", 0
         defb 31, 0, 4, 135, "C  ", 130, "Connect to network"
         defb 13, 10, 135, "S  ", 130, "Search for Station"
         defb 13, 10, 135, "D  ", 130, "Display departures for station"
         defb 0
 
+homeMenu:
+        defb 'Live UK Departure Boards', 0
+        defw 0
+        defb 'C', 'Connect to network', 0
+        defw 0
+        defb 'S', "Search for Station", 0
+        defw 0
+        defb 'D', "Display departures at station", 0
+
+#include "menu.z80"
