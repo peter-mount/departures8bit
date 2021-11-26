@@ -13,16 +13,6 @@ main:   ;LD      HL, banner          ; banner text
 
 l1:     JR      l1
 
-header: CALL    cls
-        LD      HL, hdrTxt
-        JP      writeString
-cls:    LD      HL, clsTxt          ; Simple clear screen with our top
-        JP      writeString         ; text
-clsTxt: defb 12, 30, 134, "departureboards.mobi", 13, 10, 0
-hdrTxt: defb 31,0,1,132,157,135,141 ; Blue double height text
-        defb 13,10,132,157,135,141
-        defb 0
-
 banner: defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
         defb 132, 157, 135, 141, "     Live UK Departure Boards", 0
         defb 31, 0, 4, 135, "C  ", 130, "Connect to network"
@@ -31,12 +21,13 @@ banner: defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
         defb 0
 
 homeMenu:
-        defb 'Live UK Departure Boards', 0
-        defw 0
-        defb 'C', 'Connect to network', 0
-        defw 0
-        defb 'S', "Search for Station", 0
-        defw 0
-        defb 'D', "Display departures at station", 0
+        defb    'Live UK Departure Boards', 0   ; Menu title
+        defb    3                               ; No entries
+        defb    'CSD'                           ; Key options per entry
+        ;defw    0, 0, 0                         ; Entry points per entry
+        defb    "Connect to network", 0         ; Option text per entry
+        defb    "Search for Station", 0
+        defb    "Display departures at station", 0
 
+#include "ui.z80"
 #include "menu.z80"

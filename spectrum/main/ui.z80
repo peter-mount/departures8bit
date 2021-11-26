@@ -1,0 +1,82 @@
+; ----------------------------------------------------------------------
+; Handles common UI features
+; ----------------------------------------------------------------------
+#local
+
+; Get string length
+;
+; Entry:
+;   HL      string terminated with 0
+;
+; Exit:
+;   A       0
+;   B       string length
+;   HL      Byte after string null
+;
+strLen::    LD  B, 0                    ; Get string length in B
+strLen1:    LD  A,(HL)
+            INC HL
+            AND A
+            RET Z
+            INC B
+            JR strLen1
+
+; Clear screen with our title at the top left of screen
+cls::       LD      HL, clsTxt
+            JP      writeString
+
+; CLS then show centered title double height, blue background
+;
+; Entry:
+;   HL      Title text
+;
+; Exit:
+;   HL      Byte after title text null
+;
+header::    PUSH    HL                  ; copy for lower title line
+            PUSH    HL                  ; copy for upper title line
+            PUSH    HL                  ; copy for strlen
+            CALL    cls
+            LD      HL, hdrTxt          ; Show blue double height
+            CALL    writeString
+
+            POP     HL                  ; Get top left of header text
+            CALL    strLen              ; into BC
+            LD      A, 40
+            SUB     B
+            SRA     A
+            LD      C, A                ; C = (40-b)/2
+            LD      B, 1
+
+            PUSH    BC                  ; Move cursor preserving BC
+            CALL    teletextSetPos      ; so it's available for the
+            POP     BC                  ; lower line
+
+            POP     HL                  ; Write top line
+            CALL    writeString
+
+            INC     B                   ; Write lower line
+            CALL    teletextSetPos
+            POP     HL
+            CALL    writeString
+
+; New line
+newline::   LD      A, 13
+            CALL    oswrch
+            LD      A, 10
+            JP      oswrch
+
+; Back and down one char
+backdown1:: LD      A, 8
+            CALL    oswrch
+            LD      A, 10
+            JP      oswrch
+; cls
+clsTxt:     defb    12, 134, "departureboards.mobi", 13, 10, 0
+
+; header - Blue double height text
+hdrTxt:     defb    31,0,1,132,157,135,141
+            defb    13,10,132,157,135,141
+            defb    0
+
+#endlocal

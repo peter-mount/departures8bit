@@ -7,36 +7,42 @@
 #local
 currentMenu:    defw    0               ; Address of menu being displayed
 
-showMenu::      PUSH    HL                  ; Save HL
-                CALL    header              ; Clear screen
-                POP     HL
-                PUSH    HL
-                CALL    strLen              ; Title length
-                LD      A, 40
-                SUB     B
-                SRA     A                   ;
-                LD      C, A                ; C = (40-b)/2
-                LD      B, 1
-                CALL    teletextSetPos
-                POP     HL
-                PUSH    HL
-                CALL    writeString
-                INC     B
-                POP     HL
-                CALL    writeString
-                LD      (currentMenu), HL   ; Save start of actual menu
-                RET
+showMenu::  CALL    header              ; Clear screen & show header
+            LD      (currentMenu), HL   ; Save start of actual menu
 
-strLen::    LD  B, 0                    ; Get string length in B
-strLen1:    LD  A,(HL)
-            INC HL
-            AND A
-            RET Z
-            INC B
-            JR strLen1
+            PUSH    HL
+            LD      BC, 0x0402          ; Set text pos
+            CALL    teletextSetPos
+            POP     HL
 
-menuSetup:      defb 31,0,1,132,157,135,141 ; Blue double height text
-                defb 13,10,132,157,135,141
-                defb 0
+            LD      B, (HL)             ; Show Key labels
+            PUSH    BC                  ; Save row count
+l1:         INC     HL                  ; inc & save HL
+            LD      A, (HL)             ; Write key then down to next line
+            CALL    oswrch
+            CALL    backdown1           ; Back & Down 1 char
+            DJNZ    l1                  ; Loop back
+            INC     HL                  ; Skip last entry so HL is first label
+
+            POP     BC                  ; Restore row count
+            LD      C, 0                ; Index of entry
+l2:         PUSH    BC                  ; Save B
+            PUSH    HL                  ; Save HL
+            LD      A, 4                ; TAB(4,B+4)
+            ADD     C
+            LD      B, A
+            LD      C, 4
+            CALL    teletextSetPos
+
+            LD      A, 130              ; Set label colour
+            CALL    oswrch
+
+            POP     HL                  ; Restore HL & write label
+            CALL    writeString
+            POP     BC                  ; Restore B
+            INC     C                   ; next index
+            DJNZ    l2                  ; Loop back
+
+            RET
 
 #endlocal
