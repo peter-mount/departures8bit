@@ -14,7 +14,7 @@ TELETEXTBASE= ../teletext
 all: $(DISK)
 
 clean:
-	$(RM) $(BOOTSTRAP) $(LOADER) $(NETWORK) $(DISK)
+	@$(RM) $(BOOTSTRAP) $(LOADER) $(NETWORK) $(DISK)
 
 # BOOTSTRAP - the application bootstrap
 $(BOOTSTRAP): bootstrap.asm kernal.asm

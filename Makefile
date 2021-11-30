@@ -7,6 +7,7 @@
 export BUILDS			= $(shell pwd)/builds
 export BUILDS_C64		= $(BUILDS)/c64
 export BUILDS_BBC		= $(BUILDS)/bbc
+export BUILDS_SPECTRUM	= $(BUILDS)/spectrum
 
 export CP				= @cp -p
 export MKDIR			= @mkdir -p -v
@@ -37,7 +38,8 @@ export COPYRIGHT 		= $(shell date "+%Y")
 
 # Build everything
 all:
-	$(MKDIR) -pv $(BUILDS) $(BUILDS_C64) $(BUILDS_BBC)
+	$(MKDIR) -pv $(BUILDS) $(BUILDS_C64) $(BUILDS_BBC) $(BUILDS_SPECTRUM)
+	@$(MAKE) api
 	@$(MAKE) -C teletext all
 	@$(MAKE) -C teletextspectrum all
 	@$(MAKE) -C network all
@@ -45,10 +47,9 @@ all:
 	@$(MAKE) -C c64 all
 	#@$(MAKE) -C bbc all
 	@$(MAKE) -C spectrum all
-	$(GO) mod download
-	@$(MAKE) -C api
 
 clean:
+	@$(MAKE) -C api clean
 	@$(MAKE) -C teletext clean
 	@$(MAKE) -C teletextspectrum clean
 	@$(MAKE) -C network clean
@@ -56,23 +57,39 @@ clean:
 	@$(MAKE) -C c64 clean
 	#@$(MAKE) -C bbc clean
 	@$(MAKE) -C spectrum clean
-	@$(MAKE) -C api clean
 	$(RM) -r $(BUILDS)
 	#$(RM) fuse.rx fuse.tx
 
+# ==============================================================================================================
+# API - the backend server that allows connections to the nre-feeds backend
+#
+api:
+	$(GO) mod download
+	@$(MAKE) -C api
+
+# ==============================================================================================================
+# Commodore C64
+#
 # Requires Vice to run in an emulator
-testc64: clean all
-	x64sc -verbose -statusbar ./builds/depart.d64
+#
+testc64: all
+	x64sc -verbose -statusbar builds/depart.d64
 
-# Requires fuse-emulator, runs the built tap file
-testspectrumtape: all
-	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus2 -t spectrum/departures.tzx
-
-testspectrumdisk: all
-	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m plus3 -t spectrum/departures.dsk
-
+# ==============================================================================================================
+# Sinclair ZX Spectrum 48K, 128K & Plus 3
+# runs the built tzx file for 48K & 128K or the dsk image for the Plus 3
+#
+# Requires fuse-emulator
+#
+# for testing use:
+# 	real time loading:	--no-fastload --no-traps --no-accelerate-loader
+# 	fast loading:		--fastload --traps --accelerate-loader
+#
+# testspectrumif1	tests a 48k with interface 1
+#
 testspectrumif1: all
-	fuse --no-fastload -g 3x --no-traps --no-accelerate-loader -m 48  --interface1 --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t spectrum/departures.tzx
+	fuse -g 3x --no-fastload --no-traps --no-accelerate-loader -m 48  --interface1 --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t builds/spectrum/depart.tzx
 
+# testspectrump3	tests a 128K Plus 3 disk image
 testspectrump3: all
 	fuse --fastload -g 3x --traps --accelerate-loader -m plus3  --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t spectrum/departures.dsk
