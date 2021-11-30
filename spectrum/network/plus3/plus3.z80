@@ -6,8 +6,11 @@ BAUD        defw 54     ; Default speed: 2400 baud
 SERFL       defw 0      ; flag + data byte about an eventual 2nd character already transmitted
 
 ; Temp hooks until implemented
-p3Init:     ret
 p3Close:    ret
-p3Put:      ret
+
+p3Init:     LD  HL, 54      ; 1200 BAUD, 54 for 2400, 25 for 4800, 11 for 9600
+            LD  (BAUD),HL
+            RET
 
 #include "get.z80"
+#include "put.z80"

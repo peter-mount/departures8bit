@@ -4,7 +4,14 @@
 #local
 
 ; Get Byte from RS232
-p3Get::     ld	hl,SERFL
+p3Get::     PUSH    HL      ; Save registers before call
+            PUSH    BC
+            CALL    p3Get1
+            POP     BC
+            POP     HL
+            RET
+
+p3Get1:     ld	hl,SERFL
             ld	a,(hl)	; Is the second-character received flag set?
             and a
             jr	z,readbyte

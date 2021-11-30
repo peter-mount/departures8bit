@@ -15,15 +15,19 @@ machineType     = 0xFF00    ; Loader sets this to the machine type
             jp init             ; network module startup
                                 ; 128K/plus3 vectors, default
 vtp3:       jp p3Close
-            jp p3Get
-            jp p3Put
-init1:      jp p3Init           ; Internal init vectir for +3 or IF1
+netGet:     jp p3Get
+netPut:     jp p3Put
+init1:      jp p3Init           ; Internal init vector for +3 or IF1
+            jp netSend          ; Send null terminated block
+            jp netGetline       ; Get block
 
                                 ; Interface1 vectors
 vt48:       jp if1Close         ; 48k matches layout of vtp3, will get
             jp if1Get           ; copied over vtp3 on start to switch the
             jp if1Put           ; code to use Interface 1
             jp if1Init
+            jp netSend          ; Send null terminated block
+            jp netGetline       ; Get block
 
 ; ----------------------------------------------------------------------
 ; Init Network module
@@ -36,6 +40,29 @@ init:       call    detectMachine       ; Check machine type
             ldir
             jr      init1               ; init the IF1 port
 
+; Send null terminated string to remote host
+netSend:    LD      A, (HL)
+            OR      A
+            RET     Z
+            CALL    netPut
+            INC     HL
+            JR      netSend
+
 #include "plus3/plus3.z80"
 #include "if1/if1.z80"
 #include "machinetype.z80"
+
+netGetline: CALL    ngl3
+ngl1:       CALL    netGet
+            JR      NC, ngl3
+            OR      A
+            JR      Z, ngl2
+            CP      10
+            JR      Z, ngl2
+            LD      (HL), A
+            INC     HL
+            JR      ngl1
+ngl2:       LD      A, 0
+            LD      (HL), A
+ngl3:       LD      HL, 0xFF00
+            RET

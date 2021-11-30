@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/peter-mount/departures8bit/api"
 	"github.com/peter-mount/departures8bit/api/fifo"
+	"github.com/peter-mount/departures8bit/api/modem"
 	"github.com/peter-mount/departures8bit/api/telnet"
 	"github.com/peter-mount/go-kernel"
 	"log"
@@ -17,6 +18,8 @@ func main() {
 		// Various API commands
 		&api.Boards{},
 		&api.Helo{},
+		// Development stuff
+		&modem.Modem{},
 	)
 	if err != nil {
 		log.Fatal(err)

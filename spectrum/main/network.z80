@@ -1,0 +1,38 @@
+; ----------------------------------------------------------------------
+; Network menu
+; ----------------------------------------------------------------------
+
+#include "../network/network.inc"
+
+networkMenu:
+#local
+        LD      HL, netMenu
+        jp      showMenu
+
+netMenu:
+        defb    'Network', 0
+        defb    2                           ; entry count
+        defb    'LT'                        ; entry keys
+        defw    live                        ; entry functions
+        defw    localhost
+        defb    "Connect to live", 0
+        defb    "Connect to localhost", 0
+
+localhost:  LD      HL, localCmd            ; Connect to localhost
+            JP      dial
+
+live:       LD      HL, liveCmd             ; Connect to live
+dial:       PUSH    HL
+            LD      HL, netMenu             ; Clear screen
+            CALL    header
+            POP     HL
+            CALL    networkSend
+l1:         CALL    networkGetline
+            CALL    writeString
+            JR      networkMenu
+
+localCmd:   defb    'ATDT', 13, 10, 0       ; Dial string for local
+liveCmd:    defb    'ATDTexample.com'       ; Live dial string
+            defb    13, 10, 0
+
+#endlocal

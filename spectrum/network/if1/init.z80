@@ -14,7 +14,8 @@ if1Init::
         ;ld      (23750),a       ; Set IOBORD to the current border colour (hide flashing)
         ;;ld      hl,RS_ERR_OK
 
-        ld      hl,0x0036       ; 006E=1200 0036=2400 001A=4800 000C=9600
+        ;ld      hl,0x0036       ; 006E=1200 0036=2400 001A=4800 000C=9600
+        LD      hl, 0x006e
         ld      (23747), hl     ; Set baud
 
         ret

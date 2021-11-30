@@ -2,7 +2,12 @@
 ; Interface RS232 routines
 ; ----------------------------------------------------------------------
 #local
-if1Put::
+if1Put::    PUSH    HL          ; Save registers for the call
+            PUSH    BC
+            CALL    L0D07
+            POP     BC
+            POP     HL
+            RET
 ;;        ld      a,l     		;get byte
 ;        rst     8
 ;        defb    $1E			;  Calls the Hook Code

@@ -6,44 +6,24 @@
 
         ORG     0x7000
 
-main:   ;LD      HL, banner          ; banner text
-        ;CALL    writeString
-        LD      HL, homeMenu
-        CALL    showMenu
-        CALL    err
-l1:     JR      main
-
-err:        PUSH AF
-            RR A
-            RR A
-            RR A
-            RR A
-            call phex
-            POP AF
-phex:       AND 0x0f
-            cp 10
-            JP NC, phex2
-            ADD '0'
-            JR phex3
-phex2:      ADD 'A'-10
-phex3:      CALL oswrch
-            RET
-
-banner: defb 132, 157, 135, 141, "     Live UK Departure Boards", 13, 10
-        defb 132, 157, 135, 141, "     Live UK Departure Boards", 0
-        defb 31, 0, 4, 135, "C  ", 130, "Connect to network"
-        defb 13, 10, 135, "S  ", 130, "Search for Station"
-        defb 13, 10, 135, "D  ", 130, "Display departures for station"
-        defb 0
+main:
+#local
+        LD      HL, homeMenu                    ; Show main menu
+        call    showMenu
+        jp      main                            ; Any call that returns loops
 
 homeMenu:
         defb    'Live UK Departure Boards', 0   ; Menu title
         defb    3                               ; No entries
         defb    'CSD'                           ; Key options per entry
-        ;defw    0, 0, 0                         ; Entry points per entry
+        defw    networkMenu                     ; Entry points per entry
+        defw    0
+        defw    0
         defb    "Connect to network", 0         ; Option text per entry
         defb    "Search for Station", 0
         defb    "Display departures at station", 0
+#endlocal
 
+#include "network.z80"
 #include "ui.z80"
 #include "menu.z80"

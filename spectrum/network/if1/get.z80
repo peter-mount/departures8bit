@@ -4,15 +4,21 @@
 #local
 
 ; Get Byte from RS232
-if1Get::
-	call L0B88 			; BCHAN-IN
+if1Get::    PUSH    HL      ; Save registers before call
+            PUSH    BC
+            CALL if1Get1
+            POP     BC
+            POP     HL
+            RET
 
-	pop	de
-	;ld	hl,RS_ERR_NO_DATA
-	ret	nc
-	ld	(de),a
-	;ld	hl,RS_ERR_OK
-	ret
+if1Get1:	CALL L0B88 			; BCHAN-IN
+
+	        POP	de
+            ;ld	hl,RS_ERR_NO_DATA
+            RET	nc
+            LD	(DE),A
+            ;ld	hl,RS_ERR_OK
+            RET
 
 ; ---------------------------------------
 ; THE "B" CHANNEL INPUT SERVICE ROUTINE

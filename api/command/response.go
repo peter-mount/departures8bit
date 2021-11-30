@@ -23,6 +23,9 @@ type RecordSource interface {
 }
 
 func (r Record) String() string {
+    if r.Type == "" {
+        return r.Data
+    }
 	return fmt.Sprintf("%-3.3s%s\n", r.Type, r.Data)
 }
 

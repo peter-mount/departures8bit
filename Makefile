@@ -88,11 +88,11 @@ testc64: all
 # testspectrumif1	tests a 48k with interface 1
 #
 testspectrumif1: all
-	fuse -g 3x --no-fastload --no-traps --no-accelerate-loader -m 48  --interface1 --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t builds/spectrum/depart.tzx
+	fuse -g 3x --fastload --traps --accelerate-loader -m 48  --interface1 --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t builds/spectrum/depart.tzx
 
 # testspectrump3	tests a 128K Plus 3 disk image
 testspectrump3: all
-	fuse --fastload -g 3x --traps --accelerate-loader -m plus3  --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t spectrum/departures.dsk
+	fuse --fastload -g 3x --traps --accelerate-loader -m plus3  --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t builds/spectrum/depart.dsk
 
 # FIFO backend for spectrum
 testapififo: all

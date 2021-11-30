@@ -9,5 +9,5 @@ all: $(API)
 clean:
 	@$(RM) $(API)
 
-$(API): bin/main.go *.go command/*.go fifo/*.go telnet/*.go record/*.go
+$(API): bin/main.go *.go command/*.go fifo/*.go telnet/*.go record/*.go modem/*.go
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) $(GO) build -o $(API) bin/main.go

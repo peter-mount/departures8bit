@@ -6,6 +6,6 @@
 all: network.rom
 
 clean:
-	@$(RM) *.lst *.rom *.tzx
+	@$(RM) *.lst *.rom
 
-network.rom: network.z80 machinetype.z80 if1/if1.z80 if1/get.z80 plus3/plus3.z80 plus3/get.z80
+network.rom: network.z80 machinetype.z80 if1/*.z80 plus3/*.z80

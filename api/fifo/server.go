@@ -48,6 +48,16 @@ func (a *Server) Run() error {
 		return nil
 	}
 
+	for true {
+	    err:= a.run()
+        if err!=nil {
+            return err
+        }
+	}
+	return nil
+}
+
+func (a *Server) run() error {
 	log.Println("Starting fifo server on ", *a.inFifo, *a.outFifo)
 
 	r, err := os.OpenFile(*a.inFifo, os.O_RDONLY, 0644)

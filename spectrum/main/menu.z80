@@ -40,6 +40,12 @@ l1:         INC     HL                  ; inc & save HL
             DJNZ    l1                  ; Loop back
             INC     HL                  ; Skip last entry so HL is first label
 
+            POP     BC                  ; Get row count so we skip the vector
+            PUSH    BC                  ; table for each option
+l1a:        INC     HL
+            INC     HL
+            DJNZ    l1a
+
             POP     BC                  ; Restore row count
             LD      C, 0                ; Index of entry
 l2:         PUSH    BC                  ; Save B
@@ -60,7 +66,7 @@ l2:         PUSH    BC                  ; Save B
             DJNZ    l2                  ; Loop back
 
 l3:         CALL    getKey              ; Key next key
-            RET     NC                  ; exit if BREAK
+            JP      NC, main            ; BREAK sends us to the main menu
             CALL    toUpper             ; to upper case
 
             LD      HL, (currentMenu)
@@ -69,8 +75,29 @@ l4:         INC     HL
             LD      C, (HL)
             CP      C
             SCF                         ; Mark carry set incase match
-            RET     Z                   ; Exit as key found
+            JR      Z, l5               ; Key match so look up address
             DJNZ    l4                  ; Loop for next potential match
             JP      l3                  ; Not found so loop for next key press
+
+l5:         LD      HL, (currentMenu)   ; Find the vector entry
+            LD      E, (HL)             ; Entry count
+            LD      D, 0
+            INC     HL                  ; Skip entry count
+            ADD     HL, DE              ; Skip entry keys
+            LD      A, E                ; Now we want (E-B)<<1 to get vector index
+            SUB     B
+            ADD     A, A                ; A<<1
+            LD      E, A
+            ADD     HL, DE              ; HL should point to the vector entry now
+            LD      A, (HL)             ; Now get address at entry as no LD HL, (HL)
+            INC     HL
+            LD      H, (HL)
+            LD      L, A
+            JP      (HL)
+
+    ; A-B = index of required entry
+
+            SUB     B
+            ADD     A                   ; A<<1
 
 #endlocal
