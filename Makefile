@@ -34,7 +34,7 @@ export ZASM				= zasm
 export VERSION 			= 1.01 ($(shell date "+%d %b %Y"))
 export COPYRIGHT 		= $(shell date "+%Y")
 
-.PHONY:	all clean
+.PHONY:	all clean api
 
 # Build everything
 all:
@@ -64,7 +64,7 @@ clean:
 # API - the backend server that allows connections to the nre-feeds backend
 #
 api:
-	$(GO) mod download
+	@$(GO) mod download
 	@$(MAKE) -C api
 
 # ==============================================================================================================
@@ -93,3 +93,7 @@ testspectrumif1: all
 # testspectrump3	tests a 128K Plus 3 disk image
 testspectrump3: all
 	fuse --fastload -g 3x --traps --accelerate-loader -m plus3  --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake -t spectrum/departures.dsk
+
+# FIFO backend for spectrum
+testapififo: all
+	./builds/nrefeeds8bit -fifo-in fifo.in -fifo-out fifo.out
