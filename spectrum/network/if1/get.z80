@@ -1,10 +1,11 @@
 ; ----------------------------------------------------------------------
 ; Interface RS232 routines
 ; ----------------------------------------------------------------------
-#local
 
 ; Get Byte from RS232
-if1Get::    PUSH    HL      ; Save registers before call
+if1Get:
+#local
+            PUSH    HL      ; Save registers before call
             PUSH    BC
             CALL    L0B88
             POP     BC

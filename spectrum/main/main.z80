@@ -17,7 +17,7 @@ homeMenu:
         defb    3                               ; No entries
         defb    'CSD'                           ; Key options per entry
         defw    networkMenu                     ; Entry points per entry
-        defw    0
+        defw    searchStation
         defw    0
         defb    "Connect to network", 0         ; Option text per entry
         defb    "Search for Station", 0
@@ -25,5 +25,7 @@ homeMenu:
 #endlocal
 
 #include "network.z80"
+#include "search.z80"
+
 #include "ui.z80"
 #include "menu.z80"

@@ -1,0 +1,97 @@
+; ----------------------------------------------------------------------
+; Search for station
+; ----------------------------------------------------------------------
+
+#include "../network/network.inc"
+#include "../../teletextspectrum/teletext.inc"
+
+searchStation:
+#local
+                LD      HL, searchHeader
+                CALL    header              ; Clear screen & show header
+
+                LD      HL, test            ; Send search command with pattern
+                CALL    networkSend
+
+                LD      HL, 0x6000          ; Get result
+                CALL    networkGetBlock
+
+                LD      HL, searchHeader    ; Clear screen
+                CALL    header
+
+;                LD      HL, 0x6000          ; Count response blocks
+;                CALL    countBlocks
+;                POP     HL
+;                LD      C, (HL)             ; Save in menu
+
+                LD      HL, 0x6000          ; Show menu entries
+                LD      A, 0                ; Key & row
+l1:             PUSH    AF                  ; Save A
+                CALL    lastBlock           ; Check for last block
+                JR      Z, end              ; All done
+
+                POP     AF                  ; Move cursor
+                PUSH    AF
+                LD      C, 4
+                ADD     4                   ; Row 4 onwards
+                LD      B, A
+                PUSH    HL
+                CALL    teletextSetPos
+                POP     HL
+
+                POP     AF                  ; Show Key
+                PUSH    AF
+                ADD     49
+                CP      57
+                JR      C, l2
+                ADD     7
+l2:             CALL    oswrch
+
+                LD      a, 32
+                CALL    oswrch
+
+                PUSH    HL              ; Save HL
+
+                INC     HL              ; Skip to get block length
+                INC     HL
+                LD      B, (HL)         ; in B
+                INC     HL
+                INC     HL              ; HL now at data start
+
+                PUSH    BC              ; Save B
+                LD      B, 3            ; Write 3 chars for CRS
+                CALL    wstrb
+
+                LD      A, 32
+                CALL    oswrch
+
+                POP     BC              ; Restore B
+                DEC     B               ; B=B-3
+                DEC     B
+                DEC     B
+                CALL    wstrb           ; Station name
+
+                POP     HL              ; Restore HL for block start
+
+                CALL    nextBlock           ; Move to next block
+                POP     AF                  ; Next row
+                INC     A
+                JR      l1
+
+end:            POP     AF                  ; Dump
+
+k1:             CALL    getKey              ; Get key
+                RET     NC                  ; exit on break
+                RET
+
+searchHeader:   defb    "Search stations", 0
+test:           defb    "search maid", 10, 0
+
+wstrb:          LD      A, (HL)
+                OR      A
+                RET     Z
+                CALL    oswrch
+                INC     HL
+                DJNZ    wstrb
+                RET
+#endlocal

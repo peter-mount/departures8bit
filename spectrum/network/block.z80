@@ -1,0 +1,193 @@
+; ----------------------------------------------------------------------
+; Block protocol
+;
+; Each block consists of up to 256 bytes of data
+;
+; Byte 1Len Content
+;   00  1   Block ID
+;   01  1   Block count
+;   02  1   Block length
+;   03  1   checksum, simple sum of all bytes & 0xFF
+;   04  n   n bytes of data
+; ----------------------------------------------------------------------
+
+; Get response from server and store in memory
+;
+; Entry:
+;   HL          Address to store the response
+;
+; Exit:
+;   HL          Address after the end of the response
+;
+getResponse:
+#local
+                LD      (curPos), HL        ; Save initial position
+
+l1:             LD      HL, (curPos)        ; Get current position
+                CALL    netGetBlock         ; Get block
+                JR      Z, ack              ; Valid block
+
+                LD      A, 0x15             ; NAK the block
+                CALL    netPut
+                JR      l1                  ; Wait for the block to be resent
+
+ack:            LD      A, 0x06             ; ACK the block
+                CALL    netPut
+
+                LD      A, (IX+0)           ; Block number
+                CP      (IX+1)              ; Block count
+                JR      C, l2               ; We have more blocks to receive
+
+                XOR     A                   ; Last block so set next address as 0
+                LD      (IX+0), A
+                LD      (IX+1), A
+
+                LD      HL, text            ; Completed text
+                JP      writeString
+
+l2:             LD      (IX+0), L           ; HL is address for next block so store it
+                LD      (IX+1), H           ; over the block ID's to point to next block
+                JR      getResponse         ; Loop for the next block, use entry point as HL is new start
+
+curPos:         defw    0                   ; Current position
+text:           defb    31,29,0,130, "Completed ", 0
+#endlocal
+
+; Get network protocol block from serial port
+;
+; Entry:
+;   HL      Address to store block
+;
+; Exit:
+;   A       Invalid
+;   B       0
+;   C       checksum of received data (excluding header)
+;   HL      Address after block
+;   IX      Start of block
+;   Z       flag set if checksum matches header value
+;
+netGetBlock:    CALL    netGet              ; Loop until we have STX 0x02
+                JR      NC, netGetBlock     ; No byte received
+                CP      0x02                ; Test for STX
+                JR      NZ, netGetBlock
+
+                PUSH    HL                  ; Copy HL into IX but LD IX, HL doesn't exist
+                POP     IX
+
+                LD      A, 4                ; 4 byte header
+                CALL    getBytes            ; Read bytes
+                PUSH    HL                  ; Save HL as showBlock trashes it
+                CALL    showBlock           ; Show block id being received on screen
+                POP     HL
+
+                LD      A, (IX+2)           ; Block length
+                CALL    getBytes            ; Get data block
+
+                LD      A, (IX+3)           ; Compare checksum
+                CP      C                   ; Z set if block is valid
+                RET
+
+; Get B bytes from the serial port
+;
+; Entry:
+;   A       Number of bytes to read
+;   HL      Address to store received bytes
+;
+; Exit:
+;   A       Invalid
+;   B       0
+;   C       Sum of all data bytes received including intial value
+;   HL      Address of byte after received data
+;
+getBytes:       LD      B, A                ; Set B with the byte count
+                LD      C, 0                ; Reset checksum
+#local
+l1:             CALL    netGet              ; Get byte from serial
+                JR      NC, l1              ; Loop if we don't have one
+                LD      (HL), A             ; Store in buffer
+                ADD     C                   ; Add A to C for the checksum
+                LD      C, A
+                INC     HL                  ; next byte
+                DJNZ    l1                  ; loop until B=0
+                RET
+#endlocal
+
+; showBlock shows the current block at the top right of the screen
+;
+showBlock:
+#local
+                LD      HL, text            ; Prep title line
+                CALL    writeString
+                LD      A, (IX+0)           ; Block number
+                CALL    hex
+                LD      A, '/'              ; Separator
+                CALL    oswrch
+                LD      A, (IX+1)           ; Block count
+hex:            PUSH    AF                  ; Save A
+                RRA                         ; Shift right 4
+                RRA
+                RRA
+                RRA
+                CALL    hex1                ; Show upper nibble
+                POP     AF                  ; Restore value to get lower nibble
+hex1:           AND     0x0F                ; mask lower nibble
+                CP      10                  ; 0..9 then just add '0'
+                JR      C, hex2
+                ADD     7                   ; Otherwise add 7 first then we get A..F
+hex2:           ADD     48                  ; ASCII 0
+                JP      oswrch              ; write the character
+text:           defb    31,29,0,135, "Recv ", 0
+#endlocal
+
+; Get the address of the next block
+;
+; Entry:
+;   HL      Address of block
+;
+; Exit:
+;   A       Corrupt
+;   Z       true if no last block
+;   HL      Address of next block, 0 if no more
+;
+nextBlock:      CALL    lastBlock           ; Check we are the last block
+                RET     Z                   ; we are
+                LD      A, (HL)             ; Get HL from this block
+                INC     HL
+                LD      H, (HL)
+                LD      L, A
+
+; Check HL points to a block
+;
+; Entry:
+;   HL      Address of block or 0 if none
+;
+; Exit:
+;   A       Corrupt
+;   Z       true if no last block
+;   HL      Unchanged
+;
+lastBlock:      LD      A, H                ; Z true if HL is the last block
+                OR      L
+                RET
+
+; Count the number of blocks
+;
+; Entry:
+;   HL      Address of block to start
+;
+; Exit:
+;   A       Corrupt
+;   BC      Number of blocks
+;   HL      Unchanged
+;
+countBlocks:
+#local
+                LD  BC, 0                   ; Reset count
+                CALL    lastBlock           ; Do nothing if at end
+                RET     Z
+l1:             INC     BC
+                CALL    nextBlock
+                JR      NZ, l1
+                RET
+
+#endlocal

@@ -27,9 +27,9 @@ dial:       PUSH    HL
             CALL    header
             POP     HL
             CALL    networkSend
-l1:         CALL    networkGetline
+l1:         CALL    networkGetLine
             CALL    writeString
-            JR      networkMenu
+            JP      main
 
 localCmd:   defb    'ATDT', 13, 10, 0       ; Dial string for local
 liveCmd:    defb    'ATDTexample.com'       ; Live dial string
