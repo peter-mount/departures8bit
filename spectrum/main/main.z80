@@ -25,6 +25,7 @@ homeMenu:
 #endlocal
 
 #include "network.z80"
+#include "block.z80"
 #include "search.z80"
 #include "boards.z80"
 

@@ -5,9 +5,11 @@
 #include "../network/network.inc"
 #include "../../teletextspectrum/teletext.inc"
 
-departures:
 #local
-                LD      HL, searchHeader
+crsDepartures:: LD      DE, test + 7        ; Copy CRS
+                LD      BC, 3
+                LDIR
+departures::    LD      HL, searchHeader
                 CALL    header              ; Clear screen & show header
 
                 LD      HL, test            ; Send search command with pattern
@@ -16,12 +18,21 @@ departures:
                 LD      HL, 0x6000          ; Get result
                 CALL    networkGetBlock
 
-                CALL    findStation         ; Find STN Station record
-                JR      NZ, k1              ; Not found
+                LD      C, 'S'              ; Find sole Station record
+                CALL    findFirst
+                RET     NZ                  ; Not found so bomb out
 
-                LD      DE, 4+8             ; Station name as header
+                LD      D, (IX+5)           ; Station tiploc
+                LD      E, (IX+6)
+                CALL    findTiplocName
+                JR      Z, d0               ; Found so display full name
+
+                PUSH    IX                  ; LD HL,IX
+                POP     HL
+
+                LD      DE, 7               ; use CRS as fallback
                 ADD     HL, DE
-                CALL    header
+d0:             CALL    header
 
                 LD      HL, headers         ; Column headers
                 CALL    writeString
@@ -45,6 +56,10 @@ dd0:            LD      A, (IX+8)           ; Low nibble of dep
                 SUB     '0'
                 ADD     A                   ; A = A<<1
                 ADD     5
+
+                CP      23                  ; Don't go beyond bottom of display
+                RET     NC
+
                 LD      B,A
                 LD      C,0                 ; Top row
                 CALL    dd1
@@ -57,19 +72,15 @@ dd1:            PUSH    BC
                 PUSH    IX                  ; Save IX as we need a tiploc
                 LD      D, (IX+9+8+16+4)
                 LD      E, (IX+9+8+16+4+1)
-                CALL    findTiploc
+                CALL    findTiplocName
                 JR      NZ, dd2
-                PUSH    IX                  ; Point HL to tiploc name
-                POP     HL
-                LD      DE, 7               ; Tiploc name
-                ADD     HL, DE
                 CALL    writeString         ; Write it
 dd2:            POP     IX                  ; Restore IX to departure record
 
                 POP     BC                  ; Platform
                 PUSH    BC
                 PUSH    HL                  ; Save HL
-                LD      C, 23
+                LD      C, 29
                 CALL    teletextSetPos
                 LD      A, 135
                 CALL    oswrch
@@ -96,33 +107,10 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 RET
 
 searchHeader:   defb    "Departures", 0
-headers:        defb    31,0,3,131,141,"Destination",31,24,3,"Plat Deprt Expct"
-                defb    31,0,4,131,141,"Destination",31,24,4,"Plat Deprt Expct"
+headers:        defb    31,0,3,131,141,"Deprt Destination",31,30,3,"Plat Expct"
+                defb    31,0,4,131,141,"Deprt Destination",31,30,4,"Plat Expct"
                 ; plat 24 Deprt 29 Expected 35
                 defb    0
 test:           defb    "depart mde", 10, 0
 
 #endlocal
-
-firstBlock:     LD      HL, 0x6000
-                RET
-
-; Find STN block - there's only 1 so calls firstBlock every time
-findStation:    CALL    firstBlock
-                LD      C, 'S'              ; STN record
-                LD      D, 'T'
-                LD      E, 'N'
-                JP      findBlock
-
-; Find next DEP block
-findDep:        LD      C, 'D'              ; STN record
-                LD      D, 'E'
-                LD      E, 'P'
-                JP      findBlock
-
-; Find tiploc
-;
-; Entry: D first char of tiploc index, E second char
-findTiploc:     CALL    firstBlock
-                LD      C, 'T'
-                JP      findBlock

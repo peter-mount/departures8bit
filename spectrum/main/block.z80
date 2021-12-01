@@ -1,0 +1,93 @@
+; ----------------------------------------------------------------------
+; Utility routines for processing blocks
+; ----------------------------------------------------------------------
+
+firstBlock:     LD      HL, 0x6000
+                RET
+
+findFirst:
+#local
+                CALL    firstBlock
+
+l1:             PUSH    HL              ; IX=HL
+                POP     IX
+
+                LD      A, (IX+2)       ; Block len
+                CP      3
+                JR      C, nextB        ; Block too short
+
+                LD      A, (IX+4)       ; Test char 1
+                CP      C
+                RET     Z               ; Prefix found
+
+nextB:          CALL    nextBlock       ; Next block
+                JR      NZ, l1          ; Loop until end
+
+end:            LD      A, 1            ; Clear Z
+                OR      A
+                RET
+#endlocal
+
+; findStation - finds first station record
+; nextStation - finds next station record
+;
+; Entry:
+;   D       first char of tiploc index
+;   E       second char
+;
+; Exit:
+;   Z       true if found
+;   HL      address of tiploc block if found
+;   DE      corrupt
+;   IX      preserved
+;
+findStation:    CALL    firstBlock
+                LD      C, 'S'              ; STN record
+                JP      findBlock
+
+; Find tiploc
+;
+; Entry:
+;   D       first char of tiploc index
+;   E       second char
+;
+; Exit:
+;   Z       true if found
+;   HL      address of tiploc block if found
+;   DE      corrupt
+;   IX      preserved
+;
+findTiploc:     CALL    firstBlock
+                LD      C, 'T'
+                JP      findBlock
+
+; Find tiploc name
+;
+; Entry:
+;   D       first char of tiploc index
+;   E       second char
+;
+; Exit:
+;   Z       true if found
+;   HL      address of name if found
+;   DE      corrupt
+;   IX      preserved
+;
+findTiplocName:
+#local
+                PUSH    IX
+                CALL    findTiploc
+                JR      NZ, l1
+                PUSH    IX                  ; Point HL to tiploc name
+                POP     HL
+                LD      DE, 7               ; Tiploc name
+                ADD     HL, DE
+l1:             POP     IX
+                RET
+#endlocal
+
+; Find next DEP block
+findDep:        LD      C, 'D'              ; STN record
+                LD      D, 'E'
+                LD      E, 'P'
+                JP      findBlock

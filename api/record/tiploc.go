@@ -35,8 +35,25 @@ func NewTiplocMap(s *darwinref.LocationMap) *TiplocMap {
   return tMap
 }
 
-func (m *TiplocMap) Add(loc *darwinref.Location) {
-  m.m[loc.Tiploc] = &Tiploc{Loc: loc, Index: len(m.m)}
+func (m *TiplocMap) Add(loc *darwinref.Location) *Tiploc {
+  t, exists := m.m[loc.Tiploc]
+  if !exists {
+    t = &Tiploc{Loc: loc, Index: len(m.m)}
+    m.m[loc.Tiploc] = t
+  }
+  return t
+}
+
+func (m *TiplocMap) Import(s *darwinref.LocationMap, tpl string) *Tiploc {
+  t, exists := m.m[tpl]
+  if !exists {
+    loc, exists := s.Get(tpl)
+    if exists {
+      t = &Tiploc{Loc: loc, Index: len(m.m)}
+      m.m[loc.Tiploc] = t
+    }
+  }
+  return t
 }
 
 func (m *TiplocMap) Get(tpl string) *Tiploc {

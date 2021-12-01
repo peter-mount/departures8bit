@@ -3,7 +3,9 @@ package api
 import (
   "context"
   "github.com/peter-mount/departures8bit/api/command"
+  "github.com/peter-mount/departures8bit/api/record"
   "github.com/peter-mount/go-kernel"
+  "github.com/peter-mount/nre-feeds/darwinref"
   "log"
   "strings"
 )
@@ -54,10 +56,18 @@ func (h *Search) Handle(ctx context.Context) error {
     return err
   }
 
-  for _, e := range sr {
-    resp.Append("", "%-3.3s%s", e.Crs, e.Name)
-    log.Printf("Found %3s %s", e.Crs, e.Label)
+  tMap := record.NewTiplocMap(nil)
+
+  for i, e := range sr {
+    t := tMap.Add(&darwinref.Location{Tiploc: e.Crs, Name: e.Name})
+    resp.RecordRaw(record.Station{
+      CRS:    e.Crs,
+      Tiploc: t.Index,
+      Index:  i,
+    }.Record())
   }
+
+  tMap.Append(resp)
 
   return nil
 }
