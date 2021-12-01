@@ -6,212 +6,168 @@
 ; Get Byte from RS232
 if1Get::    PUSH    HL      ; Save registers before call
             PUSH    BC
-            CALL if1Get1
+            CALL    L0B88
             POP     BC
             POP     HL
             RET
 
-if1Get1:	CALL L0B88 			; BCHAN-IN
+L0B88:      LD      HL,0x5CC7       ; sv SER_FL
+            LD      A,(HL)          ; Is the second-character received flag set?
+            AND     A
+            JR      Z,L0B95         ; forward to REC-BYTE (if Z set)
 
-	        POP	de
-            ;ld	hl,RS_ERR_NO_DATA
-            RET	nc
-            LD	(DE),A
-            ;ld	hl,RS_ERR_OK
+            LD      (HL),0x00
+
+            INC     HL
+            LD      A,(HL)          ;  pick the 2nd character we already got in the past loop
+            SCF                     ;  success
             RET
 
-; ---------------------------------------
-; THE "B" CHANNEL INPUT SERVICE ROUTINE
-; ---------------------------------------
-; (Hook Code: 0x1D)
+L0B95:	    DI                      ; Disable Interrupts
 
-;; BCHAN-IN
-L0B88:  LD      HL,0x5CC7        ; sv SER_FL
-        LD      A,(HL)          ; Is the second-character received flag set?
-        AND     A               ;
-        JR      Z,L0B95         ; forward to REC-BYTE (if Z set)
+            LD      A,(0x5CC6)      ; sv IOBORD
 
-        LD      (HL),0x00        ;
+            LD      DE,(0x5CC3)     ; sv BAUD
+            LD      HL,0x0320       ; 800d.
+            LD      B,D
+            LD      C,E
+            SRL     B
+            RR      C
+            LD      A,0xFE
+            OUT     (0xEF),A
 
-        INC     HL              ;
-        LD      A,(HL)          ;  pick the 2nd character we already got in the past loop
-        SCF                     ;  success
+                                    ; READ-RS
+L0BAF:      IN      A,(0xF7)        ; bit 7 is input serial data (txdata)
+            RLCA
+            JR      NC,L0BC3        ; forward to TST-AGAIN
 
-        RET                     ; Return.
+            IN      A,(0xF7)
+            RLCA
+            JR      NC,L0BC3        ; forward to TST-AGAIN
 
-;; REC-BYTE
-;; L0B95:  CALL    L163E          ; routine TEST-BRK  - Thanks Jetset Willy really dont need this!
+            IN      A,(0xF7)
+            RLCA
+            JR      NC,L0BC3        ; forward to TST-AGAIN
 
-L0B95:	DI                      ; Disable Interrupts
+            IN      A,(0xF7)
+            RLCA
+            JR      C,L0BCF         ; forward to START-BIT
 
-        LD      A,(0x5CC6)       ; sv IOBORD
-;        OUT     (0xFE),A		; Change the border colour.  -  No Thanks Jetset Willy change the borders in program if wanted
+L0BC3:      DEC     HL              ; TST-AGAIN
+            LD      A,H
+            OR      L
+            JR      NZ,L0BAF        ; back to READ-RS
 
-        LD      DE,(0x5CC3)      ; sv BAUD
-        LD      HL,0x0320        ; 800d.
-        LD      B,D             ;
-        LD      C,E             ;
-        SRL     B               ;
-        RR      C               ;
-        LD      A,0xFE           ;
-        OUT     (0xEF),A         ;
+            PUSH    AF
+            LD      A,0xEE
+            OUT     (0xEF),A
+            JR      L0BEE           ; forward to WAIT-1
 
-;; READ-RS
-L0BAF:  IN      A,(0xF7)         ; bit 7 is input serial data (txdata)
-        RLCA                    ;
-        JR      NC,L0BC3        ; forward to TST-AGAIN
+                                    ; START-BIT
+L0BCF:      LD      H,B             ; Load HL with halved BAUD value.
+            LD      L,C
 
-        IN      A,(0xF7)         ;
-        RLCA                    ;
-        JR      NC,L0BC3        ; forward to TST-AGAIN
+            LD      B,0x80          ; Load B with the start bit.
 
-        IN      A,(0xF7)         ;
-        RLCA                    ;
-        JR      NC,L0BC3        ; forward to TST-AGAIN
+            DEC     HL              ; Reduce the counter by the time for the four
+            DEC     HL              ; tests.
+            DEC     HL
 
-        IN      A,(0xF7)         ;
-        RLCA                    ;
-        JR      C,L0BCF         ; forward to START-BIT
+                                    ; SERIAL-IN
+L0BD6:      ADD     HL,DE           ; Add the BAUD value.
+            NOP                     ; (4) a timing value.
 
+                                    ; BD-DELAY
+L0BD8:      DEC     HL              ; (6) Delay for 26 * BAUD
+            LD      A,H             ; (4)
+            OR      L               ; (4)
+            JR      NZ,L0BD8        ; (12) back to BD-DELAY
 
-;; TST-AGAIN
-L0BC3:  DEC     HL              ;
-        LD      A,H             ;
-        OR      L               ;
-        JR      NZ,L0BAF        ; back to READ-RS
+            ADD     A,0x00          ; (7) wait
+            IN      A,(0xF7)        ; Read a bit.
+            RLCA                    ; Rotate bit 7 to carry.
+            RR      B               ; pick up carry in B
+            JR      NC,L0BD6        ; back , if no start bit, to SERIAL-IN
 
-        PUSH    AF              ;
-        LD      A,0xEE           ;
-        OUT     (0xEF),A         ;
-        JR      L0BEE           ; forward to WAIT-1
+            LD      A,0xEE          ; Send CTS line low  (comms data 0 also)
+            OUT     (0xEF),A        ; send to serial port
 
-; ---
+            LD      A,B             ; Transfer the received byte to A.
+            CPL                     ; Complement.
+            SCF                     ; Set Carry to signal success.
+            PUSH    AF              ; (*) push the success flag.
 
-;; START-BIT
-L0BCF:  LD      H,B             ; Load HL with halved BAUD value.
-        LD      L,C             ;
+; The success and failure (time out) paths converge here with the HL register holding zero.
+                                    ; WAIT-1
+L0BEE:      ADD     HL,DE           ; (11) transfer DE (BAUD) to HL.
+                                    ; WAIT-2
+L0BEF:      DEC     HL              ; ( 6) delay for stop bit.
+            LD      A,L             ; ( 4)
+            OR      H               ; ( 4)
+            JR      NZ,L0BEF        ; (12/7) back to WAIT-2
+                                    ; Register HL is now zero again.
+            ADD     HL,DE           ; HL = 0 + BAUD
+            ADD     HL,DE           ; HL = 2 * BAUD
+            ADD     HL,DE           ; HL = 3 * BAUD
 
-        LD      B,0x80           ; Load B with the start bit.
+; The device at the other end of the cable (not a Spectrum) may send a
+; second byte even though CTS (Clear To Send) is low.
+                                    ; T-FURTHER
+L0BF7:      DEC     HL              ; Decrement counter.
+            LD      A,L             ; Test for
+            OR      H               ; zero.
+            JR      Z,L0C34         ; forward, if no second byte, to END-RS-IN
 
-        DEC     HL              ; Reduce the counter by the time for the four
-        DEC     HL              ; tests.
-        DEC     HL              ;
+            IN      A,(0xF7)        ; Read TXdata.
+            RLCA                    ; test the bit read.
+            JR      NC,L0BF7        ; back, if none,  to T-FURTHER
 
-;; SERIAL-IN
-L0BD6:  ADD     HL,DE           ; Add the BAUD value.
-        NOP                     ; (4) a timing value.
+            IN      A,(0xF7)        ; As with first byte, TXdata must be high four four tests.
+            RLCA
+            JR      NC,L0BF7        ; back to T-FURTHER
 
-;; BD-DELAY
-L0BD8:  DEC     HL              ; (6) Delay for 26 * BAUD
-        LD      A,H             ; (4)
-        OR      L               ; (4)
-        JR      NZ,L0BD8        ; (12) back to BD-DELAY
+            IN      A,(0xF7)
+            RLCA
+            JR      NC,L0BF7        ; back to T-FURTHER
 
-        ADD     A,0x00           ; (7) wait
-        IN      A,(0xF7)         ; Read a bit.
-        RLCA                    ; Rotate bit 7 to carry.
-        RR      B               ; pick up carry in B
-        JR      NC,L0BD6        ; back , if no start bit, to SERIAL-IN
+            IN      A,(0xF7)
+            RLCA
+            JR      NC,L0BF7        ; back to T-FURTHER
 
-        LD      A,0xEE           ; Send CTS line low  (comms data 0 also)
-        OUT     (0xEF),A         ; send to serial port
+            LD      H,D             ; A second byte is on its way and is received exactly as before.
+            LD      L,E
+            SRL     H
+            RR      L
+            LD      B,0x80
+            DEC     HL
+            DEC     HL
+            DEC     HL
 
-        LD      A,B             ; Transfer the received byte to A.
-        CPL                     ; Complement.
-        SCF                     ; Set Carry to signal success.
-        PUSH    AF              ; (*) push the success flag.
+L0C1B:      ADD     HL,DE           ; SER-IN-2
+            NOP                     ; timing.
 
-;   The success and failure (time out) paths converge here with the HL register
-;   holding zero.
+L0C1D:      DEC     HL              ; BD-DELAY2
+            LD      A,H
+            OR      L
+            JR      NZ,L0C1D        ; back to BD-DELAY2
 
-;; WAIT-1
-L0BEE:  ADD     HL,DE           ; (11) transfer DE (BAUD) to HL.
-
-;; WAIT-2
-L0BEF:  DEC     HL              ; ( 6) delay for stop bit.
-        LD      A,L             ; ( 4)
-        OR      H               ; ( 4)
-        JR      NZ,L0BEF        ; (12/7) back to WAIT-2
-
-;   Register HL is now zero again.
-
-        ADD     HL,DE           ; HL = 0 + BAUD
-        ADD     HL,DE           ; HL = 2 * BAUD
-        ADD     HL,DE           ; HL = 3 * BAUD
-
-;   The device at the other end of the cable (not a Spectrum) may send a
-;   second byte even though CTS (Clear To Send) is low.
-
-;; T-FURTHER
-L0BF7:  DEC     HL              ; Decrement counter.
-        LD      A,L             ; Test for
-        OR      H               ; zero.
-        JR      Z,L0C34         ; forward, if no second byte, to END-RS-IN
-
-        IN      A,(0xF7)         ; Read TXdata.
-        RLCA                    ; test the bit read.
-        JR      NC,L0BF7        ; back, if none,  to T-FURTHER
-
-;   As with first byte, TXdata must be high four four tests.
-
-        IN      A,(0xF7)         ;
-        RLCA                    ;
-        JR      NC,L0BF7        ; back to T-FURTHER
-
-        IN      A,(0xF7)         ;
-        RLCA                    ;
-        JR      NC,L0BF7        ; back to T-FURTHER
-
-        IN      A,(0xF7)         ;
-        RLCA                    ;
-        JR      NC,L0BF7        ; back to T-FURTHER
-
-
-;   A second byte is on its way and is received exactly as before.
-
-        LD      H,D             ;
-        LD      L,E             ;
-        SRL     H               ;
-        RR      L               ;
-        LD      B,0x80           ;
-        DEC     HL              ;
-        DEC     HL              ;
-        DEC     HL              ;
-
-;; SER-IN-2
-L0C1B:  ADD     HL,DE           ;
-        NOP                     ; timing.
-
-;; BD-DELAY2
-L0C1D:  DEC     HL              ;
-        LD      A,H             ;
-        OR      L               ;
-        JR      NZ,L0C1D        ; back to BD-DELAY2
-
-        ADD     A,0x00           ;
-        IN      A,(0xF7)         ;
-        RLCA                    ;
-        RR      B               ;
-        JR      NC,L0C1B        ; back to SER-IN-2
+            ADD     A,0x00
+            IN      A,(0xF7)
+            RLCA
+            RR      B
+            JR      NC,L0C1B        ; back to SER-IN-2
 
 ;  The start bit has been pushed out and B contains the second received byte.
+            LD      HL,0x5CC7       ; Address the SER_FL System Variable.
 
-        LD      HL,0x5CC7        ; Address the SER_FL System Variable.
+            LD      (HL),0x01       ; Signal there is a byte in the next location.
+            INC     HL              ; Address that location.
+            LD      A,B             ; Transfer the byte to A.
+            CPL                     ; Complement
+            LD      (HL),A          ; and insert in the second byte of serial flag.
 
-        LD      (HL),0x01        ; Signal there is a byte in the next location.
-        INC     HL              ; Address that location.
-        LD      A,B             ; Transfer the byte to A.
-        CPL                     ; Complement
-        LD      (HL),A          ; and insert in the second byte of serial flag.
-
-;; END-RS-IN
-; L0C34:  CALL    L0D4D           ; routine BORD-REST - Dont need this thanks Jetset Willy
-
-L0C34:  POP     AF              ; ( either 0 and NC or the first received byte
-                                ;   and the carry flag set )
-
-        EI                      ; Enable Interrupts
-
-        RET                     ; Return.
+L0C34:      POP     AF              ; ( either 0 and NC or the first received byte and the carry flag set )
+            EI
+            RET
 
 #endlocal
