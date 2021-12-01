@@ -52,7 +52,7 @@ displayDep:     PUSH    HL
                 CALL    dd0
                 POP     HL
                 RET
-dd0:            LD      A, (IX+8)           ; Low nibble of dep
+dd0:            LD      A, (IX+6)           ; Low nibble of dep
                 SUB     '0'
                 ADD     A                   ; A = A<<1
                 ADD     5
@@ -70,8 +70,8 @@ dd1:            PUSH    BC
                 CALL    oswrch
 
                 PUSH    IX                  ; Save IX as we need a tiploc
-                LD      D, (IX+9+8+16+4)
-                LD      E, (IX+9+8+16+4+1)
+                LD      D, (IX+9+5+2)
+                LD      E, (IX+9+5+2+1)
                 CALL    findTiplocName
                 JR      NZ, dd2
                 CALL    writeString         ; Write it
@@ -86,7 +86,7 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 CALL    oswrch
                 PUSH    IX
                 POP     HL
-                LD      DE, 9+8+16
+                LD      DE, 7+5
                 ADD     HL, DE
                 LD      B, 4
                 CALL    wstrb
@@ -98,7 +98,7 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 CALL    teletextSetPos
                 PUSH    IX
                 POP     HL
-                LD      DE, 9
+                LD      DE, 7
                 ADD     HL, DE
                 LD      B, 5
                 CALL    wstrb

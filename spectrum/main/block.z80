@@ -5,10 +5,13 @@
 firstBlock:     LD      HL, 0x6000
                 RET
 
-findFirst:
-#local
-                CALL    firstBlock
+; Find next DEP block
+findDep:        LD      C, 'D'              ; STN record
+                JR      findNext
 
+findFirst:      CALL    firstBlock
+findNext:
+#local
 l1:             PUSH    HL              ; IX=HL
                 POP     IX
 
@@ -85,9 +88,3 @@ findTiplocName:
 l1:             POP     IX
                 RET
 #endlocal
-
-; Find next DEP block
-findDep:        LD      C, 'D'              ; STN record
-                LD      D, 'E'
-                LD      E, 'P'
-                JP      findBlock

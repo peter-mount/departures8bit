@@ -55,21 +55,16 @@ func NewService(i int, s ldb.Service, m *TiplocMap) Service {
 func (t Service) Append(r *command.Response) {
 
   r.RecordRaw(command.Record{
-    Type: "DEP",
+    Type: fmt.Sprintf("D%02X",t.Index),
     Data: fmt.Sprintf(
-      "%02d%-8.8s%-16.16s%4.4s%02X%02X%02X%-10.10s%-4.4s%-2.2s%3.3s%02d%04d%04d",
-      t.Index,
+      "%-5.5s%4.4s%02X%02X%02X%-2.2s%3.3s%02X%02X",
       t.Time,
-      t.RID,
       t.Plat,
       t.Destination,
       t.Origin,
       t.Terminates,
-      t.SSD.String(),
-      t.TrainId,
       t.Toc,
       t.Type,
-      t.Index,
       t.Cancel,
       t.Late,
     ),
