@@ -4,7 +4,7 @@
 
 #include "../../teletextspectrum/teletext.inc"
 
-        ORG     0x7000
+        ORG     0xe000
 
 main:
 #local
@@ -18,7 +18,7 @@ homeMenu:
         defb    'CSD'                           ; Key options per entry
         defw    networkMenu                     ; Entry points per entry
         defw    searchStation
-        defw    0
+        defw    departures
         defb    "Connect to network", 0         ; Option text per entry
         defb    "Search for Station", 0
         defb    "Display departures at station", 0
@@ -26,6 +26,7 @@ homeMenu:
 
 #include "network.z80"
 #include "search.z80"
+#include "boards.z80"
 
 #include "ui.z80"
 #include "menu.z80"

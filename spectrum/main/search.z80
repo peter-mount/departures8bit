@@ -87,7 +87,7 @@ k1:             CALL    getKey              ; Get key
 searchHeader:   defb    "Search stations", 0
 test:           defb    "search maid", 10, 0
 
-wstrb:          LD      A, (HL)
+wstrb::         LD      A, (HL)
                 OR      A
                 RET     Z
                 CALL    oswrch

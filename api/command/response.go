@@ -4,7 +4,6 @@ import (
   "context"
   "fmt"
   "io"
-  "log"
 )
 
 type Response struct {
@@ -113,16 +112,10 @@ func (r *Response) send(n, c int, rec Record) error {
     // Loop until we get an ACK
     v[0] = 0
     for v[0] != 0x06 && v[0] != 0x15 {
-      n1, err := r.i.Read(v)
+      _, err := r.i.Read(v)
       if err != nil {
         return err
       }
-
-      cc := '#'
-      if v[0] > 0x1f && v[0] < 127 {
-        cc = int32(v[0])
-      }
-      log.Printf("n1=%d v=%02X %c", n1, v[0], cc)
     }
   }
 

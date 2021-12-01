@@ -12,3 +12,4 @@ networkGetBlock equ networkGetLine + 3
 nextBlock       equ networkGetBlock + 3
 lastBlock       equ nextBlock + 3
 countBlocks     equ lastBlock + 3
+findBlock       equ countBlocks + 3

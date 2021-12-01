@@ -1,0 +1,128 @@
+; ----------------------------------------------------------------------
+; Display station departures
+; ----------------------------------------------------------------------
+
+#include "../network/network.inc"
+#include "../../teletextspectrum/teletext.inc"
+
+departures:
+#local
+                LD      HL, searchHeader
+                CALL    header              ; Clear screen & show header
+
+                LD      HL, test            ; Send search command with pattern
+                CALL    networkSend
+
+                LD      HL, 0x6000          ; Get result
+                CALL    networkGetBlock
+
+                CALL    findStation         ; Find STN Station record
+                JR      NZ, k1              ; Not found
+
+                LD      DE, 4+8             ; Station name as header
+                ADD     HL, DE
+                CALL    header
+
+                LD      HL, headers         ; Column headers
+                CALL    writeString
+
+                CALL    firstBlock          ; Now departures
+d1:             CALL    findDep             ; Find next departure
+                JR      NZ, k1
+                CALL    displayDep          ; Display it
+                CALL    nextBlock           ; move to next block
+                JR      d1                  ; loop for next departure
+
+k1:             CALL    getKey              ; Get key
+                RET     NC                  ; exit on break
+                RET
+
+displayDep:     PUSH    HL
+                CALL    dd0
+                POP     HL
+                RET
+dd0:            LD      A, (IX+8)           ; Low nibble of dep
+                SUB     '0'
+                ADD     A                   ; A = A<<1
+                ADD     5
+                LD      B,A
+                LD      C,0                 ; Top row
+                CALL    dd1
+                INC     B
+dd1:            PUSH    BC
+                CALL    teletextSetPos
+                LD      A, 141
+                CALL    oswrch
+
+                PUSH    IX                  ; Save IX as we need a tiploc
+                LD      D, (IX+9+8+16+4)
+                LD      E, (IX+9+8+16+4+1)
+                CALL    findTiploc
+                JR      NZ, dd2
+                PUSH    IX                  ; Point HL to tiploc name
+                POP     HL
+                LD      DE, 7               ; Tiploc name
+                ADD     HL, DE
+                CALL    writeString         ; Write it
+dd2:            POP     IX                  ; Restore IX to departure record
+
+                POP     BC                  ; Platform
+                PUSH    BC
+                PUSH    HL                  ; Save HL
+                LD      C, 23
+                CALL    teletextSetPos
+                LD      A, 135
+                CALL    oswrch
+                PUSH    IX
+                POP     HL
+                LD      DE, 9+8+16
+                ADD     HL, DE
+                LD      B, 4
+                CALL    wstrb
+                POP     HL                  ; Restore HL
+
+                POP     BC                  ; Expected time
+                PUSH    BC
+                LD      C, 35
+                CALL    teletextSetPos
+                PUSH    IX
+                POP     HL
+                LD      DE, 9
+                ADD     HL, DE
+                LD      B, 5
+                CALL    wstrb
+
+                POP     BC
+                RET
+
+searchHeader:   defb    "Departures", 0
+headers:        defb    31,0,3,131,141,"Destination",31,24,3,"Plat Deprt Expct"
+                defb    31,0,4,131,141,"Destination",31,24,4,"Plat Deprt Expct"
+                ; plat 24 Deprt 29 Expected 35
+                defb    0
+test:           defb    "depart mde", 10, 0
+
+#endlocal
+
+firstBlock:     LD      HL, 0x6000
+                RET
+
+; Find STN block - there's only 1 so calls firstBlock every time
+findStation:    CALL    firstBlock
+                LD      C, 'S'              ; STN record
+                LD      D, 'T'
+                LD      E, 'N'
+                JP      findBlock
+
+; Find next DEP block
+findDep:        LD      C, 'D'              ; STN record
+                LD      D, 'E'
+                LD      E, 'P'
+                JP      findBlock
+
+; Find tiploc
+;
+; Entry: D first char of tiploc index, E second char
+findTiploc:     CALL    firstBlock
+                LD      C, 'T'
+                JP      findBlock

@@ -76,12 +76,24 @@ netGetBlock:    CALL    netGet              ; Loop until we have STX 0x02
 
                 LD      A, 4                ; 4 byte header
                 CALL    getBytes            ; Read bytes
+
                 PUSH    HL                  ; Save HL as showBlock trashes it
                 CALL    showBlock           ; Show block id being received on screen
                 POP     HL
 
+                PUSH    HL                  ; FIXME this was debug but for some reason
+                LD      A, H                ; this adds enough delay so that we don't
+                ;CALL    hex
+                LD      A, L                ; lock up whilst downloading departures
+                ;CALL    hex
+                POP     HL
+
                 LD      A, (IX+2)           ; Block length
                 CALL    getBytes            ; Get data block
+
+                XOR     A                   ; Add null terminator
+                LD      (HL), A
+                INC     HL
 
                 LD      A, (IX+3)           ; Compare checksum
                 CP      C                   ; Z set if block is valid
@@ -123,7 +135,7 @@ showBlock:
                 LD      A, '/'              ; Separator
                 CALL    oswrch
                 LD      A, (IX+1)           ; Block count
-hex:            PUSH    AF                  ; Save A
+hex::            PUSH    AF                  ; Save A
                 RRA                         ; Shift right 4
                 RRA
                 RRA
@@ -189,5 +201,47 @@ l1:             INC     BC
                 CALL    nextBlock
                 JR      NZ, l1
                 RET
+#endlocal
 
+; Find a named block
+;
+; Entry:
+;   C,DE    3 char prefix
+;   HL      starting block
+;
+; Exit:
+;   Z       true if found
+;   HL      Address of found block, invalid if not found
+;   IX      As HL
+;
+findBlock:
+#local
+                CALL    lastBlock       ; Test if last block
+                JR      Z, end          ; All done
+
+l1:             PUSH    HL              ; IX=HL
+                POP     IX
+
+                LD      A, (IX+2)       ; Block len
+                CP      3
+                JR      C, nextB        ; Block too short
+
+                LD      A, (IX+4)       ; Test char 1
+                CP      C
+                JR      NZ, nextB       ; Failed char 1
+
+                LD      A, (IX+5)       ; Test char 2
+                CP      D
+                JR      NZ, nextB       ; Failed char 2
+
+                LD      A, (IX+6)       ; Test chars
+                CP      E
+                RET     Z               ; Prefix found
+
+nextB:          CALL    nextBlock       ; Next block
+                JR      NZ, l1          ; Loop until end
+
+end:            LD      A, 1            ; Clear Z
+                OR      A
+                RET
 #endlocal
