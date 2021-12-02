@@ -1,55 +1,55 @@
 package record
 
 import (
-  "github.com/peter-mount/departures8bit/api/command"
-  "github.com/peter-mount/nre-feeds/ldb"
-  "github.com/peter-mount/nre-feeds/util"
-  "time"
+	"github.com/peter-mount/departures8bit/api/command"
+	"github.com/peter-mount/nre-feeds/ldb"
+	"github.com/peter-mount/nre-feeds/util"
+	"time"
 )
 
 type Service struct {
-  Index       int
-  RID         string
-  Time        util.WorkingTime
-  Origin      int
-  Destination int
-  Terminates  int
-  SSD         util.SSD
-  TrainId     string
-  Toc         string
-  Type        string // P=passenger, C=charter
-  Cancel      int
-  Late        int
-  Plat        string
+	Index       int
+	RID         string
+	Time        util.WorkingTime
+	Origin      int
+	Destination int
+	Terminates  int
+	SSD         util.SSD
+	TrainId     string
+	Toc         string
+	Type        string // P=passenger, C=charter
+	Cancel      int
+	Late        int
+	Plat        string
 }
 
 func NewService(i int, s ldb.Service, m *TiplocMap) Service {
-  r := Service{
-    Index:       i,
-    RID:         s.RID,
-    Time:        s.Location.Time,
-    Origin:      m.Get(s.Origin.Tiploc).Index,
-    Destination: m.Get(s.Dest.Tiploc).Index,
-    Terminates:  m.Get(s.Terminates.Tiploc).Index,
-    SSD:         s.SSD,
-    TrainId:     s.TrainId,
-    Toc:         s.Toc,
-    Cancel:      s.CancelReason.Reason,
-    Late:        s.LateReason.Reason,
-  }
+	r := Service{
+		Index:       i,
+		RID:         s.RID,
+		Time:        s.Location.Time,
+		Origin:      m.Get(s.Origin.Tiploc).Index,
+		Destination: m.Get(s.Dest.Tiploc).Index,
+		Terminates:  m.Get(s.Terminates.Tiploc).Index,
+		SSD:         s.SSD,
+		TrainId:     s.TrainId,
+		Toc:         s.Toc,
+		Cancel:      s.CancelReason.Reason,
+		Late:        s.LateReason.Reason,
+	}
 
-  if !s.Location.Forecast.Platform.Suppressed && !s.Location.Forecast.Platform.CISSuppressed {
-    r.Plat = s.Location.Forecast.Platform.Platform
-  }
+	if !s.Location.Forecast.Platform.Suppressed && !s.Location.Forecast.Platform.CISSuppressed {
+		r.Plat = s.Location.Forecast.Platform.Platform
+	}
 
-  if s.PassengerService {
-    r.Type = "P"
-  }
-  if s.Charter {
-    r.Type = "C"
-  }
+	if s.PassengerService {
+		r.Type = "P"
+	}
+	if s.Charter {
+		r.Type = "C"
+	}
 
-  return r
+	return r
 }
 
 // Record generates the record
@@ -66,15 +66,15 @@ func NewService(i int, s ldb.Service, m *TiplocMap) Service {
 // 17 2 late    Late reason, 0=none
 //
 func (t Service) Record() *command.Record {
-  return command.NewRecord().
-    Command('D', t.Index).
-    Time(t.Time.Time(time.Now())).
-    Time(t.Time.Time(time.Now())).
-    StringN(t.Plat, 4, ' ').
-    Byte(t.Origin).
-    Byte(t.Destination).
-    Byte(t.Terminates).
-    StringN(t.Type, 1, ' ').
-    Word(t.Cancel).
-    Word(t.Late)
+	return command.NewRecord().
+		Command('D', t.Index).
+		Time(t.Time.Time(time.Now())).
+		Time(t.Time.Time(time.Now())).
+		StringN(t.Plat, 4, ' ').
+		Byte(t.Origin).
+		Byte(t.Destination).
+		Byte(t.Terminates).
+		StringN(t.Type, 1, ' ').
+		Word(t.Cancel).
+		Word(t.Late)
 }

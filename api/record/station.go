@@ -1,13 +1,13 @@
 package record
 
 import (
-  "github.com/peter-mount/departures8bit/api/command"
+	"github.com/peter-mount/departures8bit/api/command"
 )
 
 type Station struct {
-  CRS    string
-  Tiploc int
-  Index  int
+	CRS    string
+	Tiploc int
+	Index  int
 }
 
 // Record generates the record
@@ -16,7 +16,7 @@ type Station struct {
 // 02 n string  CRS code
 //
 func (s Station) Record() *command.Record {
-  return command.NewRecord().
-    Command('S',s.Index).
-    String(s.CRS)
+	return command.NewRecord().
+		Command('S', s.Index).
+		String(s.CRS)
 }
