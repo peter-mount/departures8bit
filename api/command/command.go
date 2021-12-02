@@ -102,7 +102,7 @@ func (a *Server) readLine(reader io.Reader) (string, error) {
 	b := []byte{0}
 	for true {
 		n, err := reader.Read(b)
-		log.Printf("%02d %02d %02x %s", len(s), n, b[0], s)
+		//log.Printf("%02d %02d %02x %s", len(s), n, b[0], s)
 		if err != nil {
 			return "", err
 		}
