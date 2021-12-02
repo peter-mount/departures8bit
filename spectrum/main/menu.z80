@@ -27,9 +27,12 @@ showMenu::  CALL    header              ; Clear screen & show header
             LD      (currentMenu), HL   ; Save start of actual menu
 
             PUSH    HL
-            LD      BC, 0x0402          ; Set text pos
+            LD      BC, 0x0401          ; Set text pos
             CALL    teletextSetPos
             POP     HL
+
+            LD      A, 140              ; Ensure single height, fixes issue with
+            CALL    oswrch              ; header
 
             LD      B, (HL)             ; Show Key labels
             PUSH    BC                  ; Save row count
@@ -56,8 +59,7 @@ l2:         PUSH    BC                  ; Save B
             LD      C, 4
             CALL    teletextSetPos
 
-            LD      A, 130              ; Set label colour
-            CALL    oswrch
+            CALL    greenText           ; Set label colour
 
             POP     HL                  ; Restore HL & write label
             CALL    writeString

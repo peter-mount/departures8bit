@@ -1,7 +1,6 @@
 ; ----------------------------------------------------------------------
 ; Handles common UI features
 ; ----------------------------------------------------------------------
-#local
 
 ; Get string length
 ;
@@ -13,17 +12,24 @@
 ;   B       string length
 ;   HL      Byte after string null
 ;
-strLen::    LD  B, 0                    ; Get string length in B
+strLen:
+#local
+            LD  B, 0                    ; Get string length in B
 strLen1:    LD  A,(HL)
             INC HL
             AND A
             RET Z
             INC B
             JR strLen1
+#endlocal
 
 ; Clear screen with our title at the top left of screen
-cls::       LD      HL, clsTxt
+cls:
+#local
+            LD      HL, clsTxt
             JP      writeString
+clsTxt:     defb    12, 134, "departureboards.mobi", 13, 10, 0
+#endlocal
 
 ; CLS then show centered title double height, blue background
 ;
@@ -36,7 +42,9 @@ cls::       LD      HL, clsTxt
 ;   BC      Corrupt
 ;   DE      Corrupt
 ;
-header::    PUSH    HL                  ; copy for lower title line
+header:
+#local
+            PUSH    HL                  ; copy for lower title line
             PUSH    HL                  ; copy for upper title line
             PUSH    HL                  ; copy for strlen
             CALL    cls
@@ -61,24 +69,30 @@ header::    PUSH    HL                  ; copy for lower title line
             INC     B                   ; Write lower line
             CALL    teletextSetPos
             POP     HL
-            CALL    writeString
+            JP      writeString
+
+hdrTxt:     defb    31,0,1,132,157,135,141  ; Blue double height text
+            defb    13,10,132,157,135,141,0
+#endlocal
 
 ; New line
 ;
 ; Exit:
 ;   A       Corrupt
 ;
-newline::   LD      A, 13
+newline:    LD      A, 13
             CALL    oswrch
             LD      A, 10
-            JP      oswrch
+linefeed:   JP      oswrch
 
+space:      LD      A, 32
+            JP      oswrch
 ; Back and down one char
 ;
 ; Exit:
 ;   A       Corrupt
 ;
-backdown1:: LD      A, 8
+backdown1:  LD      A, 8
             CALL    oswrch
             LD      A, 10
             JP      oswrch
@@ -94,7 +108,9 @@ backdown1:: LD      A, 8
 ;   Z       reset
 ;   HL      corrupt
 ;
-getKey::    LD      HL, 23560       ; LAST_K system variable
+getKey:
+#local
+            LD      HL, 23560       ; LAST_K system variable
             LD      (HL), 0         ; Reset variable
 getKey1:    CALL    testBreak       ; Test for break key
             RET     NC              ; exit as we have break
@@ -103,6 +119,58 @@ getKey1:    CALL    testBreak       ; Test for break key
             JR      Z, getKey1      ; Loop as no character
             SCF                     ; Mark as valid key found
             RET
+#endlocal
+
+; Like getKey but with a timeout
+;
+; Interrupts must be enabled as this relies on the system
+; doing the decoding of the keyboard.
+;
+; Entry:
+;   BC      Delay in frames
+;
+; Exit:
+;   A       Key read if not a break
+;   Z       reset
+;   HL      corrupt
+;
+; On break:     C clear, Z set
+; On timeout:   C clear, Z clear
+; On key:       C set
+;
+getKeyTimeout:
+#local
+            LD      HL, 0           ; Convert BC to frames remaining
+            CCF
+            SBC     HL, BC
+
+            DI                      ; Disable interrupts
+            LD      (0x5C78), HL    ; Set lower 2 bytes of FRAMES counter
+            LD      A, 0xFF         ; Set upper byte to 0xFF
+            LD      (0x5C7A), A
+            EI                      ; Enable interrupts, FRAMES now counting down
+
+            LD      HL, 23560       ; LAST_K system variable
+            LD      (HL), 0         ; Reset variable
+l1:         CALL    testBreak       ; Test for break key
+            JR      C, l2           ; exit as we have break
+            XOR     A               ; Set Z to indicate break
+            CCF                     ; Clear carry flag
+            RET
+l2:         LD      A, (HL)         ; Get value
+            OR      A
+            JR      NZ, le          ; Character found
+            LD      A, (0x5C7A)     ; 3rd byte of FRAMES counter
+            BIT     7, A            ; If set then we haven't rolled over yet
+            JR      NZ, l1          ; Loop as not yet rolled over
+            LD      A, 1            ; Clear Z
+            OR      A
+            CCF                     ; Clear carry
+            RET
+
+le:         SCF                     ; Mark as valid key found
+            RET
+#endlocal
 
 ; Test for break key
 ;
@@ -110,7 +178,7 @@ getKey1:    CALL    testBreak       ; Test for break key
 ;   Carry   reset if break, set if no-break
 ;   A       Corrupt
 ;
-testBreak:: LD      A, 0x7F         ; Test for Break key, first space
+testBreak:  LD      A, 0x7F         ; Test for Break key, first space
             IN      A, (0xFE)
             RRA
             RET     C               ; Space not pressed
@@ -127,19 +195,45 @@ testBreak:: LD      A, 0x7F         ; Test for Break key, first space
 ; Exit:
 ;   A       Unchanged unless 'a'..'z' then returns 'A'..'Z'
 ;
-toUpper::   CP      'a'
+toUpper:    CP      'a'
             RET     C
             CP      'z'+1
             RET     NC
             XOR     32
             RET
 
-; cls
-clsTxt:     defb    12, 134, "departureboards.mobi", 13, 10, 0
-
-; header - Blue double height text
-hdrTxt:     defb    31,0,1,132,157,135,141
-            defb    13,10,132,157,135,141
-            defb    0
-
+; Write a 0 prefixed 2 digit decimal number
+;
+; Entry:
+;   A       Value to display
+;
+; Exit:
+;   A       Corrupt
+;   B       Corrupt
+;
+showDecimal:
+#local
+                LD      B, 0                ; Set tens as 0
+sd0:            CP      10                  ; If less than 0
+                JR      C, sd1              ; skip to display tens digit
+                INC     B                   ; Inc B, sub 10 from A
+                SUB     10
+                JR      sd0                 ; Loop for next test
+sd1:            PUSH    AF                  ; Save unit
+                LD      A, '0'              ; Display tens, add ascii to B
+                ADD     B
+                CALL    oswrch              ; Display
+                POP     AF                  ; Restore unit
+                ADD     '0'                 ; convert to ascii
+                JR      osw                 ; display
 #endlocal
+
+; Shortcuts to set text colour
+redText:        LD      A, 129
+                JR      osw
+greenText:      LD      A, 130
+                JR      osw
+yellowText:     LD      A, 131
+                JR      osw
+whiteText:      LD      A, 135
+osw:            JP      oswrch
