@@ -99,7 +99,11 @@ netGetBlock:    CALL    netGet              ; Loop until we have STX 0x02
                 CP      C                   ; Z set if block is valid
                 RET
 
-; Get B bytes from the serial port
+; Get B bytes from the serial port.
+;
+; Due to IF1 not being able to receive 0x00, the inbound stream is
+; escaped so that if a 0x00 is sent then we will receive 0xFF,0x01
+; To receive 0xFF then 0xFF,0x02 is expected.
 ;
 ; Entry:
 ;   A       Number of bytes to read
@@ -116,7 +120,24 @@ getBytes:       LD      B, A                ; Set B with the byte count
 #local
 l1:             CALL    netGet              ; Get byte from serial
                 JR      NC, l1              ; Loop if we don't have one
-                LD      (HL), A             ; Store in buffer
+
+                CP      0xFF                ; Escape character?
+                JR      NZ, l3              ; Skip as plain value
+
+l2:             CALL    netGet              ; Get escape byte from serial
+                JR      NC, l2              ; Loop if we don't have one
+
+                DEC     A                   ; 0x01 = escaped 0
+                JR      Z, l2_0
+
+                DEC     A                   ; 0x02 = escaped 0xFF
+                JR      NZ, l1              ; No then ignore the value - should not happen
+                LD      A, 0xFF             ; Set 0xff
+                JR      l3
+
+l2_0:           XOR     A                   ; A=0
+
+l3:             LD      (HL), A             ; Store in buffer
                 ADD     C                   ; Add A to C for the checksum
                 LD      C, A
                 INC     HL                  ; next byte
@@ -135,7 +156,11 @@ showBlock:
                 LD      A, '/'              ; Separator
                 CALL    oswrch
                 LD      A, (IX+1)           ; Block count
-hex::            PUSH    AF                  ; Save A
+hex::           PUSH    AF                  ; Save A
+                CALL hex0
+                POP     AF
+                RET
+hex0: PUSH AF
                 RRA                         ; Shift right 4
                 RRA
                 RRA
@@ -200,48 +225,5 @@ countBlocks:
 l1:             INC     BC
                 CALL    nextBlock
                 JR      NZ, l1
-                RET
-#endlocal
-
-; Find a named block
-;
-; Entry:
-;   C,DE    3 char prefix
-;   HL      starting block
-;
-; Exit:
-;   Z       true if found
-;   HL      Address of found block, invalid if not found
-;   IX      As HL
-;
-findBlock:
-#local
-                CALL    lastBlock       ; Test if last block
-                JR      Z, end          ; All done
-
-l1:             PUSH    HL              ; IX=HL
-                POP     IX
-
-                LD      A, (IX+2)       ; Block len
-                CP      3
-                JR      C, nextB        ; Block too short
-
-                LD      A, (IX+4)       ; Test char 1
-                CP      C
-                JR      NZ, nextB       ; Failed char 1
-
-                LD      A, (IX+5)       ; Test char 2
-                CP      D
-                JR      NZ, nextB       ; Failed char 2
-
-                LD      A, (IX+6)       ; Test chars
-                CP      E
-                RET     Z               ; Prefix found
-
-nextB:          CALL    nextBlock       ; Next block
-                JR      NZ, l1          ; Loop until end
-
-end:            LD      A, 1            ; Clear Z
-                OR      A
                 RET
 #endlocal

@@ -18,19 +18,18 @@ departures::    LD      HL, searchHeader
                 LD      HL, 0x6000          ; Get result
                 CALL    networkGetBlock
 
-                LD      C, 'S'              ; Find sole Station record
+                LD      D, 'S'              ; Find sole Station record
                 CALL    findFirst
                 RET     NZ                  ; Not found so bomb out
 
-                LD      D, (IX+5)           ; Station tiploc
-                LD      E, (IX+6)
+                LD      E, (IX+5)           ; Station tiploc
                 CALL    findTiplocName
                 JR      Z, d0               ; Found so display full name
 
                 PUSH    IX                  ; LD HL,IX
                 POP     HL
 
-                LD      DE, 7               ; use CRS as fallback
+                LD      DE, 6               ; use CRS as fallback
                 ADD     HL, DE
 d0:             CALL    header
 
@@ -52,8 +51,7 @@ displayDep:     PUSH    HL
                 CALL    dd0
                 POP     HL
                 RET
-dd0:            LD      A, (IX+6)           ; Low nibble of dep
-                SUB     '0'
+dd0:            LD      A, (IX+5)           ; Low nibble of dep
                 ADD     A                   ; A = A<<1
                 ADD     5
 
@@ -70,8 +68,7 @@ dd1:            PUSH    BC
                 CALL    oswrch
 
                 PUSH    IX                  ; Save IX as we need a tiploc
-                LD      D, (IX+9+5+2)
-                LD      E, (IX+9+5+2+1)
+                LD      E, (IX+18)
                 CALL    findTiplocName
                 JR      NZ, dd2
                 CALL    writeString         ; Write it
@@ -86,7 +83,7 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 CALL    oswrch
                 PUSH    IX
                 POP     HL
-                LD      DE, 7+5
+                LD      DE, 0x0C            ; Offset of platform
                 ADD     HL, DE
                 LD      B, 4
                 CALL    wstrb
@@ -101,7 +98,7 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 LD      DE, 7
                 ADD     HL, DE
                 LD      B, 5
-                CALL    wstrb
+                ;CALL    wstrb
 
                 POP     BC
                 RET

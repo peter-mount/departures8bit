@@ -19,9 +19,8 @@ searchStation:
                 LD      HL, searchHeader    ; Clear screen
                 CALL    header
 
-                LD      A, '0'              ; First station
+                XOR     A                   ; First station
 l1:             PUSH    AF
-                LD      D, '0'
                 LD      E, A
                 CALL    findStation
                 JR      NZ, end             ; All done
@@ -31,7 +30,7 @@ l1:             PUSH    AF
                 PUSH    AF                  ; Save for display
 
                 LD      C, 4
-                SUB     48-4                ; ASCII to digit, Row 4 onwards
+                ADD     4                   ; Row 4 onwards
                 LD      B, A
                 PUSH    HL
                 CALL    teletextSetPos
@@ -39,6 +38,7 @@ l1:             PUSH    AF
 
                 POP     AF                  ; Show key
                 PUSH    AF
+                ADD     '0'                 ; We use 1 as first key
                 CALL    oswrch
 
                 LD      a, 32
@@ -48,15 +48,14 @@ l1:             PUSH    AF
 
                 PUSH    IX                  ; LD HL, IX
                 POP     HL
-                LD      DE, 7               ; Offset to CRS in station record
+                LD      DE, 6               ; Offset to CRS in station record
                 ADD     HL, DE
                 CALL    writeString         ; Write CRS
 
                 LD      A, 32
                 CALL    oswrch
 
-                LD      D, (IX+5)           ; Get tiploc index, search uses
-                LD      E, (IX+6)           ; same id's
+                LD      E, (IX+5)           ; Get tiploc index, search uses same ID's so no mapping required
                 CALL    findTiplocName
                 JR      NZ, l2              ; Not found, shouldn't happen
                 CALL    writeString         ; Write name
@@ -69,15 +68,14 @@ end:            POP     AF                  ; Dump
 k1:             CALL    getKey              ; Get key
                 RET     NC                  ; exit on break
 
-                DEC     A                   ; 1 becomes 0 etc
-                LD      D, '0'
+                SUB     '1'                 ; 1 represents station 0
                 LD      E, A                ; Search for station
                 CALL    findStation
                 JR      NZ, k1              ; Not found so next key
 
                 PUSH    IX                  ; LD HL, IX
                 POP     HL
-                LD      DE, 7               ; Offset to CRS
+                LD      DE, 6               ; Offset to CRS
                 ADD     HL, DE
                 JP      crsDepartures       ; Show station boards
 

@@ -12,12 +12,14 @@ if1Get:
             POP     HL
             RET
 
-L0B88:      LD      HL,0x5CC7       ; sv SER_FL
+ser_fl      defw    0               ; Dont use 5CC7
+
+L0B88:      LD      HL,ser_fl       ; sv SER_FL
             LD      A,(HL)          ; Is the second-character received flag set?
             AND     A
             JR      Z,L0B95         ; forward to REC-BYTE (if Z set)
 
-            LD      (HL),0x00
+            LD      (HL), 0x00      ; Reset second-character received flag
 
             INC     HL
             LD      A,(HL)          ;  pick the 2nd character we already got in the past loop
@@ -26,9 +28,7 @@ L0B88:      LD      HL,0x5CC7       ; sv SER_FL
 
 L0B95:	    DI                      ; Disable Interrupts
 
-            LD      A,(0x5CC6)      ; sv IOBORD
-
-            LD      DE,(0x5CC3)     ; sv BAUD
+            LD      DE,(if1Baud)    ; sv BAUD
             LD      HL,0x0320       ; 800d.
             LD      B,D
             LD      C,E
@@ -59,7 +59,7 @@ L0BC3:      DEC     HL              ; TST-AGAIN
             OR      L
             JR      NZ,L0BAF        ; back to READ-RS
 
-            PUSH    AF
+            PUSH    AF              ; Z if HL=0, always NC as reset by OR
             LD      A,0xEE
             OUT     (0xEF),A
             JR      L0BEE           ; forward to WAIT-1
@@ -159,7 +159,7 @@ L0C1D:      DEC     HL              ; BD-DELAY2
             JR      NC,L0C1B        ; back to SER-IN-2
 
 ;  The start bit has been pushed out and B contains the second received byte.
-            LD      HL,0x5CC7       ; Address the SER_FL System Variable.
+            LD      HL,ser_fl       ; Address the SER_FL System Variable.
 
             LD      (HL),0x01       ; Signal there is a byte in the next location.
             INC     HL              ; Address that location.
@@ -170,5 +170,4 @@ L0C1D:      DEC     HL              ; BD-DELAY2
 L0C34:      POP     AF              ; ( either 0 and NC or the first received byte and the carry flag set )
             EI
             RET
-
 #endlocal

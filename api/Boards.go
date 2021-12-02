@@ -73,22 +73,18 @@ func (h *Boards) Handle(ctx context.Context) error {
   }
   resp.Record(station)
 
-  log.Printf("Got %d services", len(sr.Services))
-
   for i, service := range sr.Services {
     if i < 20 {
       tMap.Import(sr.Tiplocs, service.Origin.Tiploc)
       tMap.Import(sr.Tiplocs, service.Dest.Tiploc)
       tMap.Import(sr.Tiplocs, service.Terminates.Tiploc)
       s := record.NewService(i, service, tMap)
-      s.Append(resp)
+      resp.Record(s)
     }
-
-    log.Printf("Got %d services", i)
   }
 
   for i, msg := range sr.Messages {
-    resp.Record(&record.Message{Msg: msg,Index: i})
+    resp.Record(&record.Message{Msg: msg, Index: i})
   }
 
   tMap.Append(resp)

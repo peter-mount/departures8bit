@@ -24,7 +24,6 @@ vtend:                              ; End of +3 specific, so vt48 will overwrite
                 jp  nextBlock
                 jp  lastBlock
                 jp  countBlocks
-                jp  findBlock
 
                                     ; Interface1 specific vectors, gets written to vtp3 on init
 vt48:           jp if1Close         ; 48k matches layout of vtp3, will get

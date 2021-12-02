@@ -37,12 +37,12 @@ func (m *Modem) PostInit() error {
 
 func (m *Modem) ath(ctx context.Context) error {
   time.Sleep(time.Second)
-  command.GetResponse(ctx).Append("","OK")
+  command.GetResponse(ctx).RecordRaw(command.NewRecord().String("OK"))
   return nil
 }
 
 func (m *Modem) atd(ctx context.Context) error {
   time.Sleep(time.Second)
-  command.GetResponse(ctx).Append("","CONNECTED")
+  command.GetResponse(ctx).RecordRaw(command.NewRecord().String("CONNECTED"))
   return nil
 }

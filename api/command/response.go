@@ -4,31 +4,15 @@ import (
   "context"
   "fmt"
   "io"
+  "log"
+  "strings"
 )
 
 type Response struct {
   i       io.Reader
   o       io.Writer
-  records []Record
+  records []*Record
 }
-
-type Record struct {
-  Type string
-  Data string
-}
-
-type RecordSource interface {
-  Record() Record
-}
-
-func (r Record) String() string {
-  if r.Type == "" {
-    return r.Data
-  }
-  return fmt.Sprintf("%-3.3s%s", r.Type, r.Data)
-}
-
-var endRec = Record{"END", ""}
 
 func GetResponse(ctx context.Context) *Response {
   return ctx.Value("response").(*Response)
@@ -41,31 +25,22 @@ func NewResponse(i io.Reader, o io.Writer) *Response {
   }
 }
 
-func (r *Response) Inf(f string, a ...interface{}) *Response {
-  return r.Append("INF", f, a...)
-}
-
 func (r *Response) Error(ctx context.Context) error {
   return r.Errorf("%v", ctx.Value("err")).Send()
 }
 
 func (r *Response) Errorf(f string, a ...interface{}) *Response {
-  return r.Append("ERR", f, a...)
-}
-
-func (r *Response) Append(t, f string, a ...interface{}) *Response {
-  r.records = append(r.records, Record{Type: t, Data: fmt.Sprintf(f, a...)})
-  return r
+  return r.RecordRaw(NewRecord().Append('E').Stringf(f, a...))
 }
 
 func (r *Response) Record(rec RecordSource) *Response {
   if rec != nil {
-    return r.RecordRaw(rec.Record())
+    r.RecordRaw(rec.Record())
   }
   return r
 }
 
-func (r *Response) RecordRaw(rec Record) *Response {
+func (r *Response) RecordRaw(rec *Record) *Response {
   r.records = append(r.records, rec)
   return r
 }
@@ -85,25 +60,38 @@ func (r *Response) Send() error {
   return nil
 }
 
-func (r *Response) send(n, c int, rec Record) error {
+func (r *Response) send(n, c int, rec *Record) error {
   // Block data
-  s := rec.String()
-  d := []byte(s)
-  cSum := 0
-  for _, v := range d {
-    cSum = (cSum + int(v)) & 0xFF
-  }
+  d := rec.Bytes()
+  cSum := rec.Sum()
 
   // Block of number/count length & checkSum of data wrapped in STX/ETX
   var b []byte
-  b = append(b, 0x02, byte(n+1), byte(c), byte(len(d)), byte(cSum))
-  b = append(b, d...)
-  //b = append(b, 0x03)
+  b = append(b, 0x02, byte(n+1), byte(c), byte(len(d)), cSum)
+
+  var b1 []byte
+  b1=append(b1,b[1:]...)
+  b1=append(b1,d...)
+
+  // Due to the Spectrum IF1 unable to read 0x00 values we have to add an encoding scheme.
+  // So of we have a 0 then we write 0xFF, 0x01.
+  // To support 0xFF we send 0xFF,0x02.
+  for _, e := range d {
+    switch e {
+    case 0:
+      b = append(b, 0xFF, 0x01)
+    case 0xff:
+      b = append(b, 0xFF, 0x02)
+    default:
+      b = append(b, e)
+    }
+  }
 
   v := []byte{0}
   for v[0] != 0x06 {
-    // Log and send the block
-    fmt.Printf("Send %02X %02X %02X %02X %s\n", b[1], b[2], b[3], b[4], s)
+    // Log and send the block data
+    debug(n, b1)
+
     _, err := r.o.Write(b)
     if err != nil {
       return err
@@ -116,8 +104,72 @@ func (r *Response) send(n, c int, rec Record) error {
       if err != nil {
         return err
       }
+      switch v[0] {
+      case 0x06:
+        //fmt.Println("ACK")
+      case 0x15:
+        fmt.Println("NAK")
+      default:
+        log.Printf("%02X %q", v[0], v[0])
+      }
     }
   }
 
   return nil
+}
+
+const (
+  debugWidth = 16 // Width in bytes
+)
+
+func debugHeader() {
+
+  fmt.Print("| Bk Of | ")
+  for j := 0; j < debugWidth; j++ {
+    fmt.Printf("+%X ", j)
+  }
+  fmt.Print("| ")
+  for j := 0; j < debugWidth; j++ {
+    fmt.Printf("%X", j)
+  }
+  fmt.Println(" |")
+
+  debugSep()
+}
+
+func debug(blockId int, b []byte) {
+  if (blockId % 8) == 0 {
+    debugHeader()
+  }
+
+  l := len(b) // total length
+
+  for i := 0; i < l; i += debugWidth {
+    fmt.Printf("| %02X %02X | ", blockId+1, i)
+    for j := 0; j < debugWidth; j++ {
+      p := i + j
+      if p >= l {
+        fmt.Print("   ")
+      } else {
+        fmt.Printf("%02X ", b[p])
+      }
+    }
+    fmt.Print("| ")
+    for j := 0; j < debugWidth; j++ {
+      p := i + j
+      if p >= l {
+        fmt.Print(" ")
+      } else if b[p] >= 0x20 && b[p] < 127 {
+        fmt.Printf("%c", b[p])
+      } else {
+        fmt.Print(".")
+      }
+    }
+    fmt.Println(" |")
+  }
+  debugSep()
+}
+
+func debugSep() {
+  fmt.Printf("+-------+-%s+-%s-+\n", strings.Repeat("-", 3*debugWidth), strings.Repeat("-", debugWidth))
 }

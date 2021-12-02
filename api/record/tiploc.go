@@ -1,7 +1,6 @@
 package record
 
 import (
-  "fmt"
   "github.com/peter-mount/departures8bit/api/command"
   "github.com/peter-mount/nre-feeds/darwinref"
   "sort"
@@ -12,11 +11,15 @@ type Tiploc struct {
   Loc   *darwinref.Location
 }
 
-func (t Tiploc) Record() command.Record {
-  return command.Record{
-    Type: fmt.Sprintf("T%02X", t.Index),
-    Data: t.Loc.Name,
-  }
+// Record generates the record
+//
+// 00 2 T#      Tiploc & index
+// 02 n string  Tiploc name
+//
+func (t Tiploc) Record() *command.Record {
+  return command.NewRecord().
+    Command('T', t.Index).
+    String(t.Loc.Name)
 }
 
 type TiplocMap struct {

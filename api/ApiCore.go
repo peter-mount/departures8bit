@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"github.com/peter-mount/departures8bit/api/command"
 	"github.com/peter-mount/go-kernel"
 	refclient "github.com/peter-mount/nre-feeds/darwinref/client"
@@ -30,16 +29,5 @@ func (a *ApiCore) Init(k *kernel.Kernel) error {
 func (a *ApiCore) PostInit() error {
 	a.refClient = refclient.DarwinRefClient{Url: "https://ref.prod.a51.li"}
 	a.ldbClient = ldbclient.DarwinLDBClient{Url: "https://ldb.prod.a51.li"}
-	return nil
-}
-
-func (a *ApiCore) Start() error {
-	//a.commands.OnConnect(a.connect)
-	return nil
-}
-
-func (a *ApiCore) connect(ctx context.Context) error {
-	command.GetResponse(ctx).
-		Inf("Welcome to ProjectArea51 nre-feeds")
 	return nil
 }

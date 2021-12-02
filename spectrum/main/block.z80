@@ -6,7 +6,7 @@ firstBlock:     LD      HL, 0x6000
                 RET
 
 ; Find next DEP block
-findDep:        LD      C, 'D'              ; STN record
+findDep:        LD      D, 'D'              ; STN record
                 JR      findNext
 
 findFirst:      CALL    firstBlock
@@ -16,11 +16,50 @@ l1:             PUSH    HL              ; IX=HL
                 POP     IX
 
                 LD      A, (IX+2)       ; Block len
-                CP      3
+                CP      1               ; Must have 1 byte to be valid
                 JR      C, nextB        ; Block too short
 
                 LD      A, (IX+4)       ; Test char 1
-                CP      C
+                CP      D
+                RET     Z               ; Prefix found
+
+nextB:          CALL    nextBlock       ; Next block
+                JR      NZ, l1          ; Loop until end
+
+end:            LD      A, 1            ; Clear Z
+                OR      A
+                RET
+#endlocal
+
+; Find a named block
+;
+; Entry:
+;   DE      2 char prefix
+;   HL      starting block
+;
+; Exit:
+;   Z       true if found
+;   HL      Address of found block, invalid if not found
+;   IX      As HL
+;
+findBlock:
+#local
+                CALL    lastBlock       ; Test if last block
+                JR      Z, end          ; All done
+
+l1:             PUSH    HL              ; IX=HL
+                POP     IX
+
+                LD      A, (IX+2)       ; Block len
+                CP      2               ; For this type we must have 2 bytes for the prefix
+                JR      C, nextB        ; Block too short
+
+                LD      A, (IX+4)       ; Test char 1
+                CP      D
+                JR      NZ, nextB       ; Failed char 1
+
+                LD      A, (IX+5)       ; Test char 2
+                CP      E
                 RET     Z               ; Prefix found
 
 nextB:          CALL    nextBlock       ; Next block
@@ -45,7 +84,7 @@ end:            LD      A, 1            ; Clear Z
 ;   IX      preserved
 ;
 findStation:    CALL    firstBlock
-                LD      C, 'S'              ; STN record
+                LD      D, 'S'              ; STN record
                 JP      findBlock
 
 ; Find tiploc
@@ -61,7 +100,7 @@ findStation:    CALL    firstBlock
 ;   IX      preserved
 ;
 findTiploc:     CALL    firstBlock
-                LD      C, 'T'
+                LD      D, 'T'
                 JP      findBlock
 
 ; Find tiploc name
@@ -83,7 +122,7 @@ findTiplocName:
                 JR      NZ, l1
                 PUSH    IX                  ; Point HL to tiploc name
                 POP     HL
-                LD      DE, 7               ; Tiploc name
+                LD      DE, 6               ; Tiploc name
                 ADD     HL, DE
 l1:             POP     IX
                 RET
