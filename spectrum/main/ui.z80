@@ -210,6 +210,32 @@ toUpper:    CP      'a'
             XOR     32
             RET
 
+;
+; Write a 0 prefixed 3 digit decimal number
+;
+; Entry:
+;   A       Value to display
+;
+; Exit:
+;   A       Corrupt
+;   B       Corrupt
+;
+showDecimal3:
+#local
+                LD      B, 0                ; Set hundreds as 0
+sd0:            CP      100                 ; If less than 100
+                JR      C, sd1              ; skip to display hundreds digit
+                INC     B                   ; Inc B, sub 10 from A
+                SUB     100
+                JR      sd0                 ; Loop for next test
+sd1:            PUSH    AF                  ; Save remainder
+                LD      A, '0'              ; Display tens, add ascii to B
+                ADD     B
+                CALL    oswrch              ; Display
+                POP     AF                  ; Restore remainder
+                ; run into showDecimal
+#endlocal
+;
 ; Write a 0 prefixed 2 digit decimal number
 ;
 ; Entry:
@@ -234,6 +260,51 @@ sd1:            PUSH    AF                  ; Save unit
                 POP     AF                  ; Restore unit
                 ADD     '0'                 ; convert to ascii
                 JR      osw                 ; display
+#endlocal
+
+; Write HL as a 4 character hex value
+;
+; Entry:
+;   HL      Value to display as hex
+;
+; Exit:
+;   HL      Unchanged
+;
+showHex16:  PUSH    AF
+            LD      A, H
+            CALL    showHex
+            LD      A, L
+            CALL    showHex
+            POP     AF
+            RET
+
+; Write A as a 2 character hex value
+;
+; Entry:
+;   A       Value to display as hex
+;
+; Exit:
+;   A       Unchanged
+;
+showHex:
+#local
+                PUSH    AF                  ; Save A
+                CALL    l0
+                POP     AF
+                RET
+l0:             PUSH    AF                  ; Common for showHex & showHex16
+                RRA                         ; Shift right 4
+                RRA
+                RRA
+                RRA
+                CALL    l1                  ; Show upper nibble
+                POP     AF                  ; Restore value to get lower nibble
+l1:             AND     0x0F                ; mask lower nibble
+                CP      10                  ; 0..9 then just add '0'
+                JR      C, l2
+                ADD     7                   ; Otherwise add 7 first then we get A..F
+l2:             ADD     48                  ; ASCII 0
+                JP      oswrch              ; write the character
 #endlocal
 
 ; New line

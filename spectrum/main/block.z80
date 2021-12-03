@@ -2,6 +2,59 @@
 ; Utility routines for processing blocks
 ; ----------------------------------------------------------------------
 
+; Get the address of the next block
+;
+; Entry:
+;   HL      Address of block
+;
+; Exit:
+;   A       Corrupt
+;   Z       true if no last block
+;   HL      Address of next block, 0 if no more
+;
+nextBlock:      CALL    lastBlock           ; Check we are the last block
+                RET     Z                   ; we are
+                LD      A, (HL)             ; LD HL, (HL)
+                INC     HL
+                LD      H, (HL)
+                LD      L, A                ; HL now next address
+                ; run into lastBlock to set Z
+
+; Check HL points to a block
+;
+; Entry:
+;   HL      Address of block or 0 if none
+;
+; Exit:
+;   A       Corrupt
+;   Z       true if no last block
+;   HL      Unchanged
+;
+lastBlock:      LD      A, H                ; Z true if HL is the last block
+                OR      L
+                RET
+
+; Count the number of blocks
+;
+; Entry:
+;   HL      Address of block to start
+;
+; Exit:
+;   A       Corrupt
+;   BC      Number of blocks
+;   HL      Unchanged
+;
+countBlocks:
+#local
+                LD      BC, 0               ; Reset count
+                CALL    lastBlock           ; Do nothing if at end
+                RET     Z
+l1:             INC     BC
+                CALL    nextBlock
+                JR      NZ, l1
+                RET
+#endlocal
+
 firstBlock:     LD      HL, 0x6000
                 RET
 
