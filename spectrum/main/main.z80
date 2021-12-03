@@ -37,5 +37,7 @@ homeMenu:
 #include "search.z80"
 #include "boards.z80"
 
+#include "config.z80"
+
 #include "ui.z80"
 #include "menu.z80"

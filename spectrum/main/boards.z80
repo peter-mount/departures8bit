@@ -40,6 +40,16 @@ crsDepartures:: LD      DE, test + 7        ; Copy CRS
 departures::    LD      HL, searchHeader
                 CALL    header              ; Clear screen & show header
 
+dReload:        LD      A, (refreshDelay)   ; Set refreshDelay
+                ADD     A                   ; convert to 0.5s
+                LD      (refreshCounter),A
+
+                LD      HL, searchText      ; Show searching
+                CALL    showPromptText
+
+                LD      HL, crsText         ; Show CRS
+                CALL    writeString
+
                 LD      HL, test            ; Send search command with pattern
                 CALL    networkSend
 
@@ -63,7 +73,10 @@ d2:             CALL    displayDep          ; Display it
                 JR      C, d1               ; Not full so loop to next departure
 
 k1:             CALL    showPrompt          ; So we have somewhere for the cursor
-                LD      B, 6                ; 3 seconds in halves
+
+                LD      A, (delayScreen)    ; Get page delay
+                ADD     A                   ; double as timeout is 0.5s
+                LD      B, A                ; We use B here
 
 k1_1:           PUSH    BC                  ; Save counter as getKeyFlash uses BC
                 CALL    getKeyFlash
@@ -71,6 +84,12 @@ k1_1:           PUSH    BC                  ; Save counter as getKeyFlash uses B
 
                 OR      A                   ; A=0 on timeout
                 JR      NZ, k2              ; We have a key
+
+                LD      A, (refreshCounter) ; Decrement refreshCounter
+                DEC     A
+                JR      Z, dReload          ; Reload the data when it expires
+                LD      (refreshCounter),A  ; Save new value of refreshCounter
+
                 DJNZ    k1_1                ; Loop until counter expires
 
                 CALL    getDeparture        ; Get next departure
@@ -166,17 +185,19 @@ dd3:            LD      A, (IX+9)           ; Expt Hour
 dd4:            POP     BC
                 RET
 
+searchText:     defb    "Searching...", 0
 searchHeader:   defb    "Departures", 0
 headers:        defb    31,5,3,131,141,"Destination",31,31,3,"Plat Expt"
                 defb    31,5,4,131,141,"Destination",31,31,4,"Plat Expt"
                 defb    0
 termHere:       defb    "Terminates here", 0
-test:           defb    "depart chx", 10, 0
+test:           defb    "depart "
+crsText:        defb    "chx", 10, 0
 
-topRow          equ     5           ; Row of start of display
+topRow:         equ     5           ; Row of start of display
 
-dispStation     defb    0           ; Tiploc of this station
-serviceId       defb    0           ; ID of service being displayed
-depRow          defb    0           ; Row on screen
-
+dispStation:    defb    0           ; Tiploc of this station
+serviceId:      defb    0           ; ID of service being displayed
+depRow:         defb    0           ; Row on screen
+refreshCounter: defb    0           ; counter used for timer
 #endlocal

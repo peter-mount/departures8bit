@@ -1,20 +1,40 @@
 ; ----------------------------------------------------------------------
 ; Interface 1 RS232 routines
 ; ----------------------------------------------------------------------
-#local
 
-; stubs until written
-if1Init::
+if1Init:
+#local
+        LD      A, (baudRate)   ; Get baud setting
+        ADD     A               ; Offset in table
+        LD      E, A
+        LD      D, 0
+
+        LD      HL, baud
+        ADD     HL, DE          ; Add to table
+
+        LD      A, (HL)         ; LD HL, (HL)
+        INC     HL
+        LD      H, (HL)
+        LD      L, A
+
+        LD      (if1Baud), HL   ; Set if1Baud to value
+        RET
 
         ;rst     8
         ;defb    0x31             ; Create the IF1 system variables area
 
         ;ld      hl,0x0036       ; 006E=1200 0036=2400 001A=4800 000C=9600 01BE=300
         ;LD      hl, 0x006E
-        LD      hl, 0x000C
-        ld      (if1Baud), hl     ; Set baud
+        ;LD      hl, 0x000C
+        ;ld      (if1Baud), hl     ; Set baud
 
-        ret
+        ;ret
+
+baud:   defw    0x01BE    ; 300
+        defw    0x006E    ; 1200
+        defw    0x0036    ; 2400
+        defw    0x001A    ; 4800
+        defw    0x000c    ; 9600
 
 #endlocal
 

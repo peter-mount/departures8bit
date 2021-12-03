@@ -1,0 +1,16 @@
+; ----------------------------------------------------------------------
+; Contains the config & UI to modify it
+; ----------------------------------------------------------------------
+
+                                ; Departure boards
+delayScreen:    defb    5       ; No seconds between screen change
+refreshDelay:   defb    60      ; No of seconds before refreshing data
+
+                                ; Networking
+baudRate:       defb    4       ; Baud rate
+
+baudText:       defb    " 300",0    ; Baud rate table to human values
+                defb    "1200",0
+                defb    "2400",0
+                defb    "4800",0
+                defb    "9600",0
