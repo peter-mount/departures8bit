@@ -97,3 +97,7 @@ testspectrump3: all
 # FIFO backend for spectrum
 testapififo: all
 	./builds/nrefeeds8bit -fifo-in fifo.in -fifo-out fifo.out
+
+# this is testspectrumif1 but used for video capture using OBS
+testspectrumobs:
+	fuse -g 3x --no-fastload --no-traps --no-accelerate-loader -m 48  --interface1 --rs232-tx fifo.in --rs232-rx fifo.out --no-rs232-handshake --no-auto-load -t builds/spectrum/depart.tzx

@@ -6,9 +6,38 @@
 #include "../../teletextspectrum/teletext.inc"
 
 #local
+
+; Clear display and show the departure screen for the station in the
+; result
+clsStation:
+                LD      D, 'S'              ; Find sole Station record
+                CALL    findFirst
+                JR      Z, cls0
+
+                LD      HL, searchHeader    ; Should not happen, use dummy title
+                JR      d1
+
+cls0:           LD      A, (IX+5)           ; Station tiploc
+                LD      (dispStation), A    ; Save copy for later
+                LD      E, A                ; Now search for the tiploc
+                CALL    findTiplocName
+                JR      Z, cls1             ; Found so display full name
+
+                PUSH    IX                  ; LD HL,IX
+                POP     HL
+                LD      DE, 6               ; use CRS as fallback
+                ADD     HL, DE
+cls1:           CALL    header              ; CLS & display station name
+
+                LD      HL, headers         ; Display column headers
+                JP      writeString
+
+; Entry point to set the CRS of the station before retrieval
 crsDepartures:: LD      DE, test + 7        ; Copy CRS
                 LD      BC, 3
                 LDIR
+
+; Entry point to retrieve the current station's departures
 departures::    LD      HL, searchHeader
                 CALL    header              ; Clear screen & show header
 
@@ -18,66 +47,84 @@ departures::    LD      HL, searchHeader
                 LD      HL, 0x6000          ; Get result
                 CALL    networkGetBlock
 
-                LD      D, 'S'              ; Find sole Station record
-                CALL    findFirst
-                RET     NZ                  ; Not found so bomb out
+; Entry point with preloaded stations
+depDisplay::    XOR     A                   ; Reset serviceId of first service to
+                LD      (serviceId), A      ; be displayed
 
-                LD      E, (IX+5)           ; Station tiploc
-                CALL    findTiplocName
-                JR      Z, d0               ; Found so display full name
+                CALL    clsStation          ; Clear screen & show station name
+                CALL    setTopRow           ; Start top row
 
-                PUSH    IX                  ; LD HL,IX
-                POP     HL
+d1:             CALL    getDeparture        ; Find current service
+                JR      NZ, k1              ; Not found so wait on keyboard
 
-                LD      DE, 6               ; use CRS as fallback
-                ADD     HL, DE
-d0:             CALL    header
+d2:             CALL    displayDep          ; Display it
 
-                LD      HL, headers         ; Column headers
-                CALL    writeString
+                LD      A, (depRow)         ; Have we reached the bottom of the screen?
+                CP      topRow+16           ;
+                JR      C, d1               ; Not full so loop to next departure
 
-                CALL    firstBlock          ; Now departures
-d1:             CALL    findDep             ; Find next departure
-                JR      NZ, k1
-                CALL    displayDep          ; Display it
-                CALL    nextBlock           ; move to next block
-                JR      d1                  ; loop for next departure
+k1:             LD      BC, 150             ; Timeout in ~3 seconds
+                CALL    getKeyTimeout       ; Get key
+                JR      C, k2               ; We have a key
+                JP      Z, main             ; Main menu on Break key
 
-k1:             CALL    getKey              ; Get key
-                RET     NC                  ; exit on break
+                CALL    setTopRow
+                CALL    getDeparture        ; Get next departure
+                JP      Z, d2               ; Found so resume loop
+                JR      depDisplay          ; no more so start from the start
+
+k2:             RET                         ; TODO handle keyboard
+
+setTopRow:      LD      A, topRow           ; Reset depRow with top of display
+                LD      (depRow), A
                 RET
 
-displayDep:     PUSH    HL
-                CALL    dd0
-                POP     HL
-                RET
-dd0:            LD      A, (IX+5)           ; Low nibble of dep
-                ADD     A                   ; A = A<<1
-                ADD     5
+getDeparture:   LD      D, 'D'              ; Find current service
+                LD      HL, serviceId       ; Get serviceId into E
+                LD      E, (HL)
+                INC     (HL)                ; Move to next serviceId
+                JP      findBlockStart
 
-                CP      23                  ; Don't go beyond bottom of display
-                RET     NC
+displayDep:     LD      A, (depRow)         ; Get row
+                LD      B, A                ; Copy to B
+                ADD     2                   ; Increment for next row
+                LD      (depRow), A         ; Update
 
-                LD      B,A
-                LD      C,0                 ; Top row
+                LD      C, 0                ; Top row of double height text
                 CALL    dd1
-                INC     B
+                INC     B                   ; Replicate for bottom row
 dd1:            PUSH    BC
                 CALL    teletextSetPos
                 LD      A, 141
                 CALL    oswrch
 
+                LD      A, (IX+6)           ; Planned dep Hour
+                CALL    showDecimal
+                LD      A, (IX+7)           ; Planned dep Minute
+                CALL    showDecimal
+
+                CALL    space               ; Extra space to avoid colour clash
+
                 PUSH    IX                  ; Save IX as we need a tiploc
-                LD      E, (IX+18)
-                CALL    findTiplocName
+                LD      E, (IX+18)          ; Get destination tiploc
+                LD      A, (dispStation)    ; Compare against the station
+                CP      E
+                JR      NZ, dd1_a           ; Not the station so lookup name
+
+                CALL    greenText
+                LD      HL, termHere        ; Use term here string
+                JR      dd1_b
+
+dd1_a:          CALL    findTiplocName
                 JR      NZ, dd2
-                CALL    writeString         ; Write it
+                CALL    whiteText
+dd1_b:          CALL    writeString         ; Write it
 dd2:            POP     IX                  ; Restore IX to departure record
 
                 POP     BC                  ; Platform
                 PUSH    BC
                 PUSH    HL                  ; Save HL
-                LD      C, 29
+                LD      C, 30
                 CALL    teletextSetPos
                 LD      A, 135
                 CALL    oswrch
@@ -89,25 +136,39 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 CALL    wstrb
                 POP     HL                  ; Restore HL
 
-                POP     BC                  ; Expected time
-                PUSH    BC
-                LD      C, 35
-                CALL    teletextSetPos
-                PUSH    IX
-                POP     HL
-                LD      DE, 7
-                ADD     HL, DE
-                LD      B, 5
-                ;CALL    wstrb
+                LD      A, (IX+0x19)        ; Look at delayed time MSB
+                OR      A
+                JR      Z, dd2_OT           ; On time
+                RRA                         ; Look at sign
+                JR      NC, dd2_Early       ; Negative delay so early
 
-                POP     BC
+                CALL    redText             ; Red for delayed
+                JR      dd3
+
+dd2_OT:         CALL    whiteText           ; White for on time
+                JR      dd3
+
+dd2_Early:      CALL    greenText           ; Green for early
+
+dd3:            LD      A, (IX+9)           ; Expt Hour
+                CALL    showDecimal
+                LD      A, (IX+10)          ; Expt Minute
+                CALL    showDecimal
+
+dd4:            POP     BC
                 RET
 
 searchHeader:   defb    "Departures", 0
-headers:        defb    31,0,3,131,141,"Deprt Destination",31,30,3,"Plat Expct"
-                defb    31,0,4,131,141,"Deprt Destination",31,30,4,"Plat Expct"
-                ; plat 24 Deprt 29 Expected 35
+headers:        defb    31,5,3,131,141,"Destination",31,31,3,"Plat Expt"
+                defb    31,5,4,131,141,"Destination",31,31,4,"Plat Expt"
                 defb    0
-test:           defb    "depart mde", 10, 0
+termHere:       defb    "Terminates here", 0
+test:           defb    "depart chx", 10, 0
+
+topRow          equ     5           ; Row of start of display
+
+dispStation     defb    0           ; Tiploc of this station
+serviceId       defb    0           ; ID of service being displayed
+depRow          defb    0           ; Row on screen
 
 #endlocal

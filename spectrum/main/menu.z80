@@ -34,24 +34,24 @@ showMenu::  CALL    header              ; Clear screen & show header
             LD      A, 140              ; Ensure single height, fixes issue with
             CALL    oswrch              ; header
 
-            LD      B, (HL)             ; Show Key labels
-            PUSH    BC                  ; Save row count
+            LD      B, (HL)             ; Get number of entries in B
+            PUSH    BC                  ; Save entry count
 l1:         INC     HL                  ; inc & save HL
             LD      A, (HL)             ; Write key then down to next line
             CALL    oswrch
-            CALL    backdown1           ; Back & Down 1 char
+            CALL    backdown1           ; Back & Down 1 char to move to next row
             DJNZ    l1                  ; Loop back
-            INC     HL                  ; Skip last entry so HL is first label
+            INC     HL                  ; Skip last entry so HL is now first label
 
-            POP     BC                  ; Get row count so we skip the vector
+            POP     BC                  ; Get entry count so we skip the vector
             PUSH    BC                  ; table for each option
-l1a:        INC     HL
+l1a:        INC     HL                  ; Skip 2 bytes for vector entry
             INC     HL
-            DJNZ    l1a
+            DJNZ    l1a                 ; Loop until all done
 
-            POP     BC                  ; Restore row count
-            LD      C, 0                ; Index of entry
-l2:         PUSH    BC                  ; Save B
+            POP     BC                  ; Restore entry count
+            LD      C, 0                ; Index of entry used for row position
+l2:         PUSH    BC                  ; Save BC
             PUSH    HL                  ; Save HL
             LD      A, 4                ; TAB(4,B+4)
             ADD     C
@@ -63,12 +63,12 @@ l2:         PUSH    BC                  ; Save B
 
             POP     HL                  ; Restore HL & write label
             CALL    writeString
-            POP     BC                  ; Restore B
+            POP     BC                  ; Restore BC
             INC     C                   ; next index
             DJNZ    l2                  ; Loop back
 
-l3:         CALL    getKey              ; Key next key
-            JP      NC, main            ; BREAK sends us to the main menu
+l3:         CALL    showPrompt          ; Show prompt so cursor has somewhere to flash
+            CALL    getKey              ; Get key press
             CALL    toUpper             ; to upper case
 
             LD      HL, (currentMenu)
@@ -96,10 +96,5 @@ l5:         LD      HL, (currentMenu)   ; Find the vector entry
             LD      H, (HL)
             LD      L, A
             JP      (HL)
-
-    ; A-B = index of required entry
-
-            SUB     B
-            ADD     A                   ; A<<1
 
 #endlocal

@@ -42,6 +42,7 @@ end:            LD      A, 1            ; Clear Z
 ;   HL      Address of found block, invalid if not found
 ;   IX      As HL
 ;
+findBlockStart: CALL    firstBlock
 findBlock:
 #local
                 CALL    lastBlock       ; Test if last block

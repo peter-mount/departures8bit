@@ -10,6 +10,7 @@ if1Init::
         ;defb    0x31             ; Create the IF1 system variables area
 
         ;ld      hl,0x0036       ; 006E=1200 0036=2400 001A=4800 000C=9600 01BE=300
+        ;LD      hl, 0x006E
         LD      hl, 0x000C
         ld      (if1Baud), hl     ; Set baud
 

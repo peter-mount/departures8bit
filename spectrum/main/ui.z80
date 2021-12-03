@@ -75,53 +75,58 @@ hdrTxt:     defb    31,0,1,132,157,135,141  ; Blue double height text
             defb    13,10,132,157,135,141,0
 #endlocal
 
-; New line
+; Shows the * prompt on top row clearing the line
 ;
 ; Exit:
 ;   A       Corrupt
-;
-newline:    LD      A, 13
-            CALL    oswrch
-            LD      A, 10
-linefeed:   JP      oswrch
+;   HL      Corrupt
+;   Cursor  at row 0 col 25
+showPrompt:
+#local
+            LD      HL, text
+            JP      writeString
+text:       defb 31,22,0,131,'*',135,'               ',31,25,0,0
+#endlocal
 
-space:      LD      A, 32
-            JP      oswrch
-; Back and down one char
-;
-; Exit:
-;   A       Corrupt
-;
-backdown1:  LD      A, 8
-            CALL    oswrch
-            LD      A, 10
-            JP      oswrch
+clearPrompt:
+#local
+            LD      HL, text
+            JP      writeString
+text:       defb 31,22,0,130,'                 ',31,23,0,0
+#endlocal
+
+; Clear prompt area and show string
+showPromptText:
+            PUSH    HL
+            CALL    clearPrompt
+            POP     HL
+            JP      writeString
 
 ; Get next key press
 ;
 ; Interrupts must be enabled as this relies on the system
 ; doing the decoding of the keyboard.
 ;
+; If break is pressed during the call then the application
+; will restart.
+;
 ; Exit:
-;   A       Key read if not a break
-;   Carry   set if A has character, reset if break pressed & A corrupt
-;   Z       reset
+;   A       Key read
+;   Carry   set
+;   BC      corrupt
 ;   HL      corrupt
 ;
 getKey:
-#local
-            LD      HL, 23560       ; LAST_K system variable
-            LD      (HL), 0         ; Reset variable
-getKey1:    CALL    testBreak       ; Test for break key
-            RET     NC              ; exit as we have break
-            LD      A, (HL)         ; Get value
-            OR      A
-            JR      Z, getKey1      ; Loop as no character
-            SCF                     ; Mark as valid key found
-            RET
-#endlocal
+            CALL    flashCursor     ; Flash cursor at current position
+            LD      BC, 25          ; Timeout after 0.5s
+            CALL    getKeyTimeout   ; Get key
+            RET     C               ; Exit as we have a key
+            JP      Z, main         ; Break restarts application
+            JR      getKey          ; Loop back as timeout is for the cursor
 
-; Like getKey but with a timeout
+; Get a key press. This will wait BC jiffies for a key press.
+; It will return with the character in A and C set or with
+; C reset then Z for break pressed and NZ for timeout.
 ;
 ; Interrupts must be enabled as this relies on the system
 ; doing the decoding of the keyboard.
@@ -153,18 +158,21 @@ getKeyTimeout:
             LD      HL, 23560       ; LAST_K system variable
             LD      (HL), 0         ; Reset variable
 l1:         CALL    testBreak       ; Test for break key
-            JR      C, l2           ; exit as we have break
-            XOR     A               ; Set Z to indicate break
-            CCF                     ; Clear carry flag
-            RET
+            JR      C, l2           ; Break not being pressed
+
+            LD      A, 0            ; Set Z to indicate break pressed
+            JR      lc
+
 l2:         LD      A, (HL)         ; Get value
             OR      A
             JR      NZ, le          ; Character found
+
             LD      A, (0x5C7A)     ; 3rd byte of FRAMES counter
             BIT     7, A            ; If set then we haven't rolled over yet
             JR      NZ, l1          ; Loop as not yet rolled over
+
             LD      A, 1            ; Clear Z
-            OR      A
+lc:         OR      A               ; Common exit with carry clear
             CCF                     ; Clear carry
             RET
 
@@ -228,12 +236,48 @@ sd1:            PUSH    AF                  ; Save unit
                 JR      osw                 ; display
 #endlocal
 
-; Shortcuts to set text colour
-redText:        LD      A, 129
+; New line
+;
+; Exit:
+;   A       Corrupt
+;
+backdown1:      CALL    backspace   ; Move back & down 1 char - see menu
+                JR      linefeed
+newline:        LD      A, 13       ; Start new line so CR, LF
+                CALL    oswrch
+linefeed:       LD      A, 10       ; Move down 1 char
                 JR      osw
-greenText:      LD      A, 130
+backspace:      LD      A, 8        ; Move left 1 char
                 JR      osw
-yellowText:     LD      A, 131
+space:          LD      A, 32       ; Space
                 JR      osw
-whiteText:      LD      A, 135
-osw:            JP      oswrch
+redText:        LD      A, 129      ; Teletext Red
+                JR      osw
+greenText:      LD      A, 130      ; Teletext Green
+                JR      osw
+yellowText:     LD      A, 131      ; Teletext Yellow
+                JR      osw
+whiteText:      LD      A, 135      ; Teletext White
+osw:            JP      oswrch      ; Shortcut so we can use JR
+
+tab:            LD      A, 31       ; VDU 31, b, c
+                CALL    oswrch
+                LD      A, B
+                CALL    oswrch
+                LD      A, C
+                JR      osw
+
+; Flash Cursor, will alternate between _ and ' ' at current position
+flashCursor:
+#local
+                LD      HL, cursorState
+                INC     (HL)
+                BIT     0, (HL)
+                JR      NZ, l1
+                CALL    space
+                JR      backspace
+l1:             LD      A, 0xF0
+                CALL    oswrch
+                JR      backspace
+cursorState:    defb    1
+#endlocal

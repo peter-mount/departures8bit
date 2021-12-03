@@ -149,8 +149,18 @@ l3:             LD      (HL), A             ; Store in buffer
 ;
 showBlock:
 #local
+  push hl
                 LD      HL, text            ; Prep title line
                 CALL    writeString
+
+  pop hl
+  ld    a, h
+  CALL hex
+  LD    a, l
+  call hex
+  ld a, 32
+  call oswrch
+
                 LD      A, (IX+0)           ; Block number
                 CALL    hex
                 LD      A, '/'              ; Separator
@@ -173,7 +183,7 @@ hex1:           AND     0x0F                ; mask lower nibble
                 ADD     7                   ; Otherwise add 7 first then we get A..F
 hex2:           ADD     48                  ; ASCII 0
                 JP      oswrch              ; write the character
-text:           defb    31,29,0,135, "Recv ", 0
+text:           defb    31,29,0,135, 0, "Recv ", 0
 #endlocal
 
 ; Get the address of the next block
