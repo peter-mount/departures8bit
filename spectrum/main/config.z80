@@ -5,7 +5,7 @@
                                 ; Departure boards
 delayScreen:    defb    5       ; No seconds between screen change
 refreshDelay:   defb    60      ; No of seconds before refreshing data
-showTerminate:  defb    0       ; Show terminating services
+showTerminate:  defb    01       ; Show terminating services
 
                                 ; Networking
 baudRate:       defb    4       ; Baud rate

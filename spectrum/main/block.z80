@@ -170,14 +170,33 @@ findTiploc:     CALL    firstBlock
 ;   IX      preserved
 ;
 findTiplocName:
-#local
                 PUSH    IX
                 CALL    findTiploc
-                JR      NZ, l1
+getBlockText:
+#local
+                JR      NZ, getBlockText2
                 PUSH    IX                  ; Point HL to tiploc name
                 POP     HL
                 LD      DE, 6               ; Tiploc name
                 ADD     HL, DE
-l1:             POP     IX
+                JR      getBlockText1
+getBlockText2:  LD      HL, 0
+getBlockText1:  POP     IX
                 RET
 #endlocal
+
+; Find tiploc name
+;
+; Entry:
+;   DE      reason code
+;
+; Exit:
+;   Z       true if found
+;   HL      address of name if found
+;   DE      corrupt
+;   IX      preserved
+;
+findReason:     PUSH    IX
+                LD      D, 'R'
+                CALL    findBlockStart
+                JR      getBlockText

@@ -121,14 +121,41 @@ displayDep:     LD      E, (IX+18)          ; Get destination tiploc
                 OR      A
                 RET     Z                   ; Do nothing if we are not showing them
 
-dd0:            LD      A, (depRow)         ; Get row
+dd0:            CALL    ddInc
+
+                CALL    dd1                 ; Top row of double height text
+
+                INC     B                   ; Replicate for bottom row
+                CALL    dd1
+
+                LD      A, (IX+0x15)        ; cancel reason
+                OR      A
+                JR      NZ, dd0R
+
+                LD      A, (IX+0x16)        ; We are delayed
+                OR      A
+                RET     Z                   ; We are neither
+
+dd0R:           LD      E, A                ; Copy code to E
+                CALL    findReason
+                LD      A, H                ; Do nothing if HL=0
+                OR      L
+                RET     Z
+
+                PUSH    HL                  ; M
+                CALL    ddInc               ; Reserve 2 more rows
+                CALL    teletextSetPos
+                POP     HL
+                JP      writeString
+                RET
+
+ddInc:          LD      A, (depRow)         ; Get row
                 LD      B, A                ; Copy to B
+                LD      C, 0
                 ADD     2                   ; Increment for next row
                 LD      (depRow), A         ; Update
+                RET
 
-                LD      C, 0                ; Top row of double height text
-                CALL    dd1
-                INC     B                   ; Replicate for bottom row
 dd1:            PUSH    BC
                 CALL    teletextSetPos
                 LD      A, 141
@@ -201,7 +228,7 @@ headers:        defb    31,5,3,131,141,"Destination",31,31,3,"Plat Expt"
                 defb    0
 termHere:       defb    "Terminates here", 0
 test:           defb    "depart "
-crsText:        defb    "chx", 10, 0
+crsText:        defb    "wae", 10, 0
 
 topRow:         equ     5           ; Row of start of display
 
