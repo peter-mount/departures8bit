@@ -112,7 +112,16 @@ getDeparture:   LD      D, 'D'              ; Find current service
                 INC     (HL)                ; Move to next serviceId
                 JP      findBlockStart
 
-displayDep:     LD      A, (depRow)         ; Get row
+displayDep:     LD      E, (IX+18)          ; Get destination tiploc
+                LD      A, (dispStation)    ; Compare against the station
+                CP      E
+                JR      NZ, dd0             ; Not terminating here
+
+                LD      A, (showTerminate)  ; Check showTerminate
+                OR      A
+                RET     Z                   ; Do nothing if we are not showing them
+
+dd0:            LD      A, (depRow)         ; Get row
                 LD      B, A                ; Copy to B
                 ADD     2                   ; Increment for next row
                 LD      (depRow), A         ; Update

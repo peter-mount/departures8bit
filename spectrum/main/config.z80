@@ -5,6 +5,7 @@
                                 ; Departure boards
 delayScreen:    defb    5       ; No seconds between screen change
 refreshDelay:   defb    60      ; No of seconds before refreshing data
+showTerminate:  defb    0       ; Show terminating services
 
                                 ; Networking
 baudRate:       defb    4       ; Baud rate
@@ -19,6 +20,7 @@ configMenu:
 
                 CALL    showPageDelay       ; Departure menu
                 CALL    showRefreshDelay
+                CALL    showTerm
 
                 CALL    showServer          ; Network menu
                 CALL    showBaud
@@ -36,7 +38,7 @@ setPageDelay:   LD      HL, delayScreen     ; Increment page delay
                 LD      D, 30               ; Max 30
                 LD      E, 2                ; Min 2
                 CALL    incValue
-                JP      showPageDelay
+                JR      showPageDelay
 
 setRefreshDelay:
                 LD      HL, refreshDelay    ; Increment data refresh
@@ -44,46 +46,69 @@ setRefreshDelay:
                 LD      D, 90               ; Max 90
                 LD      E, 30               ; Min 30
                 CALL    incValue
-                JP      showRefreshDelay
+                JR      showRefreshDelay
+
+setTerm:        LD      HL, showTerminate
+                LD      D, 1
+                CALL    incValue1
+                JR      showTerm
 
 setServer:      LD      HL, serverAddress
                 LD      D, 3
                 CALL    incValue1
-                JP      showServer          ; Update display
+                JR      showServer          ; Update display
 
 setBaud:        LD      HL, baudRate        ; Increment baud rate
                 LD      D, 4
                 CALL    incValue1
-                JP      showBaud            ; Update display
+                JR      showBaud            ; Update display
 
 showPageDelay:  LD      BC, 0x1305
-                CALL    tab
-                LD      A, (delayScreen)
-                JP      showDecimal
+                LD      HL, delayScreen
+                JR      showDval
 
 showRefreshDelay:
                 LD      BC, 0x1306
-                CALL    tab
-                LD      A, (refreshDelay)
-                JP      showDecimal
+                LD      HL, refreshDelay
+                JR      showDval
+
+showTerm:       LD      BC, 0x1207
+                LD      HL, showTerminate
+                JR      showDbool
 
 showServer:     LD      BC, 0x0F0B
-                CALL    tab
-                LD      A, (serverAddress)  ; Find label for setting
-                LD      HL, serverTable
-                CALL    searchText
-                JP      writeString         ; Write it
+                LD      HL, serverAddress
+                LD      DE, serverTable
+                JR      showDtab
 
 showBaud:       LD      BC, 0x100C
-                CALL    tab
-                LD      A, (baudRate)       ; Find label for setting
-                LD      HL, baudTable
-                CALL    searchText
-                JP      writeString         ; Write it
-
+                LD      HL, baudRate
+                LD      DE, baudTable
+                JR      showDtab
 
 exit:           POP     HL                  ; Dump return address so we can
                 RET                         ; return to the menu caller
+
+; Entry:
+;   HL      Address of var
+;   BC      position on screen
+showDval:       CALL    tab
+                LD      A, (HL)
+                JP      showDecimal
+
+showDtab:       CALL    tab
+                LD      A, (HL)
+                LD      HL, DE
+                CALL    searchText
+                JP      writeString
+
+showDbool:      CALL    tab
+                LD      A, (HL)
+                AND     1
+                LD      HL, textFalse
+                JR      z, showD0
+                LD      HL, textTrue
+showD0:         JP      writeString
 
 ; Inc a value
 ;
@@ -99,23 +124,26 @@ incValue:       LD      A, 0xFE     ; Shift?
                 RRA
 
                 LD      A, (HL)     ; Get value
-                JR      C, iv2      ; is shift pressed?
+                JR      C, iv2      ; is shift pressed then
+
+                OR      A           ; Special case if A currently 0
+                JR      Z, iv3      ; then set to max
+
                 SUB     B           ; Shift so decrease it
+                CP      E           ; Check against minimum
+                JR      NC, iv1
+                JR      Z, iv1
 
-                JR      iv3
-iv2:            ADD     B           ; Increase it
-
-iv3:            CP      E           ; Check against minimum
-                JR      NC, iv4
-
-                LD      A, D        ; Set to max
+iv3:            LD      A, D        ; Set to max
                 JR      iv1
 
-iv4:            CP      D
+iv2:            ADD     B           ; Increase it
+                CP      D
                 JR      C, iv1      ; Still in range
                 JR      Z, iv1
 
                 LD      A, E        ; reset to minimum
+
 iv1:            LD      (HL), A     ; Save new value
                 RET
 
@@ -126,7 +154,7 @@ title:          defb    "Configuration", 0
 text:           defb    31,0,4,0x9A,0x96, 0xBC,0xAC,0xAC,0xAC,0xAC,0xA4,"DEPARTURES", 0xA8,0xAC,0xAC,0xAC,0xAC, 0xEC,32, 135
                 defb    31,0,5,0x9A,0x96,0xB5,135,"D ",130,"Page Delay ",135, 31,22,5,0x96,0xEA,32,135
                 defb    31,0,6,0x9A,0x96,0xB5,135,"R ",130,"Refresh   ",135, 31,22,6,0x96,0xEA,32,135
-                defb    31,0,7,0x9A,0x96,0xB5,135, 31,22,7,0x96,0xEA,32,135
+                defb    31,0,7,0x9A,0x96,0xB5,135,"T ",130,"Show Term",135, 31,22,7,0x96,0xEA,32,135
                 defb    31,0,8,0x9A,0x96, 0xAD,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAE,32,135
                 ; Network menu
                 defb    31,0,10,0x9A,0x96, 0xBC,0xAC,0xAC,0xAC,0xAC,0xA4,"NETWORKING", 0xA8,0xAC,0xAC,0xAC,0xAC, 0xEC,32, 135
@@ -134,22 +162,28 @@ text:           defb    31,0,4,0x9A,0x96, 0xBC,0xAC,0xAC,0xAC,0xAC,0xA4,"DEPARTU
                 defb    31,0,12,0x9A,0x96,0xB5,135,"B ",130,"Baud    ",135, 31,22,12,0x96,0xEA,32,135
                 defb    31,0,13,0x9A,0x96, 0xAD,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAE,32,135
                 ; Quit
-                defb    31,0,23,135,8, 'Q ', 131, 'Quit menu'
+                defb    31,0,22,130, "Select to increase, shift to decrment"
+                defb    31,0,23,135, ' Q', 131, 'to exit menu'
                 defb    0
+
+textTrue:       defb    "Yes", 0
+textFalse:      defb    " No", 0
 
 serverTable:    defb    "Live  ", 0     ; Live
                 defb    "Test  ", 0     ; UAT
                 defb    "Local ", 0     ; Local via IP
                 defb    "Direct", 0     ; Local direct no IP
+
 baudTable:      defb    "  300",0
                 defb    " 1200",0
                 defb    " 2400",0
                 defb    " 4800",0
                 defb    " 9600",0
 
-menuTable:      defb    5, 'DRSBQ'
+menuTable:      defb    6, 'DRTSBQ'
                 defw    setPageDelay
                 defw    setRefreshDelay
+                defw    setTerm
                 defw    setServer
                 defw    setBaud
                 defw    exit
