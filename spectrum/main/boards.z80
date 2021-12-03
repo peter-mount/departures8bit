@@ -47,7 +47,7 @@ departures::    LD      HL, searchHeader
                 CALL    networkGetBlock
 
 ; Entry point with preloaded stations
-depDisplay::    XOR     A                   ; Reset serviceId of first service to
+d0:             XOR     A                   ; Reset serviceId of first service to
                 LD      (serviceId), A      ; be displayed
 
                 CALL    clsStation          ; Clear screen & show station name
@@ -62,15 +62,24 @@ d2:             CALL    displayDep          ; Display it
                 CP      topRow+16           ;
                 JR      C, d1               ; Not full so loop to next departure
 
-k1:             LD      BC, 150             ; Timeout in ~3 seconds
-                CALL    getKeyTimeout       ; Get key
-                JR      C, k2               ; We have a key
-                JP      Z, main             ; Main menu on Break key
+k1:             CALL    showPrompt          ; So we have somewhere for the cursor
+                LD      B, 6                ; 3 seconds in halves
 
-                CALL    setTopRow
+k1_1:           PUSH    BC                  ; Save counter as getKeyFlash uses BC
+                CALL    getKeyFlash
+                POP     BC
+
+                OR      A                   ; A=0 on timeout
+                JR      NZ, k2              ; We have a key
+                DJNZ    k1_1                ; Loop until counter expires
+
                 CALL    getDeparture        ; Get next departure
-                JP      Z, d2               ; Found so resume loop
-                JR      depDisplay          ; no more so start from the start
+                JP      NZ, d0              ; No more so start from the start
+                PUSH    IX                  ; Save IX as we need it for display
+                CALL    clsStation          ; Clear screen & show station name
+                CALL    setTopRow
+                POP     IX                  ; restore top departure
+                JR      d2                  ; now show it
 
 k2:             RET                         ; TODO handle keyboard
 

@@ -116,13 +116,14 @@ showPromptText:
 ;   BC      corrupt
 ;   HL      corrupt
 ;
-getKey:
+getKey:     CALL    getKeyFlash
+            JR      NC, getKey      ; Loop on timeout to flash cursor
+            RET
+
+getKeyFlash:                        ; getKey but doesn't loop on timeout
             CALL    flashCursor     ; Flash cursor at current position
             LD      BC, 25          ; Timeout after 0.5s
-            CALL    getKeyTimeout   ; Get key
-            RET     C               ; Exit as we have a key
-            JP      Z, main         ; Break restarts application
-            JR      getKey          ; Loop back as timeout is for the cursor
+            ; Run into getKeyTimeout
 
 ; Get a key press. This will wait BC jiffies for a key press.
 ; It will return with the character in A and C set or with
@@ -135,13 +136,9 @@ getKey:
 ;   BC      Delay in frames
 ;
 ; Exit:
-;   A       Key read if not a break
-;   Z       reset
+;   A       Key read if not a timeout
+;   Carry   set if key present, reset if timeout
 ;   HL      corrupt
-;
-; On break:     C clear, Z set
-; On timeout:   C clear, Z clear
-; On key:       C set
 ;
 getKeyTimeout:
 #local
@@ -158,12 +155,8 @@ getKeyTimeout:
             LD      HL, 23560       ; LAST_K system variable
             LD      (HL), 0         ; Reset variable
 l1:         CALL    testBreak       ; Test for break key
-            JR      C, l2           ; Break not being pressed
 
-            LD      A, 0            ; Set Z to indicate break pressed
-            JR      lc
-
-l2:         LD      A, (HL)         ; Get value
+l2:         LD      A, (HL)         ; Ge t value
             OR      A
             JR      NZ, le          ; Character found
 
@@ -171,9 +164,8 @@ l2:         LD      A, (HL)         ; Get value
             BIT     7, A            ; If set then we haven't rolled over yet
             JR      NZ, l1          ; Loop as not yet rolled over
 
-            LD      A, 1            ; Clear Z
-lc:         OR      A               ; Common exit with carry clear
-            CCF                     ; Clear carry
+            XOR     A               ; Set A to 0 as alternate to showing timeout
+            CCF                     ; Clear carry as primary timeout marker
             RET
 
 le:         SCF                     ; Mark as valid key found
@@ -190,10 +182,11 @@ testBreak:  LD      A, 0x7F         ; Test for Break key, first space
             IN      A, (0xFE)
             RRA
             RET     C               ; Space not pressed
-            LD      A, 0xFE         ; Test for Break key, first space
+            LD      A, 0xFE         ; Test for CAPS pressed
             IN      A, (0xFE)
             RRA
-            RET
+            RET     C               ; C means Space & caps pressed
+            JP      main            ; restart the app
 
 ; Convert A into upper case
 ;
