@@ -6,8 +6,14 @@
 
         ORG     0xe000
 
+;
+; Main entry point. This resets the application as far as possible,
+; so settings remain but is effectively a restart
 main:
 #local
+        LD      SP, 0x5FFF                      ; Set stack for 0x5D00-5FFF
+                                                ; which is basic loader.
+
         LD      HL, homeMenu                    ; Show main menu
         call    showMenu
         jp      main                            ; Any call that returns loops
