@@ -4,9 +4,6 @@
 
 #include "../../teletextspectrum/teletext.inc"
 
-#local
-currentMenu:    defw    0               ; Address of menu being displayed
-
 ; Display a menu and wait for user to make a selection
 ;
 ; The menu definition is:
@@ -23,7 +20,9 @@ currentMenu:    defw    0               ; Address of menu being displayed
 ;   B       Index in menu of selected option
 ;   Carry   true if valid, false if break
 ;
-showMenu::  CALL    header              ; Clear screen & show header
+showMenu:
+#local
+            CALL    header              ; Clear screen & show header
             LD      (currentMenu), HL   ; Save start of actual menu
 
             PUSH    HL
@@ -69,19 +68,46 @@ l2:         PUSH    BC                  ; Save BC
 
 l3:         CALL    showPrompt          ; Show prompt so cursor has somewhere to flash
             CALL    getKey              ; Get key press
+            CALL    menuLookup1         ; Lookup char to menu vector entry
+            JR      Z, l3               ; Loop as no entry found
+            JP      (HL)                ; Jump to handler
+
+#endlocal
+
+; Convert A to a pointer in table HL
+tableLookup:
+            PUSH    DE
+            LD      E, A
+            LD      D, 0
+            ADD     HL, DE              ; Skip entry keys
+            POP     DE
+            RET
+
+; Lookup key in A and return HL with value
+;
+; Entry:
+;   A       Key to lookup
+menuLookup: LD      (currentMenu), HL   ; Save HL
+
+menuLookup1:                            ; Entry point using current menu
+#local
             CALL    toUpper             ; to upper case
 
-            LD      HL, (currentMenu)
-            LD      B, (HL)
-l4:         INC     HL
+            LD      HL, (currentMenu)   ; Start from currentMenu
+            LD      B, (HL)             ; Entry count
+l0:         INC     HL                  ; Next key
             LD      C, (HL)
-            CP      C
-            SCF                         ; Mark carry set incase match
-            JR      Z, l5               ; Key match so look up address
-            DJNZ    l4                  ; Loop for next potential match
-            JP      l3                  ; Not found so loop for next key press
+            CP      C                   ; Compare A to key
+            JR      Z, l3               ; Key match so look up address
+            DJNZ    l0                  ; Loop for next potential match
 
-l5:         LD      HL, (currentMenu)   ; Find the vector entry
+            LD      HL, 0               ; Not found so reset HL
+
+l2:         LD      A, H                ; Test HL is not 0 to set Z
+            OR      L
+            RET
+
+l3:         LD      HL, (currentMenu)   ; Find the vector entry
             LD      E, (HL)             ; Entry count
             LD      D, 0
             INC     HL                  ; Skip entry count
@@ -95,6 +121,8 @@ l5:         LD      HL, (currentMenu)   ; Find the vector entry
             INC     HL
             LD      H, (HL)
             LD      L, A
-            JP      (HL)
+            JR      l2                  ; Exit setting Z if HL=0
 
 #endlocal
+
+currentMenu:    defw    0               ; Address of menu being displayed

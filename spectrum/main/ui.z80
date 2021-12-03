@@ -14,13 +14,26 @@
 ;
 strLen:
 #local
-            LD  B, 0                    ; Get string length in B
-strLen1:    LD  A,(HL)
-            INC HL
-            AND A
-            RET Z
-            INC B
-            JR strLen1
+            LD      B, 0
+strLen1:    LD      A, (HL)     ; Get character
+            INC     HL          ; HL to next char
+            AND     A           ; stop if null found, HL points after null
+            RET     Z
+            INC     B           ; Increment B & loop
+            JR      strLen1
+#endlocal
+
+; Returns the A'th string in a set
+searchText:
+#local
+            OR      A           ; Check if A is 0
+            RET     Z           ; it is so HL already valid
+            LD      B, A        ; B for DJNZ
+l1:         PUSH    BC          ; Save B
+            CALL    strLen      ; This also moves HL to after current string
+            POP     BC          ; restore B as we don't need it
+            DJNZ    l1          ; Loop
+            RET
 #endlocal
 
 ; Clear screen with our title at the top left of screen

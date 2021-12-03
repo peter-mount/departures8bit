@@ -23,10 +23,12 @@ main:
 
 homeMenu:
         defb    'Live UK Departure Boards', 0   ; Menu title
-        defb    2                               ; No entries
-        defb    'SD'                            ; Key options per entry
-        defw    searchStation                   ; Entry points per entry
+        defb    3                               ; No entries
+        defb    'CSD'                           ; Key options per entry
+        defw    configMenu                      ; Entry points per entry
+        defw    searchStation
         defw    departures
+        defb    "Configuration", 0
         defb    "Search for Station", 0         ; Option text per entry
         defb    "Display departures at station", 0
 #endlocal

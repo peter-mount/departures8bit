@@ -8,9 +8,150 @@ refreshDelay:   defb    60      ; No of seconds before refreshing data
 
                                 ; Networking
 baudRate:       defb    4       ; Baud rate
+serverAddress:  defb    3       ; Server address
 
-baudText:       defb    " 300",0    ; Baud rate table to human values
-                defb    "1200",0
-                defb    "2400",0
-                defb    "4800",0
-                defb    "9600",0
+configMenu:
+#local
+                LD      HL, title
+                CALL    header              ; Clear screen & show header
+                LD      HL, text            ; Show static text
+                CALL    writeString
+
+                CALL    showPageDelay       ; Departure menu
+                CALL    showRefreshDelay
+
+                CALL    showServer          ; Network menu
+                CALL    showBaud
+
+configLoop:     CALL    showPrompt          ; Show prompt so cursor has somewhere to flash
+                CALL    getKey              ; Get key press
+                LD      HL, menuTable       ; Lookup against our vector table
+                CALL    menuLookup          ; Lookup char to menu vector entry
+                CALL    NZ, cl1             ; Call handler
+                JR      configLoop          ; Loop as no entry found
+cl1:            JP      (HL)                ; Jump to handler
+
+setPageDelay:   LD      HL, delayScreen     ; Increment page delay
+                LD      B, 1                ; Inc by 1
+                LD      D, 30               ; Max 30
+                LD      E, 2                ; Min 2
+                CALL    incValue
+                JP      showPageDelay
+
+setRefreshDelay:
+                LD      HL, refreshDelay    ; Increment data refresh
+                LD      B, 10               ; Inc by 10
+                LD      D, 90               ; Max 90
+                LD      E, 30               ; Min 30
+                CALL    incValue
+                JP      showRefreshDelay
+
+setServer:      LD      HL, serverAddress
+                LD      D, 3
+                CALL    incValue1
+                JP      showServer          ; Update display
+
+setBaud:        LD      HL, baudRate        ; Increment baud rate
+                LD      D, 4
+                CALL    incValue1
+                JP      showBaud            ; Update display
+
+showPageDelay:  LD      BC, 0x1305
+                CALL    tab
+                LD      A, (delayScreen)
+                JP      showDecimal
+
+showRefreshDelay:
+                LD      BC, 0x1306
+                CALL    tab
+                LD      A, (refreshDelay)
+                JP      showDecimal
+
+showServer:     LD      BC, 0x0F0B
+                CALL    tab
+                LD      A, (serverAddress)  ; Find label for setting
+                LD      HL, serverTable
+                CALL    searchText
+                JP      writeString         ; Write it
+
+showBaud:       LD      BC, 0x100C
+                CALL    tab
+                LD      A, (baudRate)       ; Find label for setting
+                LD      HL, baudTable
+                CALL    searchText
+                JP      writeString         ; Write it
+
+
+exit:           POP     HL                  ; Dump return address so we can
+                RET                         ; return to the menu caller
+
+; Inc a value
+;
+; Entry:
+;   HL      Address of variable
+;   B       Amount to increase by
+;   D       Max value
+;   E       Min value
+incValue1:      LD      B, 1        ; Inc by 1 entry point
+                LD      E, 0        ; 0 default min
+incValue:       LD      A, 0xFE     ; Shift?
+                IN      A, (0xFE)
+                RRA
+
+                LD      A, (HL)     ; Get value
+                JR      C, iv2      ; is shift pressed?
+                SUB     B           ; Shift so decrease it
+
+                JR      iv3
+iv2:            ADD     B           ; Increase it
+
+iv3:            CP      E           ; Check against minimum
+                JR      NC, iv4
+
+                LD      A, D        ; Set to max
+                JR      iv1
+
+iv4:            CP      D
+                JR      C, iv1      ; Still in range
+                JR      Z, iv1
+
+                LD      A, E        ; reset to minimum
+iv1:            LD      (HL), A     ; Save new value
+                RET
+
+                ; Menu title
+title:          defb    "Configuration", 0
+
+                ; Static text
+text:           defb    31,0,4,0x9A,0x96, 0xBC,0xAC,0xAC,0xAC,0xAC,0xA4,"DEPARTURES", 0xA8,0xAC,0xAC,0xAC,0xAC, 0xEC,32, 135
+                defb    31,0,5,0x9A,0x96,0xB5,135,"D ",130,"Page Delay ",135, 31,22,5,0x96,0xEA,32,135
+                defb    31,0,6,0x9A,0x96,0xB5,135,"R ",130,"Refresh   ",135, 31,22,6,0x96,0xEA,32,135
+                defb    31,0,7,0x9A,0x96,0xB5,135, 31,22,7,0x96,0xEA,32,135
+                defb    31,0,8,0x9A,0x96, 0xAD,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAE,32,135
+                ; Network menu
+                defb    31,0,10,0x9A,0x96, 0xBC,0xAC,0xAC,0xAC,0xAC,0xA4,"NETWORKING", 0xA8,0xAC,0xAC,0xAC,0xAC, 0xEC,32, 135
+                defb    31,0,11,0x9A,0x96,0xB5,135,"S ",130,"Server ",135, 31,22,11,0x96,0xEA,32,135
+                defb    31,0,12,0x9A,0x96,0xB5,135,"B ",130,"Baud    ",135, 31,22,12,0x96,0xEA,32,135
+                defb    31,0,13,0x9A,0x96, 0xAD,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAC,0xAE,32,135
+                ; Quit
+                defb    31,0,23,135,8, 'Q ', 131, 'Quit menu'
+                defb    0
+
+serverTable:    defb    "Live  ", 0     ; Live
+                defb    "Test  ", 0     ; UAT
+                defb    "Local ", 0     ; Local via IP
+                defb    "Direct", 0     ; Local direct no IP
+baudTable:      defb    "  300",0
+                defb    " 1200",0
+                defb    " 2400",0
+                defb    " 4800",0
+                defb    " 9600",0
+
+menuTable:      defb    5, 'DRSBQ'
+                defw    setPageDelay
+                defw    setRefreshDelay
+                defw    setServer
+                defw    setBaud
+                defw    exit
+
+#endlocal
