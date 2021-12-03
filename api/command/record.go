@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/peter-mount/nre-feeds/util"
 	"time"
 )
 
@@ -71,6 +72,24 @@ func (r *Record) Word(v ...int) *Record {
 	return r
 }
 
+func (r *Record) SignedWord(v ...int) *Record {
+	for _, e := range v {
+		n := e
+		s := false
+		if n < 0 {
+			n = -n
+			s = true
+		}
+		h := e & 0x7f
+		if s {
+			h = h + 0x80
+		}
+		l := (e >> 8) & 0xff
+		r.Append(byte(l), byte(h))
+	}
+	return r
+}
+
 func (r *Record) Long(v ...int) *Record {
 	for _, e := range v {
 		r.Append(byte(e&0xff), byte((e>>8)&0xff), byte((e>>16)&0xff), byte((e>>24)&0xff))
@@ -80,4 +99,9 @@ func (r *Record) Long(v ...int) *Record {
 
 func (r *Record) Time(t time.Time) *Record {
 	return r.Byte(t.Hour(), t.Minute(), t.Second())
+}
+
+func (r *Record) WorkingTime(t util.WorkingTime) *Record {
+	it := t.Get()
+	return r.Byte(it/3600, (it/60)%60, it%60)
 }

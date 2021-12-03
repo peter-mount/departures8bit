@@ -4,29 +4,32 @@ import (
 	"github.com/peter-mount/departures8bit/api/command"
 	"github.com/peter-mount/nre-feeds/ldb"
 	"github.com/peter-mount/nre-feeds/util"
-	"time"
 )
 
 type Service struct {
-	Index       int
-	RID         string
-	Time        util.WorkingTime
-	Origin      int
-	Destination int
-	Terminates  int
-	SSD         util.SSD
-	TrainId     string
-	Toc         string
-	Type        string // P=passenger, C=charter
-	Cancel      int
-	Late        int
-	Plat        string
+	Index       int              // Index in response
+	RID         string           // RID
+	DTime       util.WorkingTime // Planed departure time
+	Time        util.WorkingTime // Expected departure time
+	Origin      int              // Origin tiploc
+	Destination int              // Destination tiploc
+	Terminates  int              // Termination tiploc, overrides destination
+	SSD         util.SSD         // SSD
+	TrainId     string           // TrainId aka head code
+	Toc         string           // TOC
+	Type        string           // P=passenger, C=charter
+	Cancel      int              // Cancel reason, 0=none
+	Late        int              // Late reason, 0=none
+	Plat        string           // Platform
+	Delay       int              // Delay in minutes
 }
 
 func NewService(i int, s ldb.Service, m *TiplocMap) Service {
+	s.Location.Times.UpdateTime()
 	r := Service{
 		Index:       i,
 		RID:         s.RID,
+		DTime:       s.Location.Times.PublicTime,
 		Time:        s.Location.Time,
 		Origin:      m.Get(s.Origin.Tiploc).Index,
 		Destination: m.Get(s.Dest.Tiploc).Index,
@@ -36,6 +39,7 @@ func NewService(i int, s ldb.Service, m *TiplocMap) Service {
 		Toc:         s.Toc,
 		Cancel:      s.CancelReason.Reason,
 		Late:        s.LateReason.Reason,
+		Delay:       s.Location.Delay / 60,
 	}
 
 	if !s.Location.Forecast.Platform.Suppressed && !s.Location.Forecast.Platform.CISSuppressed {
@@ -66,15 +70,27 @@ func NewService(i int, s ldb.Service, m *TiplocMap) Service {
 // 17 2 late    Late reason, 0=none
 //
 func (t Service) Record() *command.Record {
+
+	// Right align the platform but leave space on right as rarely used (SHIP)
+	// and on Spectrum causes colour clash
+	p := t.Plat
+	switch len(p) {
+	case 1:
+		p = "  " + p
+	case 2:
+		p = " " + p
+	}
+
 	return command.NewRecord().
 		Command('D', t.Index).
-		Time(t.Time.Time(time.Now())).
-		Time(t.Time.Time(time.Now())).
-		StringN(t.Plat, 4, ' ').
+		WorkingTime(t.DTime).
+		WorkingTime(t.Time).
+		StringN(p, 4, ' ').
 		Byte(t.Origin).
 		Byte(t.Destination).
 		Byte(t.Terminates).
 		StringN(t.Type, 1, ' ').
 		Word(t.Cancel).
-		Word(t.Late)
+		Word(t.Late).
+		SignedWord(t.Delay)
 }
