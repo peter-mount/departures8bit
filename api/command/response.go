@@ -65,34 +65,32 @@ func (r *Response) send(n, c int, rec *Record) error {
 	d := rec.Bytes()
 	cSum := rec.Sum()
 
-	// Block of number/count length & checkSum of data wrapped in STX/ETX
+	// Block of number/count length & checkSum of data with STX at start
 	var b []byte
 	b = append(b, 0x02, byte(n+1), byte(c), byte(len(d)), cSum)
-
-	var b1 []byte
-	b1 = append(b1, b[1:]...)
-	b1 = append(b1, d...)
+	b = append(b, d...)
 
 	// Due to the Spectrum IF1 unable to read 0x00 values we have to add an encoding scheme.
 	// So of we have a 0 then we write 0xFF, 0x01.
 	// To support 0xFF we send 0xFF,0x02.
-	for _, e := range d {
+	var b1 []byte
+	for _, e := range b {
 		switch e {
 		case 0:
-			b = append(b, 0xFF, 0x01)
+			b1 = append(b1, 0xFF, 0x01)
 		case 0xff:
-			b = append(b, 0xFF, 0x02)
+			b1 = append(b1, 0xFF, 0x02)
 		default:
-			b = append(b, e)
+			b1 = append(b1, e)
 		}
 	}
 
 	v := []byte{0}
 	for v[0] != 0x06 {
 		// Log and send the block data
-		debug(n, b1)
+		debug(n, b)
 
-		_, err := r.o.Write(b)
+		_, err := r.o.Write(b1)
 		if err != nil {
 			return err
 		}
