@@ -14,7 +14,8 @@ main:
         LD      SP, 0x5FFF      ; Set stack for 0x5DC0-5FFF which is the loader.
                                 ; 5B00-5CFF reserved for system
                                 ; 5D00-5DBF BASIC but probably safe for stack
-                                ;
+
+        CALL    networkInit     ; Initialise network
 
         LD      HL, homeMenu    ; Show main menu
         call    showMenu
@@ -32,6 +33,7 @@ homeMenu:
         defb    "Display departures at station", 0
 #endlocal
 
+#include "network/network.z80"
 #include "network.z80"
 #include "block.z80"
 #include "search.z80"

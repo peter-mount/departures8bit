@@ -2,8 +2,6 @@
 ; Network menu
 ; ----------------------------------------------------------------------
 
-#include "../network/network.inc"
-
 networkMenu:
 #local
         LD      HL, netMenu

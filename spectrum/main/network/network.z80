@@ -1,0 +1,60 @@
+; ----------------------------------------------------------------------
+; Network module for ZX Spectrum
+;
+; This handles the RS232 communications
+; ----------------------------------------------------------------------
+
+; ----------------------------------------------------------------------
+; Init Network module
+; ----------------------------------------------------------------------
+networkInit:
+#local
+                    CALL    detectMachine       ; Check machine type
+                    JR      NZ, l1              ; init the 128K port
+                    LD      HL, vt48            ; Copy interface 1 vectors over
+                    LD      DE, vtp3            ; the +3 ones so they are active
+                    LD      BC, vtend-vtp3      ; Length of vectors unique to an interface
+                    LDIR                        ; Replace default with IF1 vectors
+l1:                                             ; Runs into the vector table which 1st entry is the init vector
+#endlocal
+
+vtp3:                                   ; Vector table - initial is 128K version but gets overwritten with IF1 on 48K
+                    jp  p3Init          ; Internal init vector for +3 or IF1
+networkClose:       jp  p3Close         ; 128K/plus3 vectors, default
+networkGet:         jp  p3Get
+networkPut:         jp  p3Put
+vtend:                                  ; End of +3 specific, so vt48 will overwrite up to here
+
+                                        ; Interface1 specific vectors, gets written to vtp3 on init
+vt48:               jp if1Init          ; IF1 init
+                    jp if1Close         ; 48k matches layout of vtp3, will get
+                    jp if1Get           ; copied over vtp3 on start to switch the
+                    jp if1Put           ; code to use Interface 1
+
+; Send null terminated string to remote host
+networkSend:        LD      A, (HL)         ; Get current char
+                    OR      A
+                    RET     Z               ; stop if null
+                    CALL    networkPut      ; send
+                    INC     HL              ; next char
+                    JR      networkSend     ; Loop
+
+#include "plus3/plus3.z80"
+#include "if1/if1.z80"
+#include "machinetype.z80"
+#include "block.z80"
+
+; Get a line terminated with an LF and store at 0xFF00
+networkGetLine:     CALL    ngl3
+ngl1:               CALL    networkGet
+                    JR      NC, ngl1
+                    CALL oswrch
+                    CP      10
+                    JR      Z, ngl2
+                    LD      (HL), A
+                    INC     HL
+                    JR      ngl1
+ngl2:               LD      A, 0
+                    LD      (HL), A
+ngl3:               LD      HL, 0xFF00
+                    RET

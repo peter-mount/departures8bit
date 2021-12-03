@@ -21,6 +21,5 @@
 
     ORG     0x6200
     defb    "splash", 0xFF      ; Example splash screen
-    defb    "network", 0xFF     ; Loads the networking
     defb    "main", 0xFF        ; The main application
     defb    0xFF                ; Terminate list

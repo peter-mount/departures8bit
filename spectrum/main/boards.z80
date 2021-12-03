@@ -2,7 +2,6 @@
 ; Display station departures
 ; ----------------------------------------------------------------------
 
-#include "../network/network.inc"
 #include "../../teletextspectrum/teletext.inc"
 
 #local

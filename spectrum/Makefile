@@ -16,14 +16,10 @@ all: $(DSK) $(TAP) $(TZX)
 
 clean:
 	@$(MAKE) -C main clean
-	@$(MAKE) -C network clean
 	@$(RM) *.lst *.rom *.tzx *.tap *.dsk
 
 main:
 	@$(MAKE) -C main all
-
-network:
-	@$(MAKE) -C network all
 
 splash.rom: splash.z80
 
@@ -31,12 +27,12 @@ manifest.rom: manifest.z80
 
 $(DSK): network splash.rom manifest.rom main
 	@cp $(TELETEXT_BASE)/teletext.dsk $@
-	@specfile -dsk $@ manifest.rom 0x6200 splash.rom 0xFB00 network/network.rom 0xEC00 main/main.rom 0xe000
+	@specfile -dsk $@ manifest.rom 0x6200 splash.rom 0xFB00 main/main.rom 0xe000
 
 $(TZX): network splash.rom main
-	@specfile -tzx departures.tzx splash.rom 0xFB00 network/network.rom 0xEC00 main/main.rom 0xe000
+	@specfile -tzx departures.tzx splash.rom 0xFB00 main/main.rom 0xe000
 	@cat $(TELETEXT_BASE)/teletext.tzx departures.tzx >$@
 
 $(TAP): network splash.rom main
-	@specfile -tap departures.tap splash.rom 0xFB00 network/network.rom 0xEC00 main/main.rom 0xe000
+	@specfile -tap departures.tap splash.rom 0xFB00 main/main.rom 0xe000
 	@cat $(TELETEXT_BASE)/teletext.tap departures.tap >$@

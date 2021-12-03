@@ -19,7 +19,7 @@
 ; Exit:
 ;   HL          Address after the end of the response
 ;
-getResponse:
+networkGetBlock:
 #local
                 LD      (curPos), HL        ; Save initial position
 
@@ -28,11 +28,11 @@ l1:             LD      HL, (curPos)        ; Get current position
                 JR      Z, ack              ; Valid block
 
                 LD      A, 0x15             ; NAK the block
-                CALL    netPut
+                CALL    networkPut
                 JR      l1                  ; Wait for the block to be resent
 
 ack:            LD      A, 0x06             ; ACK the block
-                CALL    netPut
+                CALL    networkPut
 
                 LD      A, (IX+0)           ; Block number
                 CP      (IX+1)              ; Block count
@@ -47,7 +47,7 @@ ack:            LD      A, 0x06             ; ACK the block
 
 l2:             LD      (IX+0), L           ; HL is address for next block so store it
                 LD      (IX+1), H           ; over the block ID's to point to next block
-                JR      getResponse         ; Loop for the next block, use entry point as HL is new start
+                JR      networkGetBlock     ; Loop for the next block, use entry point as HL is new start
 
 curPos:         defw    0                   ; Current position
 text:           defb    31,29,0,130, "Completed ", 0
@@ -66,10 +66,10 @@ text:           defb    31,29,0,130, "Completed ", 0
 ;   IX      Start of block
 ;   Z       flag set if checksum matches header value
 ;
-netGetBlock:    CALL    netGet              ; Loop until we have STX 0x02
+netGetBlock:    CALL    networkGet          ; Loop until we have STX 0x02
                 JR      NC, netGetBlock     ; No byte received
                 CP      0x02                ; Test for STX
-                JR      NZ, netGetBlock
+                JR      NZ, netGetBlock     ; Loop until STX
 
                 PUSH    HL                  ; Copy HL into IX but LD IX, HL doesn't exist
                 POP     IX
@@ -118,13 +118,13 @@ netGetBlock:    CALL    netGet              ; Loop until we have STX 0x02
 getBytes:       LD      B, A                ; Set B with the byte count
                 LD      C, 0                ; Reset checksum
 #local
-l1:             CALL    netGet              ; Get byte from serial
+l1:             CALL    networkGet          ; Get byte from serial
                 JR      NC, l1              ; Loop if we don't have one
 
                 CP      0xFF                ; Escape character?
                 JR      NZ, l3              ; Skip as plain value
 
-l2:             CALL    netGet              ; Get escape byte from serial
+l2:             CALL    networkGet          ; Get escape byte from serial
                 JR      NC, l2              ; Loop if we don't have one
 
                 DEC     A                   ; 0x01 = escaped 0

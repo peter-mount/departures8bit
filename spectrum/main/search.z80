@@ -2,7 +2,6 @@
 ; Search for station
 ; ----------------------------------------------------------------------
 
-#include "../network/network.inc"
 #include "../../teletextspectrum/teletext.inc"
 
 searchStation:
