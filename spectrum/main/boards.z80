@@ -59,11 +59,17 @@ dReload:        LD      A, (refreshDelay)   ; Set refreshDelay
 ; Entry point with preloaded stations
 d0:             XOR     A                   ; Reset serviceId of first service to
                 LD      (serviceId), A      ; be displayed
+                LD      (messageId), A      ; Also reset messages
 
                 CALL    clsStation          ; Clear screen & show station name
                 CALL    setTopRow           ; Start top row
 
-d1:             CALL    getDeparture        ; Find current service
+d1:             CALL    getMessage          ; Get message
+                JR      NZ, d1_1            ; Skip to departures if none
+d1_0:           CALL    displayMessage      ; Display message
+                JR      k1                  ; Jump to keyboard
+
+d1_1:           CALL    getDeparture        ; Find current service
                 JR      NZ, k1              ; Not found so wait on keyboard
 
 d2:             CALL    displayDep          ; Display it
@@ -91,6 +97,9 @@ k1_1:           PUSH    BC                  ; Save counter as getKeyFlash uses B
                 LD      (refreshCounter),A  ; Save new value of refreshCounter
 
                 DJNZ    k1_1                ; Loop until counter expires
+
+                CALL    getMessage          ; Get next message
+                JR      Z, d1_0             ; Jump to display if we have one
 
                 CALL    getDeparture        ; Get next departure
                 JP      NZ, d0              ; No more so start from the start
@@ -221,6 +230,23 @@ dd3:            LD      A, (IX+9)           ; Expt Hour
 dd4:            POP     BC
                 RET
 
+getMessage:     LD      D, 'M'              ; Find current service
+                LD      HL, messageId       ; Get messageId into E
+                LD      E, (HL)
+                INC     (HL)                ; Move to next serviceId
+                JP      findBlockStart
+
+displayMessage: PUSH    HL
+                PUSH    IX
+                CALL    clsStation
+                LD      BC, 0x0600
+                CALL    teletextSetPos
+                POP     IX
+                POP     HL
+                LD      DE, 0x0A
+                ADD     HL, DE
+                JP      writeString
+
 searchText:     defb    "Searching...", 0
 searchHeader:   defb    "Departures", 0
 headers:        defb    31,5,3,131,141,"Destination",31,31,3,"Plat Expt"
@@ -234,6 +260,7 @@ topRow:         equ     5           ; Row of start of display
 
 dispStation:    defb    0           ; Tiploc of this station
 serviceId:      defb    0           ; ID of service being displayed
+messageId:      defb    0           ; Message id being displayed
 depRow:         defb    0           ; Row on screen
 refreshCounter: defb    0           ; counter used for timer
 #endlocal
