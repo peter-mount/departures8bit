@@ -214,13 +214,22 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 RRA                         ; Look at sign
                 JR      NC, dd2_Early       ; Negative delay so early
 
+                LD      A, (IX+0x18)        ; Check LSB if within 60s then
+                CP      60                  ; It's ontime.
+                JR      C, dd2_OT
                 CALL    redText             ; Red for delayed
                 JR      dd3
 
-dd2_OT:         CALL    whiteText           ; White for on time
+dd2_Early:      LD      A, (IX+0x18)        ; Check LSB if within 60s then
+                CP      -59                 ; it's ontime
+                JR      NZ, dd2_OT
+                CALL    greenText           ; Green for early
                 JR      dd3
 
-dd2_Early:      CALL    greenText           ; Green for early
+dd2_OT:         CALL    whiteText           ; White for on time
+                LD      HL, ontime
+                CALL    writeString
+                JR      dd4
 
 dd3:            LD      A, (IX+9)           ; Expt Hour
                 CALL    showDecimal
@@ -252,9 +261,10 @@ searchHeader:   defb    "Departures", 0
 headers:        defb    31,5,3,131,141,"Destination",31,31,3,"Plat Expt"
                 defb    31,5,4,131,141,"Destination",31,31,4,"Plat Expt"
                 defb    0
+ontime:         defb    "OT",0
 termHere:       defb    "Terminates here", 0
 test:           defb    "depart "
-crsText:        defb    "wae", 10, 0
+crsText:        defb    "chx", 10, 0
 
 topRow:         equ     5           ; Row of start of display
 
