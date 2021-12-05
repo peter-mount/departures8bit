@@ -11,7 +11,7 @@
 ; so settings remain but is effectively a restart
 main:
 #local
-        LD      SP, 0x5FFF      ; Set stack for 0x5DC0-5FFF which is the loader.
+        LD      SP, 0xFEFF      ; Set stack for 0x5DC0-5FFF which is the loader.
                                 ; 5B00-5CFF reserved for system
                                 ; 5D00-5DBF BASIC but probably safe for stack
 
