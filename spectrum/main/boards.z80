@@ -209,8 +209,6 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 POP     HL                  ; Restore HL
 
                 LD      A, (IX+0x19)        ; Look at delayed time MSB
-                OR      A
-                JR      Z, dd2_OT           ; On time
                 RRA                         ; Look at sign
                 JR      NC, dd2_Early       ; Negative delay so early
 
@@ -221,8 +219,8 @@ dd2:            POP     IX                  ; Restore IX to departure record
                 JR      dd3
 
 dd2_Early:      LD      A, (IX+0x18)        ; Check LSB if within 60s then
-                CP      -59                 ; it's ontime
-                JR      NZ, dd2_OT
+                CP      256-59                 ; it's ontime
+                JR      NC, dd2_OT
                 CALL    greenText           ; Green for early
                 JR      dd3
 
